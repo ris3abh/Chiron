@@ -68,6 +68,19 @@ def month_rows(month=None):
     return rows
 
 
+def month_chars(model, month=None):
+    """Characters spoken this month on one voice model."""
+    month = month or time.strftime('%Y-%m')
+    return sum(r['chars'] for r in paths.read_jsonl(paths.USAGE) if r.get('model') == model and _month(r.get('at')) == month
+               and isinstance(r.get('chars'), int) and not isinstance(r.get('chars'), bool))
+
+
+def billable_chars(model, chars):
+    """How many of these characters are past the voice's monthly free tier: only those cost anything or count toward the cap."""
+    free = (price_for(model) or {}).get('free_chars', 0)
+    return max(0, month_chars(model) + chars - free) - max(0, month_chars(model) - free)
+
+
 def month_total(month=None):
     return round(sum(max(0.0, r['usd']) for r in month_rows(month)), 5)
 

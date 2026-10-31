@@ -38,6 +38,15 @@ class VoiceBrainTest(unittest.TestCase):
         self.assertEqual(opened[:3], [['open', 'https://www.youtube.com']] * 3)
         self.assertEqual(opened[3], ['open', 'https://www.youtube.com/results?search_query=news'])
 
+    def test_every_log_row_names_its_outcome(self):
+        o = brain.turn_outcome
+        self.assertEqual(o('completed', [], 'instant', 'instant'), 'did')
+        self.assertEqual(o('completed', ['<Read>', '<WebSearch>'], 'haiku', 'model'), 'question')
+        self.assertEqual(o('completed', ['open https://x.com'], 'haiku', 'model'), 'did')
+        self.assertEqual(o('failed', ['open https://x.com'], 'haiku', 'model'), 'failed')
+        self.assertEqual(o('cancelled', [], 'haiku', 'model'), 'failed')
+        self.assertEqual(o('completed', [], 'haiku', 'model', 'taught'), 'taught')
+
     def test_say_that_again_replays_the_last_reply_with_no_ai(self):
         self.write('log.jsonl', [{'task': 'a', 'reply': 'first'}, {'task': 'b', 'reply': 'Opened Notes.'}, {'task': 'c', 'status': 'running'}])
         self.assertEqual(brain.fast('फिर से बोलो'), 'Opened Notes.')

@@ -32,6 +32,12 @@ class ConversationsTest(unittest.TestCase):
         self.assertEqual([t['q'] for t in out[2]['turns']], ['open Notes', 'what is a PDF'])
         self.assertEqual(out[0]['turns'][0]['steps'], ['Clicking “Play”'])
 
+    def test_the_log_rows_own_outcome_wins_over_any_guess(self):
+        paths.append_jsonl(paths.LOG, {'id': 'z', 'at': '2030-01-01 09:00:00', 'task': 'teach me', 'reply': 'Done', 'outcome': 'taught', 'model': 'instant'})
+        paths.append_jsonl(paths.LOG, {'id': 'y', 'at': '2030-01-02 09:00:00', 'task': 'send it', 'reply': 'No', 'outcome': 'failed', 'steps': ['Clicking “Send”']})
+        out = conversations.listing()
+        self.assertEqual([g['outcome'] for g in out[:2]], ['failed', 'taught'])
+
     def test_old_chats_join_without_repeating_logged_asks(self):
         paths.private_json('chats.json', [{'id': 'x', 'created': 1700000000, 'turns': [{'q': 'old question', 'a': 'old answer'}]},
                                           {'id': 'y', 'created': 1700000000, 'turns': [{'q': 'what is RAM', 'a': 'Memory.'}]}, 'garbage'])

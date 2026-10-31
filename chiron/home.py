@@ -7,7 +7,7 @@ import pwd
 import time
 from datetime import datetime, timedelta
 
-from chiron import conversations, i18n, jev, paths, providers, tts, usage
+from chiron import conversations, i18n, jev, paths, providers, skills, tts, usage
 
 RECENT = 10
 ACTIVITY_DAYS = 112   # 16 weeks: the Insights heatmap
@@ -131,10 +131,11 @@ def state():
     return {
         'lang': code,
         'name': name(),
-        'today': {'kind': 'none'},   # Practice fills this from Phase 4
+        'today': skills.suggestion(code),   # a starter lesson; Practice fills this from Phase 4
         'words': words(),
         'spend': {'month_usd': usage.month_total(), 'cap_usd': usage.cap(), 'by_engine': usage.by_engine(), 'over': usage.over_cap()},
         'recent': recent(),
+        'skills': skills.home(),
         'dictations': dictations(),
         'activity': activity(),
         'connections': connections(),

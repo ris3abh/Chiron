@@ -1,0 +1,154 @@
+{
+ "id": "whatsapp-photo",
+ "title": {
+  "en": "Send a photo on WhatsApp Web",
+  "hi": "WhatsApp Web पर फ़ोटो भेजना"
+ },
+ "app": "WhatsApp",
+ "asked": [
+  "send a photo on whatsapp",
+  "send a photo on whatsapp web"
+ ],
+ "steps": [
+  {
+   "id": "s1",
+   "concept": "open-app",
+   "say": {
+    "en": "Click the round Google Chrome icon at the bottom of the screen.",
+    "hi": "स्क्रीन के नीचे Google Chrome का गोल आइकन दबाइए।"
+   },
+   "target": {
+    "app": "Dock",
+    "label": "Google Chrome",
+    "role": "AXDockItem"
+   },
+   "expect": "Google Chrome is open and frontmost",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s2",
+   "concept": "address-bar",
+   "say": {
+    "en": "Click the long bar at the top, type web.whatsapp.com and press Return.",
+    "hi": "ऊपर की लंबी पट्टी पर क्लिक कीजिए, web.whatsapp.com लिखिए और Return दबाइए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Address and search bar",
+    "role": "AXTextField"
+   },
+   "expect": "WhatsApp Web is showing the list of chats",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s3",
+   "concept": "click-result",
+   "say": {
+    "en": "Click the name of the person in the list on the left.",
+    "hi": "बाईं ओर की सूची में उस व्यक्ति के नाम पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Chat list",
+    "role": "AXList"
+   },
+   "expect": "A chat with one person is open",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s4",
+   "concept": "attach-file",
+   "say": {
+    "en": "Click the plus sign next to the message box.",
+    "hi": "संदेश बॉक्स के पास प्लस के निशान पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Attach",
+    "role": "AXButton"
+   },
+   "expect": "The attach menu is open",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s5",
+   "concept": "attach-file",
+   "say": {
+    "en": "Click Photos & videos, then choose your photo and click Open.",
+    "hi": "Photos & videos पर क्लिक कीजिए, फिर अपनी फ़ोटो चुनकर Open दबाइए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Photos & videos",
+    "role": "AXMenuItem"
+   },
+   "expect": "A preview of the photo is showing",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s6",
+   "concept": "click-result",
+   "say": {
+    "en": "Look at the photo. When you are happy, click the green Send button.",
+    "hi": "फ़ोटो देख लीजिए। ठीक लगे तो हरा Send बटन दबाइए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Send",
+    "role": "AXButton"
+   },
+   "expect": "The photo appears in the chat",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  }
+ ],
+ "version": 1,
+ "mastery": 0
+}

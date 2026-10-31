@@ -21,6 +21,10 @@ if 'brain' not in _sys.modules:
     _sys.modules['brain'] = _brain
     _spec.loader.exec_module(_brain)
 
+# The router may call Jev or Haiku, and tests make no network calls: asks go straight to the main path unless a test opts in.
+_sys.modules['brain'].real_routed_ask = _sys.modules['brain'].routed_ask
+_sys.modules['brain'].routed_ask = lambda task: None
+
 # A test subprocess has no tests/__init__: this line, first in its -c code, loads the brain as `brain` too.
 LOAD_BRAIN = ("import importlib.util as _u,sys as _s;_p=_u.spec_from_file_location('brain',%r);brain=_s.modules['brain']=_u.module_from_spec(_p);"
               "_p.loader.exec_module(brain)\n" % str(ROOT / 'chiron.py'))

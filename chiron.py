@@ -1744,6 +1744,80 @@ def opened_site(url, name):
     return f'Opened {SITE_NAMES.get(name, name)}.'
 
 
+def routed_ask(task):
+    """router.py after fast(): a lesson to run, or a saved skill done with no AI. None hands the ask to the main model, which is gated as ever.
+    -> (reply, outcome, usd, lesson or None)"""
+    from chiron import lessons, providers, router
+    if not pref('draw', True): return None
+    try: route = router.route(task)
+    except (OSError, ValueError, KeyError): return None
+    card = route['card']
+    if route['mode'] == 'teach':
+        usd = 0.0
+        if not card:
+            say('·', i18n.t('lesson.planning'))
+            try: card, usd = lessons.plan(task, window_summary(os.environ.get('CHIRON_FRONT', '')) or '')
+            except (ValueError, OSError, RuntimeError, providers.ProviderError):
+                return None   # couldn't plan it: the main ask answers instead
+        lesson = {'card': card, 'slots': route['slots'], 'usd': usd, 'id': TURN.get('id', ''), 'lang': i18n.lang()}
+        return i18n.pick(card['title']), 'taught', usd, lesson
+    if route['mode'] == 'do' and card:
+        done = do_card(card, route['slots'])
+        return None if done is None else (done, 'did', 0.0, None)
+    return None
+
+
+def do_card(card, slots):
+    """A saved skill with no AI. A saved command runs through risky(), each step through Hands; both stop at the Allow card. None: let the model try."""
+    from chiron import skills as cards
+    title = i18n.pick(card['title'])
+    for cmd in card.get('cmds') or []:
+        command = cards.fill(cmd, slots)
+        question = risky(command)
+        if question and pref('safe', True) and ask_user({'q': question, 'cmd': command[:800]}, 60) != 'y':
+            return i18n.t('lesson.notDone', title=title)
+        if subprocess.run(command, shell=True, capture_output=True, timeout=30).returncode: return None
+        return i18n.t('lesson.did', title=title)
+    return None
+
+
+def emit_lesson(lesson):
+    print('🎓 ' + json.dumps(lesson, ensure_ascii=False), flush=True)
+
+
+def lesson_tool(args):
+    """The native runner's calls: --lesson check|hint|risky|end, JSON on stdin."""
+    from chiron import jev, lessons, providers, skills as cards
+    data = json.load(sys.stdin)
+    step = data.get('step') or {}
+    if args == ['check']:
+        target = (step.get('target') or {}).get('app', '')
+        try: return print(json.dumps(lessons.check(step, window_summary('' if target == 'Dock' else target) or '')))
+        except (OSError, ValueError, RuntimeError, jev.JevError, providers.ProviderError):
+            return print(json.dumps({'result': 'unsure', 'fault': '', 'confidence': 0, 'engine': ''}))
+    if args == ['hint']:
+        return print(json.dumps({'text': lessons.hint(step, data.get('fault'))}, ensure_ascii=False))
+    if args == ['risky']:
+        return print(json.dumps({'q': lessons.risky_step(step)}, ensure_ascii=False))
+    if args == ['do']:
+        state_dir = tempfile.mkdtemp(prefix='chiron-hands-lesson-')
+        atexit.register(shutil.rmtree, state_dir, True)
+        os.environ['CHIRON_HANDS_STATE'] = os.path.join(state_dir, 'hands.json')
+        hands('see')   # Hands acts only on a map it has just read
+        result, ok = hands('click', str(data.get('label') or ''))
+        return print(json.dumps({'ok': bool(ok), 'text': str(result)[:200]}, ensure_ascii=False))
+    if args == ['end']:
+        card, finished = data['card'], bool(data.get('finished'))
+        row = cards.record(card, data.get('steps') or [], finished=finished, usd=float(data.get('usd') or 0))
+        if data.get('id'):   # a later row with the same id replaces the ask's: a stopped lesson reads as unfinished
+            paths.append_jsonl(paths.LOG, {'id': data['id'], 'at': data.get('at') or time.strftime('%Y-%m-%d %H:%M:%S'), 'task': data.get('task') or i18n.pick(card['title']),
+                                           'reply': i18n.t('lesson.saved' if finished else 'lesson.stopped', title=i18n.pick(card['title'])), 'usd': float(data.get('usd') or 0),
+                                           'model': 'haiku' if data.get('usd') else 'instant', 'path': 'lesson', 'status': 'completed', 'steps': [str(s.get('say', '')) for s in data.get('steps') or []],
+                                           'outcome': 'taught' if finished else 'failed'})
+        return print(json.dumps({'mastery': row['mastery_after']}))
+    sys.exit(2)
+
+
 def last_spoken():
     """The newest finished reply, for "say that again": no AI, and None when there is nothing to repeat."""
     rows = [r for r in paths.read_jsonl(paths.LOG) if isinstance(r.get('reply'), str) and r['reply'].strip()]
@@ -2276,6 +2350,8 @@ def hands(*args):
                     return False
             if check.get('risky') and pref('safe', True):
                 what = ' → '.join(labels) or args[0]
+                if os.environ.get('CHIRON_ALLOWED_CLICK') and args[:2] == ['click', os.environ['CHIRON_ALLOWED_CLICK']] and not os.environ.get('CHIRON_ASK'):
+                    return True   # the lesson runner's own Allow card already answered for exactly this click; the gate refuses any CHIRON_ variable from the model
                 if not os.environ.get('CHIRON_ASK'):
                     denied.append(f'Safe mode: {args[0]} "{what}" needs the user’s Allow card.')
                     return False
@@ -2841,7 +2917,19 @@ def end_turn(status='cancelled', emit=True):
 atexit.register(end_turn)
 
 
-def log_turn(task, reply, started, cost=0, steps=0, ran=(), pics=0, *, model=None, path='model', escalated=False, escalate_why=None, attempt_usd=None, attempt_usage=None):
+OUTCOMES = ('did', 'taught', 'practiced', 'question', 'failed')
+
+
+def turn_outcome(status, ran, model, path, outcome=None):
+    """What this ask came to, for Conversations: named by whoever knows (a lesson says taught), else from what actually ran."""
+    if outcome in OUTCOMES: return outcome
+    if status in ('failed', 'cancelled', 'not_handled'): return 'failed'
+    if model == 'instant' or path in ('instant', 'shortcut'): return 'did'
+    acted = [c for c in ran if c not in ('<Read>', '<WebSearch>', '<WebFetch>') and not helper_read_command(c)]
+    return 'did' if acted else 'question'
+
+
+def log_turn(task, reply, started, cost=0, steps=0, ran=(), pics=0, *, outcome=None, model=None, path='model', escalated=False, escalate_why=None, attempt_usd=None, attempt_usage=None):
     status = TURN.get('status', 'completed')
     model = model or TURN.get('model') or main_model()
     attempt_usd = list(attempt_usd) if attempt_usd is not None else ([] if model == 'instant' else [cost])
@@ -2851,6 +2939,7 @@ def log_turn(task, reply, started, cost=0, steps=0, ran=(), pics=0, *, model=Non
            'pics': pics, 'cursor': os.environ.get('CHIRON_CARET') == '1', 'model': model, 'path': path, 'escalated': bool(escalated),
            'escalate_why': escalate_why if escalated else None, 'attempt_usd': attempt_usd,
            'attempt_usage': list(attempt_usage) if attempt_usage is not None else list(TURN.get('attempt_usage', []))}
+    row['outcome'] = turn_outcome(status, row['ran'], model, path, outcome)
     if TURN and TURN.get('task') == task:
         TURN.update(row, status='completed' if status == 'running' else status,
                     confirmed=not os.environ.get('CHIRON_COMMIT') or os.path.exists(os.environ['CHIRON_COMMIT']))
@@ -4594,6 +4683,8 @@ def main():
         except ValueError: request = {}
         try: return print(json.dumps(home.do(args[1], request), ensure_ascii=False))
         except KeyError: print(json.dumps({'error': 'unknown method ' + args[1]})); return sys.exit(2)
+    if args[:1] == ['--lesson']:
+        return lesson_tool(args[1:])
     if args[:1] == ['--speak']:   # a reply read aloud with the cloud voice; Swift starts it and ends it on the talk key or Esc
         from chiron import tts
         return tts.main(args[1:])
@@ -4704,6 +4795,14 @@ def main():
                  path='shortcut' if getattr(fast, 'shortcut', None) else 'instant', attempt_usd=[])
         return say('!' if quick.startswith('The user said no.') else '✓', quick)
     failed_replay = None if quick or not isinstance(getattr(fast, 'failed', None), dict) else fast.failed
+    routed = None if marked or done or failed_replay or not wait_commit() else routed_ask(task)
+    if routed is not None:
+        if reading_started: reading.join()
+        if warm: stop_claude(warm)
+        reply, outcome, usd, lesson = routed
+        log_turn(task, reply, t, usd, model='instant' if not usd else 'haiku', path='lesson' if lesson else 'shortcut', outcome=outcome, attempt_usd=[usd] if usd else [])
+        if lesson: return emit_lesson(lesson)
+        return say('✓', reply)
     if failed_replay: say('▸', 'The shortcut did not work. Redoing it')
     if done: task += INTERNAL_TASK_MARKERS[0] + ' ' + ' '.join(done) + INTERNAL_TASK_MARKERS[1] + ' ' + (remaining or '') + '\nDo only the remaining goal; check before repeating completed actions.'
     if reading_started: atexit.register(reading.join, .3)

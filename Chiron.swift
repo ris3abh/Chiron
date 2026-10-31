@@ -1115,6 +1115,11 @@ final class ScreenDrawing {
     var status: ((String) -> Void)?
     var speechEnabled: () -> Bool = { false }
     var speakStep: (String) -> Process? = { _ in nil }   // a caption: the cloud voice through its cache, or silence
+    // A lesson (app/Lesson.swift) runs one step at a time and decides itself what a click means.
+    var lessonStep: (n: Int, total: Int)?, onHit: (() -> Void)?, onMiss: ((CGPoint) -> Void)?
+    var onLessonStop: (() -> Void)?, onLessonBack: (() -> Void)?, onLessonNext: (() -> Void)?, onShowMe: (() -> Void)?
+    var lessonCard: ((CGRect,CGRect,NSRectEdge?,CGFloat,String,Int,Int) -> NSView)?, lessonSize: (String) -> CGSize = { _ in .zero }
+    func clearLesson() { lessonStep = nil; onHit = nil; onMiss = nil; clear() }
     var active: Bool { request != nil }
     var hasInput: Bool { inputMode || !inputPath.isEmpty }
     var summary: [String:Any]? {   // what is on screen, for the next ask to build on
@@ -1275,11 +1280,13 @@ final class ScreenDrawing {
     }
     @discardableResult func receive(_ data: Data) -> Bool {
         guard let r = try? JSONDecoder().decode(DrawingRequest.self,from:data), Self.valid(r), Self.onDisplays(r) else { return false }
-        clear(); request = r; index = 0
+        let lesson = (lessonStep, onHit, onMiss)
+        clear(); request = r; index = 0; (lessonStep, onHit, onMiss) = lesson
         board = Self.board(r.steps,near:shapeBounds(r.steps.flatMap { $0.shapes.filter { $0.kind != "text" } }) ?? r.target.bounds)
         let click: (NSEvent) -> Void = { [weak self] event in
             guard let self, event.window !== calloutPanel, !panels.contains(where: { $0 === event.window }), let point = event.cgEvent?.location else { return }   // a click on a mark selects it, never the app under it
             if request?.teaching == true { return }
+            if onHit != nil { clicked(point); return }
             guard let target else { return }
             let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly,kCGNullWindowID) as? [[String:Any]] ?? []
             let clickedWindow = windows.first { info in
@@ -1404,7 +1411,8 @@ final class ScreenDrawing {
         func display(_ s: NSScreen) -> CGRect { CGDisplayBounds(s.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? CGMainDisplayID()) }
         guard let screen = screens.first(where: { display($0).contains(CGPoint(x:marks.midX,y:marks.midY)) }) ?? NSScreen.main ?? screens.first else { return }
         let v = screen.visibleFrame, area = CGRect(x:v.minX,y:top-v.maxY,width:v.width,height:v.height).insetBy(dx:12,dy:12)
-        var size = DrawingCalloutView.size(text,total:total); size.width = min(size.width,area.width); size.height = min(size.height,area.height)
+        let teaching = lessonStep
+        var size = teaching != nil ? lessonSize(text) : DrawingCalloutView.size(text,total:total); size.width = min(size.width,area.width); size.height = min(size.height,area.height)
         let (card,side) = Self.calloutFrame(size,marks:marks,avoid:avoid,in:area)
         let frame = card.insetBy(dx:-DrawingCalloutView.margin,dy:-DrawingCalloutView.margin)   // Quartz points; the margin holds the notch and shadow
         let local = card.offsetBy(dx:-frame.minX,dy:-frame.minY)
@@ -1419,6 +1427,7 @@ final class ScreenDrawing {
         callout.onNext = { [weak self] in self?.next() }
         callout.onBack = { [weak self] in self?.back() }
         panel.contentView = callout; calloutPanel = panel
+        if let teaching, let card = lessonCard?(CGRect(origin:.zero,size:frame.size),local,side,tip,text,teaching.n,teaching.total) { panel.contentView = card }
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { panel.orderFrontRegardless() }
         else { panel.alphaValue = 0; panel.orderFrontRegardless(); NSAnimationContext.runAnimationGroup { $0.duration = 0.18; panel.animator().alphaValue = 1 } }
     }
@@ -1441,7 +1450,7 @@ final class ScreenDrawing {
             } catch { status?("The screen changed. Ask again to continue."); clear(); return }
         }
         guard let target else { clear(); return }
-        if !r.teaching || index == 0 {
+        if onHit == nil, !r.teaching || index == 0 {
             guard Self.current(target) else { clear(); return }
         }
         let animate = forward && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -1489,6 +1498,7 @@ final class ScreenDrawing {
         changed?()
     }
     func advance() {
+        if let onHit { onHit(); return }
         guard let r = request else { return }
         if index+1 < r.steps.count { index += 1; showStep() } else if !r.teaching { clear() }
     }
@@ -1504,7 +1514,7 @@ final class ScreenDrawing {
     func clicked(_ point: CGPoint) {
         guard let r = request, Date() >= ready else { return }
         let step = r.steps[index]
-        guard step.wait != true || hit?.contains(point) == true else { return }
+        guard step.wait != true || hit?.contains(point) == true else { onMiss?(point); return }
         advance()
     }
     static func current(_ target: DrawingWindow) -> Bool {
@@ -1516,6 +1526,7 @@ final class ScreenDrawing {
     func tick() {
         guard let r = request, let target else { return }
         hoverMarks()
+        if onHit != nil { return }   // a lesson's own checks say when a step is done, not a window id or a clock
         if !r.teaching {
             guard Self.current(target) else { status?("The screen changed. Ask again to continue."); clear(); return }
             if Date() >= deadline { clear(); return }
@@ -1858,6 +1869,12 @@ final class App: NSObject, WKScriptMessageHandler {
         drawing.status = { [weak self] words in self?.js("msg",words) }
         drawing.speechEnabled = { Prefs.bool("speak") }
         drawing.speakStep = { [weak self] words in self?.speakCaption(words) }
+        drawing.lessonSize = LessonCalloutView.size
+        drawing.lessonCard = { [weak drawing] frame, card, side, tip, text, n, total in
+            let view = LessonCalloutView(frame: frame, card: card, side: side, tip: tip, text: text, step: n, total: total)
+            view.back = { drawing?.onLessonBack?() }; view.next = { drawing?.onLessonNext?() }; view.stop = { drawing?.onLessonStop?() }; view.showMe = { drawing?.onShowMe?() }
+            return view
+        }
         drawing.autoSteps = { Prefs.str("guideSteps") != "next" }
         drawing.inputCleared = { [weak self] in self?.clearPointContext() }
         drawing.inputAway = { [weak self] in self?.finishPointing() }
@@ -1989,6 +2006,7 @@ final class App: NSObject, WKScriptMessageHandler {
     }
     // A button pressed on the Voice Bar's card, or ui.html's own timers and voice replies.
     func boxAction(_ b: [String: Any]) {
+        if let lesson = Lesson.current, lesson.awaiting != nil, let yes = (b["lessonAnswer"] ?? b["allow"]) as? Bool { return lesson.answer(yes) }
         if b["allow"] != nil || b["pick"] != nil { voiceBar.closeCard(); callJS(web, "ui.clearCards", []) }
         if ["send", "replace", "retry", "workerRetry"].contains(where: { b[$0] != nil }) { voiceBar.closeCard() }
         do {
@@ -2640,6 +2658,9 @@ final class App: NSObject, WKScriptMessageHandler {
             guard let self, g == stops else { return }
             stops += 1; listenID += 1; pause?.cancel()
             if voiceTest != nil { return endVoiceTest(text) }
+            if confirmed, !dictating, let lesson = Lesson.current, lesson.heard(text) {
+                offerText = nil; drawingReply = false; hush(); return
+            }
             if confirmed, !dictating, offerText == nil, !text.isEmpty {
                 if let words = dictationRequest(text) { return routeToDictation(words) }
                 VoiceLog.add(text, seconds: Date().timeIntervalSince(began))
@@ -3017,6 +3038,7 @@ final class App: NSObject, WKScriptMessageHandler {
                 while let i = buffer.firstIndex(of: 10) {
                     let line = String(decoding: buffer[..<i], as: UTF8.self); buffer.removeSubrange(...i)
                     if line == "! setup" { onboarding.open(automatic: true); continue }   // Claude not installed, signed out or no plan
+                    if line.hasPrefix("🎓 ") { Lesson.start(Data(line.dropFirst(2).utf8)); self.busy = false; continue }
                     if line.hasPrefix("✎ ") {
                         if Prefs.bool("draw"), self.drawing.receive(Data(line.dropFirst(2).utf8)) {
                             self.shush(); guided = true

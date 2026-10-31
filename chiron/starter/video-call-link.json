@@ -1,0 +1,86 @@
+{
+ "id": "video-call-link",
+ "title": {
+  "en": "Join a video call from a link",
+  "hi": "लिंक से वीडियो कॉल में जुड़ना"
+ },
+ "app": "Google Chrome",
+ "asked": [
+  "join a video call",
+  "join a video call from a link",
+  "join the call"
+ ],
+ "steps": [
+  {
+   "id": "s1",
+   "concept": "click-result",
+   "say": {
+    "en": "Find the link someone sent you and click it.",
+    "hi": "जो लिंक आपको भेजा गया है उसे ढूँढकर उस पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Link",
+    "role": "AXLink"
+   },
+   "expect": "A video call page is open in the browser",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s2",
+   "concept": "click-result",
+   "say": {
+    "en": "If Chrome asks to use the microphone and camera, click Allow.",
+    "hi": "अगर Chrome माइक्रोफ़ोन और कैमरे की अनुमति माँगे तो Allow दबाइए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Allow",
+    "role": "AXButton"
+   },
+   "expect": "The page shows a preview of the camera",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s3",
+   "concept": "click-result",
+   "say": {
+    "en": "Click the big Join button.",
+    "hi": "बड़ा Join बटन दबाइए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Join now",
+    "role": "AXButton"
+   },
+   "expect": "The call is open and other people or a waiting message are showing",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  }
+ ],
+ "version": 1,
+ "mastery": 0
+}

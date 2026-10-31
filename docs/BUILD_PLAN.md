@@ -4,6 +4,18 @@ Oct 28, 2026 · @Rishabh Sharma
 
 Chiron is built on an MIT-licensed open-source base app; see [CREDITS.md](../CREDITS.md).
 
+## Where the build stands (read this first)
+
+These decisions replace anything older below.
+
+- **UI:** a Home tab, a Conversations tab and a Settings dialog in `ui/home.html`, plus the Voice Bar and its card in `ui/bar.html`. It is no longer "one page".
+- **Listening:** on-device only, in `app/SpeechLocale.swift`. Sarvam is removed and there is no cloud speech recognition.
+- **Speaking:** `chiron/tts.py`, Chirp 3 HD, then WaveNet. When Google cannot speak, Chiron stays silent and the words stay on the bar and card. Apple's voice is opt-in (Settings → Voice, off by default). Lesson captions go through the same path and hit its cache on repeat.
+- **Cost of speech:** only usage beyond Google's monthly free tier counts toward the cap (`free_chars` in `chiron/prices.json`).
+- **Long answers, Allow cards and choices** live in the card above the Voice Bar. The old box never appears; `ui/ui.html` stays loaded off screen as App's state machine.
+- **There is no `history.jsonl`.** History is `log.jsonl` plus `chats.json`. Every log row carries an explicit `outcome`: `did`, `taught`, `practiced`, `question` or `failed`. Conversations reads that field. Deleting a conversation blanks its words and keeps its cost, because `log.jsonl` is also the spend ledger.
+- **Return is a send.** Hands asks before Return in a multi-line box or a filled field, the same as clicking Send.
+
 ## How to use this plan
 
 Give Claude Code one phase at a time; it builds the whole phase, frontend first and backend second, without stopping for sub-steps, and comes back once with a Phase Report that says what was built and exactly how to test it.
@@ -28,7 +40,7 @@ and reply with its contents.
 
 1. **One phase per run.** Never start the next phase without being asked.
 2. **Frontend first, then backend, then wire them.** Every phase begins by building its part of the one page (`ui/home.html`) against a mock bridge with fake data, so the design can be seen before any backend exists. Then the backend lands and the mock is swapped for real data. Frontend and backend are one feature: a phase is not done until the page shows real data.
-3. **One page only.** All UI lives in `ui/home.html` (Home view and Settings view) plus the Voice Bar overlay (`ui/bar.html`, from the base app's `ui.html`) and the lesson/warning overlays drawn by Swift. Do not add other pages.
+3. **Where UI lives.** `ui/home.html` holds the Home tab, the Conversations tab and the Settings dialog; `ui/bar.html` holds the Voice Bar and its card; Swift draws the lesson and warning overlays. Do not add other pages.
 4. **Understand before changing.** Before editing an existing function, read it and its tests. Keep existing behaviour that the plan does not mention.
 5. **Keep the tests green.** Run the offline suite (`python3 -m unittest discover -s tests -v`) and the UI mock-bridge pages after every phase. Add tests for every new module. Remove tests only together with the feature they test.
 6. **Keep it cheap.** No AI call where code or a saved skill can answer. Batch Jev questions. Respect the system-prompt budget test.
@@ -215,7 +227,7 @@ chiron-mac/
 │   ├── guardian.py           # rules, Jev scoring, block list (Phase 4)
 │   └── papers.py             # style note, paper JSON, docx builder (Phase 5)
 ├── ui/
-│   ├── home.html             # THE one page: Home view + Settings view
+│   ├── home.html             # Home tab, Conversations tab, Settings dialog
 │   ├── bar.html              # Voice Bar (from ui.html)
 │   ├── onboarding.html       # slimmed upstream onboarding
 │   ├── strings/en.json, strings/hi.json
@@ -517,6 +529,14 @@ The Voice Bar is now the default surface. The old top-corner box only opens for 
 
 ## Phase 3 — Teach Me and Do It
 
+**Notes that take precedence in this phase.**
+
+- Router order: `fast()` and `normalize.py` instant opens, then a skill-card match, then one Jev request, then the Haiku fallback. "Open YouTube for me", "YouTube khol ke batao" and "YouTube chalu karna" route to Do It, never to a question.
+- The 5 starter cards are hand-written in both languages, with on-screen names exactly as the Mac shows them.
+- The skill constellation goes on Home. Lessons and Do It runs show in Conversations with their outcome.
+- Every Hands click outside a lesson's own expected target (Do It, "shall I do this step?") goes through the existing gate and the Allow card.
+- The report's test table starts with the Allow check on sending a message, and the plan's tests run once with a Jev key and once without, showing the cost of each.
+
 Phase 3 delivers the core of Chiron: every request is routed to Do It or Teach Me; Teach Me plans a lesson once, guides the user click by click with drawn arrows and bilingual captions, checks each step with Jev, and saves a skill card that Do It can later replay for free.
 
 ### Frontend (build first, against mocks)
@@ -527,7 +547,7 @@ Phase 3 delivers the core of Chiron: every request is routed to Do It or Teach M
    - Build a static Swift preview harness (`tests/lesson_preview.swift`) that renders the callout for screenshots in both languages.
 2. **Home → Skills learned tile:** the constellation (inline SVG). One star per skill card, sized and lit by mastery, grouped by app. Hover or focus shows the skill name and mastery; click offers **Teach me again** or **Just do it**.
 3. **Home → Today card** shows a starter lesson when nothing is due ("Learn: play a video on YouTube" with **Start**).
-4. **Home → Recent** shows lessons and Do It runs with their outcome icons.
+4. **Conversations and Home's recent list** show lessons and Do It runs with their outcome.
 5. **Settings → Teaching:**
    - Default mode: "Teach me unless I know it" (default), "Always just do it", "Always teach me".
    - Caption size.
@@ -556,7 +576,7 @@ Phase 3 delivers the core of Chiron: every request is routed to Do It or Teach M
 
    After 3 hints on a step, offer "Shall I do this step?" and run it with Hands. Voice commands *next, back, show me, stop* map to `drawing.next()` and friends.
 5. **Do It.** Use the skill card's `cmds` with the base app's `replay()` when present. Otherwise run the steps with Hands in order, re-resolving each target by label. A failed replay re-plans once (the base app already unlearns on failure).
-6. **`chiron/skills.py`.** Create or update a card at the end of every lesson. Add `cmds` when the base app's `learn()` filters accept the commands Hands used; record each step's outcome in `attempts.jsonl`; set mastery from Jev `attempt.score` (Appendix D) with the mastery table; write `history.jsonl`. Cards are `mine` and never expire (unlike the base app's 30-day rule).
+6. **`chiron/skills.py`.** Create or update a card at the end of every lesson. Add `cmds` when the base app's `learn()` filters accept the commands Hands used; record each step's outcome in `attempts.jsonl`; set mastery from Jev `attempt.score` (Appendix D) with the mastery table; log the ask with `outcome: taught`. Cards are `mine` and never expire (unlike the base app's 30-day rule).
 7. **System prompt.** Add a compact TEACH block: when a lesson is requested, return lesson JSON only; never act in Teach Me mode. Keep the 10,000-character test green.
 8. **Home state:** `skills`, `today` (starter suggestion), lesson rows in `recent`.
 
@@ -582,7 +602,7 @@ Phase 3 delivers the core of Chiron: every request is routed to Do It or Teach M
 | --- | --- | --- |
 | 1 | Home → Today → **Start** (starter YouTube lesson) | Arrow on Chrome in the Dock, caption, spoken step 1 |
 | 2 | Click Safari instead | Gentle hint and the arrow moves back to Chrome |
-| 3 | Finish the lesson | Praise; Home shows 1 star under YouTube; Recent shows the lesson |
+| 3 | Finish the lesson | Praise; Home shows 1 star under YouTube; Conversations shows it as Taught |
 | 4 | Hold fn: "just play some music on YouTube" | Done by itself, no arrows, cost $0 in AI spend |
 | 5 | Hold fn: "teach me how to make a new folder on the desktop" (not a starter) | Claude plans it once (cost shown), lesson runs, a new card is saved |
 | 6 | Halfway through, tap हिं on Home | Next caption and voice are Hindi |
@@ -840,7 +860,7 @@ These schemas, question shapes and templates are shared by every phase; change t
 | `voice.jsonl` | Every voice ask: time, language, engine, words, seconds, understood? | 2 |
 | `skills.json` | Skill cards (extends the base app's `skills.json`) | 3 |
 | `attempts.jsonl` | Every lesson or practice attempt, step by step | 3 |
-| `history.jsonl` | Every ask and its outcome (Recent tile) | 3 |
+| `log.jsonl` | Every ask, its steps, cost and `outcome` (Conversations, Recent, spend) | 1, 3 |
 | `schedule.json` | Next practice per skill, drills | 4 |
 | `guardian.jsonl`, `blocklist.json` | Guardian checks and blocks | 4 |
 | `style.json` | Paper Studio style note | 5 |

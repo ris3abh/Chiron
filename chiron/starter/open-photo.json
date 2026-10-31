@@ -1,0 +1,109 @@
+{
+ "id": "open-photo",
+ "title": {
+  "en": "Open a photo",
+  "hi": "फ़ोटो खोलना"
+ },
+ "app": "Photos",
+ "asked": [
+  "open a photo",
+  "open a picture",
+  "see my photos"
+ ],
+ "steps": [
+  {
+   "id": "s1",
+   "concept": "open-app",
+   "say": {
+    "en": "Click the Photos icon at the bottom of the screen.",
+    "hi": "स्क्रीन के नीचे Photos आइकन दबाइए।"
+   },
+   "target": {
+    "app": "Dock",
+    "label": "Photos",
+    "role": "AXDockItem"
+   },
+   "expect": "Photos is open and frontmost",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s2",
+   "concept": "menu",
+   "say": {
+    "en": "Click Library on the left.",
+    "hi": "बाईं ओर Library पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Photos",
+    "label": "Library",
+    "role": "AXStaticText"
+   },
+   "expect": "The photo library is showing",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s3",
+   "concept": "click-result",
+   "say": {
+    "en": "Click twice quickly on the photo you want.",
+    "hi": "जो फ़ोटो देखनी है उस पर जल्दी से दो बार क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Photos",
+    "label": "Photo",
+    "role": "AXImage"
+   },
+   "expect": "One photo fills the window",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s4",
+   "concept": "back",
+   "say": {
+    "en": "To go back, click the arrow at the top left.",
+    "hi": "वापस जाने के लिए ऊपर बाईं ओर के तीर पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Photos",
+    "label": "Back",
+    "role": "AXButton"
+   },
+   "expect": "The photo library is showing again",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  }
+ ],
+ "version": 1,
+ "mastery": 0
+}

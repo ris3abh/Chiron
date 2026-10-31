@@ -20,7 +20,8 @@ class HomeStateTest(unittest.TestCase):
     def test_empty(self):
         s = home.state()
         self.assertEqual(s['lang'], 'en')
-        self.assertEqual(s['today'], {'kind': 'none'})
+        self.assertEqual(s['today']['kind'], 'lesson')
+        self.assertEqual(s['skills'], [])
         self.assertEqual(s['words'], {'today': 0, 'week': 0, 'all': 0, 'minutes_saved': 0, 'langs': {'en': 0, 'hi': 0}})
         self.assertEqual(s['spend']['month_usd'], 0)
         self.assertEqual(s['spend']['cap_usd'], 5.0)
@@ -28,7 +29,7 @@ class HomeStateTest(unittest.TestCase):
         self.assertEqual(s['connections']['brain']['kind'], 'claude-code')
         self.assertEqual(s['connections']['speech'], {'engine': 'apple', 'ok': True})
         self.assertTrue(s['connections']['jev']['missing'], 'no Jev test yet reads "not set up", not "not working"')
-        for later in ('skills', 'weak', 'streak', 'guardian', 'papers'):
+        for later in ('weak', 'streak', 'guardian', 'papers'):
             self.assertNotIn(later, s)   # their tiles stay hidden until their phase
         json.dumps(s)
 

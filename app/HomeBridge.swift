@@ -13,7 +13,7 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
     func detach(_ web: WKWebView?) { if let web { pages[ObjectIdentifier(web)] = nil } }
 
     // Prefs the page may write. Anything else (paused, safe, hotkeys) keeps its own native path.
-    static let writable: Set<String> = ["lang", "cap", "brain", "apiBase", "apiModel", "jevBase", "openaiModel", "theme", "talkKey", "speak", "speakRate", "voice.en", "voice.hi", "ttsVoice.en", "ttsVoice.hi", "appleVoice"]
+    static let writable: Set<String> = ["lang", "cap", "brain", "apiBase", "apiModel", "jevBase", "openaiModel", "theme", "talkKey", "speak", "speakRate", "voice.en", "voice.hi", "ttsVoice.en", "ttsVoice.hi", "appleVoice", "teachMode", "captionSize"]
     // The page's names for prefs whose stored key predates it (apiBase/apiModel).
     static let aliases = ["capUsd": "cap", "customUrl": "apiBase", "customModel": "apiModel", "jevBaseUrl": "jevBase"]
     // Changing these must not reuse a Claude worker started with the old brain or key.
@@ -140,6 +140,9 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
             HomeBridge.python(["--home-do", method], args) { reply($0 ?? ["ok": false], nil) }
         case "conversations.clear":
             HomeBridge.python(["--home-do", method], args) { reply($0 ?? ["ok": false], nil) }
+        case "lesson.start":   // Home's Start, or Teach me again: the card matches by name, so it costs nothing
+            guard let text = args["title"] as? String, !app.busy, !app.engine.isRunning, Lesson.current == nil else { return reply(["ok": false], nil) }
+            app.typed("teach me " + text, keep: true); reply(["ok": true], nil)
         case "ask.again":
             guard let text = args["text"] as? String, !text.isEmpty, !app.busy, !app.engine.isRunning else { return reply(["ok": false], nil) }
             app.typed(text, keep: true); reply(["ok": true], nil)
@@ -190,9 +193,9 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
     }
 
     // chiron.py off the main thread; a crash or bad JSON answers nil rather than hanging the page.
-    static func python(_ args: [String], _ input: [String: Any]?, _ done: @escaping ([String: Any]?) -> Void) {
+    static func python(_ args: [String], _ input: [String: Any]?, env: [String: String] = [:], _ done: @escaping ([String: Any]?) -> Void) {
         DispatchQueue.global().async {
-            let p = py(args), out = Pipe(), inp = Pipe()
+            let p = py(args, env), out = Pipe(), inp = Pipe()
             p.standardOutput = out; p.standardInput = inp; p.standardError = FileHandle.nullDevice
             do { try p.run() } catch { DispatchQueue.main.async { done(nil) }; return }
             let data = input.flatMap { try? JSONSerialization.data(withJSONObject: $0) } ?? Data("{}".utf8)

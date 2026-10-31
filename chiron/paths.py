@@ -86,7 +86,8 @@ def secret(name):
     if override is not None: return override.strip()
     if not os.path.exists(app_binary()): return ''   # not built yet (tests, CI): there is no Keychain helper to ask
     try:
-        r = subprocess.run([app_binary(), '--secret', 'get', name], capture_output=True, text=True, timeout=5)
+        # macOS re-checks a freshly built app on its first run (8 s measured): a short limit here reads as "no key" and silently loses Jev.
+        r = subprocess.run([app_binary(), '--secret', 'get', name], capture_output=True, text=True, timeout=15)
     except (OSError, subprocess.TimeoutExpired):
         return ''
     return r.stdout.strip() if r.returncode == 0 else ''

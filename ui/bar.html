@@ -137,6 +137,7 @@ const CARDS = {
     openCard('draft', ...(label ? [mk('h2', { text: label })] : []), box, mk('div', { class: 'acts' }, button(T('card.send'), send, true)));
     post({ key: true }); box.focus();
   },
+  choice: ({ q, yes, no }) => openCard('choice', mk('h2', { text: q || '' }), mk('div', { class: 'acts' }, button(no || '', () => act({ lessonAnswer: false })), button(yes || '', () => act({ lessonAnswer: true }), true))),
   failed: () => openCard('failed', mk('p', { text: T('card.workerFailed') }), mk('div', { class: 'acts' }, button(T('card.tryAgain'), () => act({ workerRetry: true }), true))),
 };
 new ResizeObserver(fit).observe($('card'));

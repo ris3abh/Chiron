@@ -33,6 +33,7 @@ cp chiron.py "$APP/Contents/Resources/"
 rm -rf "$APP/Contents/Resources/chiron"; mkdir -p "$APP/Contents/Resources/chiron"
 cp chiron/*.py "$APP/Contents/Resources/chiron/"   # the package, without __pycache__
 for f in chiron/*.json; do [ -e "$f" ] && cp "$f" "$APP/Contents/Resources/chiron/"; done
+mkdir -p "$APP/Contents/Resources/chiron/starter"; cp chiron/starter/*.json "$APP/Contents/Resources/chiron/starter/"
 cp ui/*.html ui/*.js "$APP/Contents/Resources/ui/"
 for d in strings fonts; do
   if [ -d "ui/$d" ]; then rm -rf "$APP/Contents/Resources/ui/$d"; cp -R "ui/$d" "$APP/Contents/Resources/ui/$d"; fi

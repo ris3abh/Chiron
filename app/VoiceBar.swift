@@ -66,7 +66,7 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
         guard let body = m.body as? [String: Any] else { return }
         if let a = body["act"] as? [String: Any] { app.boxAction(a) }
-        if body["close"] != nil { closeCard(); app.cardClosed() }
+        if body["close"] != nil { if let lesson = Lesson.current, lesson.awaiting != nil { lesson.answer(false) } else { closeCard(); app.cardClosed() } }
         if body["key"] != nil { panel.takesKeys = true; panel.makeKey() }
         guard let s = body["size"] as? [NSNumber], s.count == 2 else { return }
         resize(CGFloat(s[0].doubleValue), CGFloat(s[1].doubleValue))

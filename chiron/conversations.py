@@ -31,9 +31,12 @@ def asks():
     return sorted(turns.items(), key=lambda kv: str(kv[1].get('at', '')))
 
 
+OUTCOMES = ('did', 'taught', 'practiced', 'question', 'failed')
+
+
 def outcome(row):
-    """did: Chiron acted on the Mac. taught: a lesson (Phase 3). question: it only answered."""
-    if row.get('kind') == 'lesson' or row.get('lesson'): return 'taught'
+    """The row's own outcome. Only rows written before that field existed are worked out from what they ran."""
+    if row.get('outcome') in OUTCOMES: return row['outcome']
     if row.get('model') == 'instant' or row.get('path') in ('instant', 'shortcut'): return 'did'
     steps = row.get('steps') if isinstance(row.get('steps'), list) else []
     return 'did' if any(isinstance(s, str) and not READING.match(s) for s in steps) else 'question'
@@ -74,7 +77,7 @@ def listing():
         kinds = {t['outcome'] for t in g['turns']}
         first = g['turns'][0]
         g.update(at=first['at'], title=first['q'][:160], usd=round(sum(t['usd'] for t in g['turns']), 5),
-                 outcome='taught' if 'taught' in kinds else 'did' if 'did' in kinds else 'question')
+                 outcome=next((k for k in ('taught', 'practiced', 'did') if k in kinds), 'failed' if g['turns'][-1]['outcome'] == 'failed' else 'question'))
     return sorted(groups, key=lambda g: g['at'], reverse=True)
 
 

@@ -1,0 +1,156 @@
+{
+ "id": "word-open-save-print",
+ "title": {
+  "en": "Open, save and print a Word file",
+  "hi": "Word फ़ाइल खोलना, सेव करना और प्रिंट करना"
+ },
+ "app": "Microsoft Word",
+ "asked": [
+  "print a word file",
+  "print a word document",
+  "open a word file",
+  "save a word file"
+ ],
+ "steps": [
+  {
+   "id": "s1",
+   "concept": "open-app",
+   "say": {
+    "en": "Click the Microsoft Word icon at the bottom of the screen.",
+    "hi": "स्क्रीन के नीचे Microsoft Word आइकन दबाइए।"
+   },
+   "target": {
+    "app": "Dock",
+    "label": "Microsoft Word",
+    "role": "AXDockItem"
+   },
+   "expect": "Microsoft Word is open and frontmost",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s2",
+   "concept": "menu",
+   "say": {
+    "en": "Click File at the top of the screen.",
+    "hi": "स्क्रीन पर सबसे ऊपर File पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Microsoft Word",
+    "label": "File",
+    "role": "AXMenuBarItem"
+   },
+   "expect": "The File menu is open",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s3",
+   "concept": "menu",
+   "say": {
+    "en": "Click Open, choose your file and click Open again.",
+    "hi": "Open पर क्लिक कीजिए, अपनी फ़ाइल चुनिए और फिर Open दबाइए।"
+   },
+   "target": {
+    "app": "Microsoft Word",
+    "label": "Open...",
+    "role": "AXMenuItem"
+   },
+   "expect": "The document is open in Word",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s4",
+   "concept": "save",
+   "say": {
+    "en": "Click File, then Save.",
+    "hi": "File पर, फिर Save पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Microsoft Word",
+    "label": "File",
+    "role": "AXMenuBarItem"
+   },
+   "expect": "The File menu is open",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s5",
+   "concept": "print",
+   "say": {
+    "en": "Click File, then Print.",
+    "hi": "File पर, फिर Print पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Microsoft Word",
+    "label": "File",
+    "role": "AXMenuBarItem"
+   },
+   "expect": "The File menu is open",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s6",
+   "concept": "print",
+   "say": {
+    "en": "Check the pages, then click the blue Print button.",
+    "hi": "पन्ने देख लीजिए, फिर नीला Print बटन दबाइए।"
+   },
+   "target": {
+    "app": "Microsoft Word",
+    "label": "Print",
+    "role": "AXButton"
+   },
+   "expect": "The print window has closed",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  }
+ ],
+ "version": 1,
+ "mastery": 0
+}

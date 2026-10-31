@@ -13,6 +13,6 @@
   "gpt-4.1-mini": {"input": 0.4, "output": 1.6, "cache_read": 0.1},
   "gpt-4o-mini": {"input": 0.15, "output": 0.6, "cache_read": 0.075},
   "jev": {"input": 0.042, "output": 0.0},
-  "chirp3-hd": {"per_char": 0.00003, "_source": "Google pricing, $30 per million characters"},
-  "wavenet": {"per_char": 0.000016, "_source": "not confirmed against Google's page; check before relying on it"}
+  "chirp3-hd": {"per_char": 0.00003, "free_chars": 1000000, "_source": "Google: $30 per million characters after 1 million free each month"},
+  "wavenet": {"per_char": 0.000016, "free_chars": 1000000, "_source": "sources disagree ($4 or $16; 1 or 4 million free): the safer figures, check Google's page"}
 }

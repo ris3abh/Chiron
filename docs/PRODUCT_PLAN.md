@@ -341,7 +341,7 @@ The base app uses `SpeechAnalyzer` with `SpeechTranscriber` locked to `en-US`. A
 
 **Understanding.** A normaliser maps Devanagari, romanised Hindi and English to one form before routing, and the base app's dictation dictionary (`dictate_hints()`, `dictate_spellings()`) fixes names and app words.
 
-**Speaking.** Apple's built-in voices for each language through the base app's `ReadAloudVoice` picker (free, offline). Default speed 0.85x, and every spoken line also appears on screen. "Say that again" repeats the last line with no AI.
+**Speaking.** Google Cloud Text-to-Speech (Chirp 3 HD, then WaveNet). When Google cannot speak, Chiron stays silent and the words stay on the Voice Bar; Apple's voices are opt-in. Default speed 0.85x, and every spoken line also appears on screen. "Say that again" repeats the last line with no AI.
 
 ## Cost plan
 

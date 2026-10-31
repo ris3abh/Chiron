@@ -60,7 +60,7 @@ class SynthesisTests(unittest.TestCase):
         rows = paths.read_jsonl(paths.USAGE)
         self.assertEqual(len(rows), 1)
         self.assertEqual((rows[0]['engine'], rows[0]['model'], rows[0]['chars']), ('google-tts', 'chirp3-hd', 13))
-        self.assertAlmostEqual(rows[0]['usd'], 13 * 0.00003)
+        self.assertEqual(rows[0]['usd'], 0, 'inside the free tier')
         with patch.object(tts, 'request', return_value=AUDIO) as call:
             tts.audio_for('Same caption.', 'en', None, 1.0, 'k')
         self.assertEqual(call.call_count, 1, 'another speed is other audio')
@@ -119,10 +119,19 @@ class SynthesisTests(unittest.TestCase):
             with self.assertRaises(tts.TTSError) as e: tts.test('bad')
         self.assertEqual(e.exception.kind, 'rejected')
 
-    def test_usage_counts_it_toward_the_cap(self):
+    def test_only_characters_past_the_free_tier_count_toward_the_cap(self):
+        usage.record('google-tts', 'chirp3-hd', purpose='speak', chars=999_900)
+        self.assertEqual(usage.month_total(), 0)
         with patch.object(tts, 'request', return_value=AUDIO): tts.audio_for('x' * 1000, 'en', None, 1, 'k')
-        self.assertAlmostEqual(usage.month_total(), 0.03)
-        self.assertEqual(usage.by_engine(), {'google-tts': 0.03})
+        self.assertAlmostEqual(usage.month_total(), 900 * 0.00003)
+        self.assertEqual(usage.billable_chars('chirp3-hd', 10), 10, 'past the tier every character counts')
+        self.assertEqual(usage.billable_chars('wavenet', 10), 0, 'each voice has its own allowance')
+
+    def test_lesson_captions_are_free_on_repeat(self):
+        with patch.object(tts, 'request', return_value=AUDIO) as call:
+            for _ in range(2):
+                for sentence, _end in tts.script('Click the round Chrome icon at the bottom.', 'en')[0]: tts.audio_for(sentence, 'en', None, 0.85, 'k')
+        self.assertEqual(call.call_count, 1)
 
 
 if __name__ == '__main__':

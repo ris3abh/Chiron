@@ -196,7 +196,7 @@ def audio_for(text, lang, voice, speed, key):
         with os.fdopen(fd, 'wb') as f: f.write(data)
         os.replace(tmp, path)
         model = 'chirp3-hd' if 'Chirp' in name else 'wavenet'
-        usage.record('google-tts', model, usd=len(text) * price(model), purpose='speak', ms=int((time.monotonic() - started) * 1000), chars=len(text))
+        usage.record('google-tts', model, usd=usage.billable_chars(model, len(text)) * price(model), purpose='speak', ms=int((time.monotonic() - started) * 1000), chars=len(text))
         return path
     return None
 
@@ -257,7 +257,7 @@ def test(key):
     started = time.monotonic()
     name, text = voice_name('en', DEFAULT_VOICE), 'OK'
     synthesize(text, 'en', name, 1.0, key)
-    usd = len(text) * price('chirp3-hd')
+    usd = usage.billable_chars('chirp3-hd', len(text)) * price('chirp3-hd')
     usage.record('google-tts', 'chirp3-hd', usd=usd, purpose='test', chars=len(text))
     return {'ok': True, 'ms': int((time.monotonic() - started) * 1000), 'usd': usd}
 

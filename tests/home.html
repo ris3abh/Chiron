@@ -70,7 +70,7 @@
     "state": {
       "lang": "en",
       "name": "Rishabh",
-      "today": null,
+      "today": {"kind": "lesson", "skill": "video-call-link", "title": {"en": "Join a video call from a link", "hi": "लिंक से वीडियो कॉल में जुड़ना"}},
       "words": {"today": 1284, "week": 9420, "all": 182340, "minutes_saved": 212, "langs": {"en": 120300, "hi": 62040}},
       "spend": {"month_usd": 2.37, "cap_usd": 5.0, "by_engine": {"claude-code": 1.9, "jev": 0.04, "anthropic": 0.43}},
       "recent": [
@@ -86,6 +86,7 @@
         {"at": "-6d", "kind": "do", "text": {"en": "Joined the family video call", "hi": "परिवार की वीडियो कॉल में जुड़े"}},
         {"at": "-8d", "kind": "ask", "text": {"en": "This eleventh item must not appear", "hi": "यह ग्यारहवाँ नहीं दिखना चाहिए"}}
       ],
+      "skills": [{"id": "youtube-play", "app": "YouTube", "title": {"en": "Play a video on YouTube", "hi": "YouTube पर वीडियो चलाना"}, "mastery": 3}, {"id": "open-photo", "app": "Photos", "title": {"en": "Open a photo", "hi": "फ़ोटो खोलना"}, "mastery": 5}],
       "dictations": [
         {"at": "-1m", "text": "Hi Asha, I'll call you after lunch. Tell Papa the doctor's appointment moved to Thursday.", "app": "WhatsApp"},
         {"at": "-40m", "text": "Milk, bread, two dozen eggs, and coriander.", "app": "Notes"},
@@ -211,6 +212,7 @@ async function handle(method, args) {
     case 'conversations.delete': await wait(100); db.conversations = (db.conversations || []).filter(c => c.id !== args.id); return { ok: true };
     case 'conversations.clear': await wait(100); db.conversations = []; return { ok: true };
     case 'ask.again': note('would ask', args.text); return { ok: true };
+    case 'lesson.start': note('would start a lesson', args.title); return { ok: true };
     case 'clipboard.copy': note('would copy'); return { ok: true };
     case 'tts.preview': await wait(400); note('would speak in', args.lang, args.voice); return { ok: true };
     case 'dictionary.list': await wait(80); return clone(db.dictionary || { words: [], fixes: {} });

@@ -19,7 +19,7 @@ PHASE1_METHODS = ['state.get', 'lang.set', 'prefs.get', 'prefs.set', 'conn.list'
                   'brain.choose', 'claudeCode.status', 'claudeCode.setup', 'local.scan', 'perms.get', 'perms.grant', 'app.info',
                   'dictionary.list', 'dictionary.add', 'dictionary.remove', 'ask.start', 'speech.status', 'speech.test', 'voices.list',
                   'voices.preview', 'globe.fix', 'bar.reset', 'tts.preview', 'conversations.list', 'conversations.delete', 'conversations.clear',
-                  'ask.again', 'clipboard.copy']
+                  'ask.again', 'clipboard.copy', 'lesson.start']
 # Called by the page but answered only once their phase builds them (Practice, Papers).
 LATER_METHODS = {'practice.start', 'drill.start', 'papers.open'}
 CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
@@ -166,7 +166,7 @@ class HomePageStaticTests(unittest.TestCase):
         self.assertEqual(re.findall(r'<main id="(\w+)" class="view"', self.html), ['home', 'conversations'], 'one page, two views')
         self.assertIn('role="dialog" aria-modal="true"', self.html)
         self.assertIn('id="dictList"', self.html.split('id="sec-voice"')[1].split('</section>')[0], 'the dictionary lives in Settings → Voice')
-        for section in ('general', 'voice', 'connections', 'budget', 'permissions', 'about'):
+        for section in ('general', 'voice', 'teaching', 'connections', 'budget', 'permissions', 'about'):
             self.assertIn(f'data-go="{section}"', self.html)
             self.assertIn(f'id="sec-{section}"', self.html)
 
@@ -175,6 +175,10 @@ class HomePageStaticTests(unittest.TestCase):
         called = set(re.findall(r"bridge\.call\('([\w.]+)'", self.html))
         for method in called - LATER_METHODS:
             self.assertIn(f'case "{method}"', swift, f'HomeBridge does not answer {method}')
+
+    def test_constellation_stars_are_reachable(self):
+        self.assertIn("tabindex: 0, role: 'button'", self.html)
+        self.assertIn('id="skillPick"', self.html)
 
     def test_no_framework(self):
         self.assertNotRegex(self.html, r'\b(React|Vue|angular|jQuery)\b')

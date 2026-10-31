@@ -236,7 +236,8 @@ h1.greet { margin-bottom: 26px; }
 .tile .spacer { flex: 1; }
 .tile .btn { align-self: flex-start; }
 .constellation svg { width: 100%; height: auto; display: block; }
-.constellation .star { fill: var(--accent); }
+.constellation .star { fill: var(--accent); cursor: pointer; }
+.constellation .star:focus-visible { outline: 3px solid var(--focus); }
 .constellation .link { stroke: var(--accent); stroke-width: 1.2; opacity: .55; }
 .constellation text { fill: var(--ink-2); font-size: 11px; font-family: var(--font); }
 .weak-list { display: grid; gap: 10px; }
@@ -270,7 +271,8 @@ h1.greet { margin-bottom: 26px; }
 .conv-open:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
 .conv-row time, .conv-row .usd { color: var(--ink-3); font-size: var(--small); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .chip[data-kind="did"] { color: var(--good-text); background: color-mix(in srgb, var(--good) 14%, transparent); }
-.chip[data-kind="taught"] { color: var(--accent-text); background: var(--accent-soft); }
+.chip[data-kind="taught"], .chip[data-kind="practiced"] { color: var(--accent-text); background: var(--accent-soft); }
+.chip[data-kind="failed"] { color: var(--danger-text); background: color-mix(in srgb, var(--danger) 14%, transparent); }
 .conv-head { margin: 10px 0 4px; }
 #convTurns { margin-top: 24px; display: grid; gap: 28px; }
 .turn-q { font-weight: 600; font-size: 19px; overflow-wrap: anywhere; }
@@ -502,6 +504,10 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
                 <p class="lead" id="todayEmptyBody" data-i18n="home.hero.body">Ask how to do anything. Chiron shows you where to click, then lets you try it yourself.</p>
                 <div class="row-actions"><button class="btn gold" id="askNow" type="button" data-i18n="home.hero.ask">Ask Chiron</button><small id="heroHint"></small></div>
               </div>
+              <div id="todayLesson" hidden>
+                <h2 id="todayLessonTitle"></h2>
+                <div class="row-actions"><button class="btn gold" id="lessonStart" type="button" data-i18n="home.today.start">Start</button></div>
+              </div>
               <div id="todayPractice" hidden>
                 <h2 id="todayPracticeTitle"></h2>
                 <p class="lead num" id="todayMinutes"></p>
@@ -519,6 +525,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
               <section class="tile" data-key="skills" data-row="3" tabindex="0" aria-labelledby="skillsT" hidden>
                 <h2 id="skillsT"><span data-i18n="home.skills.title">Skills learned</span></h2>
                 <div class="constellation" id="constellation"></div>
+                <div id="skillPick"></div>
                 <p class="sub num" id="skillsCount"></p>
               </section>
               <section class="tile" data-key="weak" data-row="3" tabindex="0" aria-labelledby="weakT" hidden>
@@ -607,6 +614,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
       <div class="eyebrow" id="setTitle" data-i18n="settings.title">Settings</div>
       <button class="nav-btn" type="button" data-go="general"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span data-i18n="settings.nav.general">General</span></button>
       <button class="nav-btn" type="button" data-go="voice"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span data-i18n="settings.nav.voice">Voice and language</span></button>
+      <button class="nav-btn" type="button" data-go="teaching"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 14.4 9l5.9.5-4.5 3.9 1.4 5.8L12 16.1l-5.2 3.1 1.4-5.8L3.7 9.5 9.6 9z"/></svg><span data-i18n="settings.nav.teaching">Teaching</span></button>
       <button class="nav-btn" type="button" data-go="connections"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/></svg><span data-i18n="settings.nav.connections">Connections</span></button>
       <button class="nav-btn" type="button" data-go="budget"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/></svg><span data-i18n="settings.nav.budget">Budget</span></button>
       <button class="nav-btn" type="button" data-go="permissions"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span data-i18n="settings.nav.permissions">Permissions</span></button>
@@ -679,6 +687,17 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
         </form>
         <ul class="rows word-list" id="dictList"></ul>
         <p class="empty" id="dictEmpty" data-i18n="dict.empty" hidden>No words yet. Add a name you use often, like a friend's or your street's.</p>
+      </section>
+
+      <section class="set-sec" id="sec-teaching" aria-labelledby="teachT" hidden>
+        <header><h2 id="teachT" data-i18n="teach.title">Teaching</h2><span class="saved" role="status" aria-live="polite"></span></header>
+        <div class="set-rows">
+          <div><div class="t"><label for="teachMode"><b data-i18n="teach.mode">When I ask for something</b></label></div>
+            <select class="input" id="teachMode"><option value="teach-unless-known" data-i18n="teach.mode.unless">Teach me unless I know it</option><option value="always-do" data-i18n="teach.mode.do">Always just do it</option><option value="always-teach" data-i18n="teach.mode.teach">Always teach me</option></select></div>
+          <div><div class="t"><label for="captionSize"><b data-i18n="teach.size">Caption size</b></label></div>
+            <select class="input" id="captionSize"><option value="m" data-i18n="teach.size.m">Large</option><option value="l" data-i18n="teach.size.l">Extra large</option></select></div>
+          <div><div class="t"><b data-i18n="teach.explain">Ask me to explain it back</b><p data-i18n="teach.explainHelp">Arrives with Practice.</p></div><input class="switch" type="checkbox" role="switch" disabled aria-label="Ask me to explain it back"></div>
+        </div>
       </section>
 
       <section class="set-sec" id="sec-connections" aria-labelledby="connT" hidden>
@@ -953,10 +972,28 @@ function Constellation(host, skills) {
     });
     // Lines draw in only when every star of the app is fully mastered.
     if (pts.length > 1 && pts.every(p => p.m === 5)) for (let j = 1; j < pts.length; j++) svg.append(mk('line', { class: 'link', x1: pts[j - 1].x, y1: pts[j - 1].y, x2: pts[j].x, y2: pts[j].y }));
-    pts.forEach(p => svg.append(mk('circle', { class: 'star', cx: p.x, cy: p.y, r: 3 + p.m * 0.8, opacity: 0.35 + p.m * 0.13 })));
+    pts.forEach((p, j) => {
+      const label = t('skills.level', { name: pick(stars[j].title) || String(stars[j].id || ''), level: fmtNum(p.m) });
+      const star = mk('circle', { class: 'star', cx: p.x, cy: p.y, r: 3 + p.m * 0.8, opacity: 0.35 + p.m * 0.13, tabindex: 0, role: 'button', 'aria-label': label });
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title'); title.textContent = label; star.append(title);
+      star.addEventListener('click', () => pickSkill(stars[j]));
+      star.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickSkill(stars[j]); } });
+      svg.append(star);
+    });
     const label = mk('text', { x: cx, y: H - 8, 'text-anchor': 'middle' }); label.textContent = app; svg.append(label);
   });
   host.append(svg);
+}
+// A star's name, and what can be done with it.
+function pickSkill(skill) {
+  const host = $('#skillPick'); host.textContent = '';
+  const name = pick(skill.title) || String(skill.id || '');
+  host.append(el('p', { class: 'sub', text: t('skills.level', { name, level: fmtNum(Number(skill.mastery) || 0) }) }), el('div', { class: 'actions' },
+    el('button', { class: 'btn', type: 'button', text: t('skills.again'), onclick: () => startLesson(obj(skill.title) ? skill.title.en : name) }),
+    el('button', { class: 'btn', type: 'button', text: t('skills.do'), onclick: () => bridge.call('ask.again', { text: 'just ' + (obj(skill.title) ? skill.title.en : name) }).catch(() => toast(t('common.error'))) })));
+}
+function startLesson(title) {
+  bridge.call('lesson.start', { title }).then(r => { if (r && r.ok === false) toast(t('conv.busy')); }).catch(e => { if (e.message !== 'no-bridge') toast(t('common.error')); });
 }
 function WeakSpot(item) {
   const misses = Number(item.misses) || 0;
@@ -985,9 +1022,12 @@ function renderGreeting() {
 function renderToday() {
   const today = obj(S.state.today);
   const practice = today && today.kind === 'practice' && pick(today.title);
-  $('#todayEmpty').hidden = !!practice;
+  const lesson = !practice && today && today.kind === 'lesson' && pick(today.title);
+  $('#todayLesson').hidden = !lesson;
+  if (lesson) $('#todayLessonTitle').textContent = t('home.lesson.title', { title: lesson });
+  $('#todayEmpty').hidden = !!practice || !!lesson;
   $('#todayPractice').hidden = !practice;
-  $('#todayEyebrow').textContent = t(practice ? 'home.today.practice.eyebrow' : 'home.today.eyebrow');
+  $('#todayEyebrow').textContent = t(practice ? 'home.today.practice.eyebrow' : lesson ? 'home.lesson.eyebrow' : 'home.today.eyebrow');
   $('#todayDate').textContent = new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   rich($('#todayTitle'), t('home.hero.title'));
   if (practice) {
@@ -1188,7 +1228,7 @@ function renderConvos() {
       const open = e => { e.stopPropagation(); S.convOpen = c.id; renderThread(); };
       const del = el('button', { class: 'text-btn', type: 'button', text: t('conv.delete'), 'aria-label': t('conv.deleteOne', { title: String(c.title) }) });
       del.addEventListener('click', e => { e.stopPropagation(); twoPress(del, 'conv.delete', 'conv.deleteConfirm', () => deleteConv(c.id)); });
-      const kind = ['did', 'taught', 'question'].includes(c.outcome) ? c.outcome : 'question';
+      const kind = ['did', 'taught', 'practiced', 'failed', 'question'].includes(c.outcome) ? c.outcome : 'question';
       const li = el('li', { class: 'conv-row' }, el('time', { text: convTime(c.at, bucket) }), el('button', { class: 'conv-open', type: 'button', text: String(c.title), onclick: open }),
         el('span', { class: 'chip', 'data-kind': kind, text: t('conv.outcome.' + kind) }), el('span', { class: 'usd', text: convCost(c.usd) }), del);
       li.addEventListener('click', open); ol.append(li);
@@ -1201,7 +1241,7 @@ function renderThread() {
   const c = (Array.isArray(S.convos) ? S.convos : []).find(x => obj(x) && x.id === S.convOpen);
   $('#convList').hidden = !!c; $('#convThread').hidden = !c;
   if (!c) return;
-  const kind = ['did', 'taught', 'question'].includes(c.outcome) ? c.outcome : 'question';
+  const kind = ['did', 'taught', 'practiced', 'failed', 'question'].includes(c.outcome) ? c.outcome : 'question';
   $('#convTitle').textContent = String(c.title);
   $('#convMeta').textContent = [convTime(c.at, 'older'), t('conv.outcome.' + kind), convCost(c.usd)].filter(Boolean).join(' · ');
   const host = $('#convTurns'); host.textContent = '';
@@ -1516,7 +1556,11 @@ function renderShortcuts() {
   rich($('#askHow'), t('settings.general.askHow'), talkKeys());
   rich($('#dictateHow'), t('settings.general.dictateHow'), talkKeys());
 }
-function renderSettings() { renderBrain(); renderCC(); renderTts(); renderBudget(); renderPerms(); renderAbout(); renderShortcuts(); renderVoice(); }
+function renderTeaching() {
+  $('#teachMode').value = ['always-do', 'always-teach'].includes(S.prefs.teachMode) ? S.prefs.teachMode : 'teach-unless-known';
+  $('#captionSize').value = S.prefs.captionSize === 'l' ? 'l' : 'm';
+}
+function renderSettings() { renderBrain(); renderCC(); renderTts(); renderTeaching(); renderBudget(); renderPerms(); renderAbout(); renderShortcuts(); renderVoice(); }
 function renderAll() { renderLangSwitches(); renderHome(); renderSettings(); renderDict(); renderConvos(); paintTheme(); }
 
 async function loadConn() {
@@ -1583,7 +1627,7 @@ function goView(view) {
   try { history.replaceState(null, '', view === 'home' ? location.pathname + location.search : '#' + view); } catch (e) { /* srcdoc mock */ }
   $('#' + S.view).focus({ preventScroll: true });
 }
-const SECTIONS = ['general', 'voice', 'connections', 'budget', 'permissions', 'about'];
+const SECTIONS = ['general', 'voice', 'teaching', 'connections', 'budget', 'permissions', 'about'];
 function showSection(section) {
   if (!SECTIONS.includes(section)) section = 'general';
   S.section = section;
@@ -1642,6 +1686,9 @@ function wire() {
   $('#papersOpen').addEventListener('click', () => { const p = obj(S.state.papers) || {}; bridge.call('papers.open', { path: p.last && (p.last.path || p.last) }).catch(() => toast(t('common.error'))); });
   $('#dictForm').addEventListener('submit', addWord);
   $('#seeAll').addEventListener('click', () => goView('conversations'));
+  $('#lessonStart').addEventListener('click', () => { const td = obj(S.state.today) || {}; startLesson(pick(obj(td.title) && { en: td.title.en }) || ''); });
+  $('#teachMode').addEventListener('change', e => setPref('teachMode', e.target.value, $('#sec-teaching')));
+  $('#captionSize').addEventListener('change', e => setPref('captionSize', e.target.value, $('#sec-teaching')));
   $('#convSearch').addEventListener('input', renderConvos);
   $('#convBack').addEventListener('click', () => { S.convOpen = null; renderThread(); });
   const opened = () => (S.convos || []).find(c => obj(c) && c.id === S.convOpen);

@@ -1,0 +1,161 @@
+{
+ "id": "youtube-play",
+ "title": {
+  "en": "Play a video on YouTube",
+  "hi": "YouTube पर वीडियो चलाना"
+ },
+ "app": "YouTube",
+ "asked": [
+  "play {q} on youtube",
+  "play a video on youtube",
+  "watch a video on youtube"
+ ],
+ "steps": [
+  {
+   "id": "s1",
+   "concept": "open-app",
+   "say": {
+    "en": "Click the round Google Chrome icon at the bottom of the screen.",
+    "hi": "स्क्रीन के नीचे Google Chrome का गोल आइकन दबाइए।"
+   },
+   "target": {
+    "app": "Dock",
+    "label": "Google Chrome",
+    "role": "AXDockItem"
+   },
+   "expect": "Google Chrome is open and frontmost",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s2",
+   "concept": "address-bar",
+   "say": {
+    "en": "Click the long bar at the very top of Chrome.",
+    "hi": "Chrome में सबसे ऊपर की लंबी पट्टी पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Address and search bar",
+    "role": "AXTextField"
+   },
+   "expect": "The Chrome address bar is selected",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s3",
+   "concept": "type-text",
+   "say": {
+    "en": "Type youtube.com and press Return.",
+    "hi": "youtube.com लिखिए और Return दबाइए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Address and search bar",
+    "role": "AXTextField"
+   },
+   "expect": "The YouTube home page is showing",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s4",
+   "concept": "search-box",
+   "say": {
+    "en": "Click the Search box at the top of YouTube.",
+    "hi": "YouTube में ऊपर Search बॉक्स पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Search",
+    "role": "AXTextField"
+   },
+   "expect": "The YouTube search box is selected",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s5",
+   "concept": "type-text",
+   "say": {
+    "en": "Type what you want to watch and press Return.",
+    "hi": "जो देखना है वह लिखिए और Return दबाइए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Search",
+    "role": "AXTextField"
+   },
+   "expect": "YouTube is showing search results",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  },
+  {
+   "id": "s6",
+   "concept": "click-result",
+   "say": {
+    "en": "Click the picture of the video you want.",
+    "hi": "जो वीडियो देखना है उसकी तस्वीर पर क्लिक कीजिए।"
+   },
+   "target": {
+    "app": "Google Chrome",
+    "label": "Video",
+    "role": "AXLink"
+   },
+   "expect": "A YouTube video page is open and the video is playing",
+   "draw": {
+    "shapes": [
+     {
+      "kind": "ring"
+     }
+    ],
+    "wait": true,
+    "hit": true
+   }
+  }
+ ],
+ "cmds": [
+  "open -a 'Google Chrome' 'https://www.youtube.com/results?search_query={q}'"
+ ],
+ "slots": {
+  "q": "bhajan"
+ },
+ "version": 1,
+ "mastery": 0
+}
