@@ -83,7 +83,7 @@ Update `docs/reports/phase-1.md`: the Swift fixes, real test numbers (compare by
 
 ### 6. Then Phase 2 (Voice Bar and speech)
 
-Only when asked: "start-a-phase" for Phase 2, per `docs/BUILD_PLAN.md`. Frontend first (Voice Bar `ui/bar.html` against mocks), then speech locale/Sarvam/normaliser, then wiring.
+Only when asked: "start-a-phase" for Phase 2, per `docs/BUILD_PLAN.md`. Frontend first (Voice Bar `ui/bar.html` against mocks), then speech locale/normaliser, then wiring.
 
 ## Open items for Rishabh
 

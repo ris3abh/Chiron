@@ -67,7 +67,7 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
             handle("prefs.set", ["k": "brain", "v": args["kind"] ?? ""], reply)
         case "conn.list":
             var out: [String: Any] = [:]
-            for name in ["anthropic", "openai", "jev", "custom", "sarvam"] { out[name] = Keychain.masked(name) }
+            for name in ["anthropic", "openai", "jev", "custom"] { out[name] = Keychain.masked(name) }
             var jev = out["jev"] as? [String: Any] ?? [:]; jev["base_url"] = Prefs.str("jevBase"); out["jev"] = jev
             var custom = out["custom"] as? [String: Any] ?? [:]; custom["url"] = Prefs.str("apiBase"); custom["model"] = Prefs.str("apiModel"); out["custom"] = custom
             out["brain"] = Prefs.str("brain").isEmpty ? "claude-code" : Prefs.str("brain")

@@ -5,7 +5,7 @@ import Security
 
 enum Keychain {
     static let service = "com.chiron.app"
-    static let names = ["anthropic", "openai", "jev", "sarvam", "custom"]
+    static let names = ["anthropic", "openai", "jev", "custom"]
 
     static func query(_ name: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: name]

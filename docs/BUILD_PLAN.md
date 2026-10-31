@@ -194,7 +194,7 @@ chiron-mac/
 │   ├── Keychain.swift        # SecItem wrapper + `Chiron --secret get|set|delete <name>`
 │   ├── Strings.swift         # L("key") from ui/strings/<lang>.json for native labels
 │   ├── VoiceBar.swift        # always-on bar panel (Phase 2)
-│   ├── SpeechLocale.swift    # locale probe + cloud fallback recorder (Phase 2)
+│   ├── SpeechLocale.swift    # locale probe (Phase 2)
 │   ├── Lesson.swift          # lesson runner on top of ScreenDrawing (Phase 3)
 │   ├── GhostHand.swift       # demonstration pointer (Phase 4)
 │   └── GuardianWatch.swift   # new-window observer + warning card (Phase 4)
@@ -207,7 +207,6 @@ chiron-mac/
 │   ├── jev.py                # TypeSafe client, batching, Haiku fallback
 │   ├── usage.py              # usage.jsonl, month totals, cap
 │   ├── home.py               # builds the Home state JSON
-│   ├── speech_cloud.py       # Sarvam client (Phase 2)
 │   ├── normalize.py          # language normaliser + household dictionary (Phase 2)
 │   ├── router.py             # Jev routing (Phase 3)
 │   ├── skills.py             # skill cards, attempts (Phase 3)
@@ -245,7 +244,7 @@ The base app's `loadPage` (`upstream.swift:642`) loads HTML with `baseURL: nil` 
 
 ### Keys and secrets
 
-- Keys are stored only in the Keychain (service `com.chiron.app`, accounts `anthropic`, `openai`, `jev`, `sarvam`, `custom`).
+- Keys are stored only in the Keychain (service `com.chiron.app`, accounts `anthropic`, `openai`, `jev`, `custom`).
 - Python reads a key by running `Chiron --secret get <name>` (new native CLI flag beside `--hands`), never from `settings.json`.
 - Migration: the base app kept `apiKey` in `settings.json`; Phase 1 moves any value found into the Keychain and deletes it from the file.
 
@@ -452,7 +451,7 @@ Replace the mock with the real bridge, open Home after a real ask, and check tha
 
 ## Phase 2 — Voice Bar and speech
 
-Phase 2 makes the always-on Voice Bar the way into Chiron: hold fn anywhere to talk, in English or Hindi, with Apple's on-device speech first and Sarvam as the fallback, spoken replies in the chosen language, and every word counted on Home.
+Phase 2 makes the always-on Voice Bar the way into Chiron: hold fn anywhere to talk, in English or Hindi, with Apple's on-device speech only (audio never leaves the Mac), spoken replies in the chosen language, and every word counted on Home.
 
 ### Frontend (build first, against mocks)
 
@@ -460,9 +459,8 @@ Phase 2 makes the always-on Voice Bar the way into Chiron: hold fn anywhere to t
 2. **Answer card:** answers appear in a card that grows upward from the bar (reuse the base app's `#thread` rendering for Markdown, steps and Allow cards), large text, closes on Esc or after 20 s of no interaction.
 3. **Home → Words spoken** now counts voice asks as well as dictation, split by language, with time saved.
 4. **Settings → Voice and language:**
-   - Listening engine status per language: "On-device (free)", "Downloading…" with a progress bar, "Not available on this Mac — using cloud".
+   - Listening engine status per language: "On-device (free)", "Downloading…" with a progress bar, "Not available on this Mac — listening in English".
    - **Test my voice**: records 5 s, shows the transcript and which engine heard it.
-   - Sarvam key field with **Test** and the per-minute price.
    - Spoken voice per language with **Preview**, and a speed slider (0.7–1.1, default 0.85).
    - Talk key: fn (default) or Control+Option, with the "Set 🌐 key to Do Nothing" fix button (the base app's `globeKey`).
    - Household dictionary: add or remove names and words (the base app's dictation dictionary).
@@ -478,11 +476,10 @@ Phase 2 makes the always-on Voice Bar the way into Chiron: hold fn anywhere to t
    - Pick the engine per language, and replace the hardcoded `Locale(identifier: "en-US")` at `upstream.swift:1805` with the result.
    - Write the probe to `speech.json` for Settings.
    - If creating the analyzer fails with "unsupported locale" (the 1.5.0 failure), fall back without breaking the ask.
-4. **Cloud fallback.** While fn is held and the engine is cloud, also write the converted 16 kHz mono buffers to a temp WAV. On release, run `chiron.py --transcribe <wav> <lang>`. `chiron/speech_cloud.py` calls Sarvam Saaras REST (audio up to 30 s) with `mode: codemix`, logs minutes and cost to `usage.jsonl`, and returns text. Target under 2 s for a 5 s ask. If the cloud fails, use the on-device English transcript.
-5. **Auto-fallback rule:** if Hindi is on-device but 2 of the last 3 Hindi asks end in "I didn't catch that" or an immediate repeat, offer once to switch Hindi listening to the cloud.
-6. **`chiron/normalize.py`.** Normalises Devanagari, romanised Hindi and English into one comparable form for `fast()`, `like()` and routing: a transliteration table, a synonym list (bajao/chalao/play → play; kholo/open → open), and the household dictionary. Feed dictionary words into `contextualStrings` (`upstream.swift:1907`).
-7. **Speaking.** Extend `readAloudArguments` / voice selection (`:472-533`): pick the voice for the app language (from the `voice.<lang>` pref, else the best installed `hi_IN` / `en_*` voice), and pass `-r` for speed. Every spoken line comes from `i18n.t()` or the model reply in the app language. Add "say that again" to `fast()` (replays the last spoken line, no AI).
-8. **Logging.** `voice.jsonl` row per ask: language, engine, words, seconds, understood (an ask that was not repeated or cancelled within 10 s). `home.py` merges it with `dictation.json`.
+4. **If a language is missing.** There is no cloud speech. If on-device speech can't serve the language, listen with the on-device English engine and say so once, in the app language, with what to do (Settings shows the download). If Hindi keeps mishearing, the dictionary and normaliser are the fix.
+5. **`chiron/normalize.py`.** Normalises Devanagari, romanised Hindi and English into one comparable form for `fast()`, `like()` and routing: a transliteration table, a synonym list (bajao/chalao/play → play; kholo/open → open), and the household dictionary. Feed dictionary words into `contextualStrings` (`upstream.swift:1907`).
+6. **Speaking.** Extend `readAloudArguments` / voice selection (`:472-533`): pick the voice for the app language (from the `voice.<lang>` pref, else the best installed `hi_IN` / `en_*` voice), and pass `-r` for speed. Every spoken line comes from `i18n.t()` or the model reply in the app language. Add "say that again" to `fast()` (replays the last spoken line, no AI).
+7. **Logging.** `voice.jsonl` row per ask: language, engine, words, seconds, understood (an ask that was not repeated or cancelled within 10 s). `home.py` merges it with `dictation.json`.
 
 ### Wire it together
 
@@ -491,7 +488,6 @@ The Voice Bar is now the default surface. The old top-corner box only opens for 
 ### Tests to add
 
 - `test_normalize.py`: Devanagari, roman and English requests normalise to the same key (40 pairs).
-- `test_speech_cloud.py`: request shape, cost, timeout and fallback with a recorded response.
 - `test_bar_page.py`: each bar state renders in both languages.
 - Native, host-gated: locale probe returns a result; the fn hold starts and ends a session.
 - A recorded audio set `tests/audio/` (20 English, 20 Hindi, 10 mixed WAVs, recorded by you) with expected text, plus `chiron.py --speech-eval` to print accuracy per engine.
@@ -500,7 +496,7 @@ The Voice Bar is now the default surface. The old top-corner box only opens for 
 
 - [ ] Holding fn in any app, including full screen, shows the bar listening; releasing sends; the bar never steals focus.
 - [ ] English and Hindi asks are understood at least 8 of 10 times each on the real Mac (the gate).
-- [ ] Settings shows exactly which engine serves each language; the cloud path works when a key is set.
+- [ ] Settings shows exactly which engine serves each language.
 - [ ] Replies are spoken in the chosen language at the chosen speed.
 - [ ] Words spoken on Home counts both voice asks and dictation, per language.
 
@@ -513,7 +509,7 @@ The Voice Bar is now the default surface. The old top-corner box only opens for 
 | 3 | Switch to हिं, hold fn, say "कैलकुलेटर खोलो" | Same result; reply spoken in Hindi |
 | 4 | Say a mixed sentence: "YouTube pe news lagao" | YouTube search for news opens |
 | 5 | Settings → Voice → Test my voice (both languages) | Transcript and engine name shown |
-| 6 | Remove the Sarvam key, set Hindi to cloud | Clear message; falls back to on-device or asks to add a key |
+| 6 | Settings → Voice while the Hindi speech download is missing | Clear message; Chiron listens in English until it is there |
 | 7 | Double-tap fn, speak for 20 s, press fn | Locked listening, then sent |
 | 8 | Drag the bar to the left edge, quit, reopen | Bar returns to the same spot; double-click resets it |
 | 9 | Run `python3 chiron.py --speech-eval` | Accuracy per language and engine printed |

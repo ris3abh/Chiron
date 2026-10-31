@@ -28,7 +28,7 @@
   - The menu bar has Open Home and Settings…, with every label through `L()`.
   - The old Settings window and `ui/settings.html` are gone. The class behind them stays only to apply preference changes (voice, setup and shortcut recording use it). The voice-settable switch list moved into `chiron.py`.
   - (files: `app/HomeWindow.swift`, `app/HomeBridge.swift`, `app/Strings.swift`, `Chiron.swift`)
-- **Keychain:** keys live only in the login Keychain (service `com.chiron.app`, accounts `anthropic`, `openai`, `jev`, `sarvam`, `custom`).
+- **Keychain:** keys live only in the login Keychain (service `com.chiron.app`, accounts `anthropic`, `openai`, `jev`, `custom`).
   - `Chiron --secret get|set|delete <name>`; `set` reads the value from stdin so it never shows in `ps`.
   - On launch, an older `apiKey` moves from `settings.json` to the Keychain and is removed from the file.
   - Onboarding's custom-server form saves its key to the Keychain too.
@@ -94,7 +94,7 @@ You need macOS 26 with the Xcode 26 command line tools, and Python 3. The app wo
 | 12 | Resize Home to 560 pt wide; toggle dark mode | Tiles stack to one column; the dark glass stays readable | |
 | 13 | Settings → Brain → OpenAI → save a key → ⌃⌥Space "what is a PDF?" | An answer with no tools; Today shows the "open-ended Mac tasks need Claude" note | |
 | 14 | Brain → Claude Code; `ps eww $(pgrep -f "claude -p" \| head -1) \| tr ' ' '\n' \| grep ANTHROPIC_API_KEY` during an ask | No `ANTHROPIC_API_KEY` (plan billing only) | |
-| 15 | `python3 -m unittest tests.test_keychain_native` with `CHIRON_ALLOW_HOST_UI=1` | 2 tests pass (round trip on the `sarvam` account; it restores whatever was there) | |
+| 15 | `python3 -m unittest tests.test_keychain_native` with `CHIRON_ALLOW_HOST_UI=1` | 2 tests pass (round trip on the `custom` account; it restores whatever was there) | |
 
 ## Automated tests
 
@@ -181,6 +181,9 @@ Native tests that skip here:
 - ख़र्च everywhere, with a test that flags the spelling without the nukta.
 - Three views went back to the plan's one page: the Stats and Dictionary views are gone (first draft of this redesign), see above.
 - Jev with no test yet reads "not set up / सेट नहीं है" (`connections.jev.missing`); a failing connection reads "not working / काम नहीं कर रहा". Clicking any status opens Settings → Connections.
+
+### Sarvam removed (Rishabh, 2026-10-30)
+- No cloud speech: Chiron uses Apple's on-device speech only. The `sarvam` Keychain account is gone from `Keychain.names`, `paths.SECRETS` and `conn.list`, and both plans are updated.
 
 ### Automated tests now
 - `python3 -m unittest discover -s tests -v`: **599 tests, 0 failures, 0 errors, 113 skipped** (host guard on).

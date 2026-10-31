@@ -87,7 +87,7 @@ One scrolling page in a normal Mac window, opened from the Voice Bar, the menu b
 
 A separate small window, opened from Home's gear or the Voice Bar menu. Sections:
 
-- **Connections:** the brain (Claude Code on a Claude plan, Anthropic API key, OpenAI API key, or a custom server such as Ollama), Jev (TypeSafe key), cloud speech (Sarvam key, optional), each with a status light and a **Test** button.
+- **Connections:** the brain (Claude Code on a Claude plan, Anthropic API key, OpenAI API key, or a custom server such as Ollama), Jev (TypeSafe key), each with a status light and a **Test** button.
 - **Budget:** monthly cap ($1 to $50, default $5) and what happens at the cap.
 - **Voice and language:** app language, spoken voice, speaking speed, fn or Control+Option.
 - **Practice:** maximum practices per day (default 2), quiet hours.
@@ -328,7 +328,7 @@ Guardian screens every new window, tab and on-screen message in three layers and
 
 ## Speech and languages
 
-Chiron listens with Apple's free on-device speech first and falls back to a cloud recogniser only when the chosen language is missing or keeps mishearing; English and Hindi are supported in v1, and the language layer is built so more can be added.
+Chiron listens only with Apple's free on-device speech, so audio never leaves the Mac; English and Hindi are supported in v1, and the language layer is built so more can be added.
 
 The base app uses `SpeechAnalyzer` with `SpeechTranscriber` locked to `en-US`. Apple's [SpeechTranscriber docs](https://developer.apple.com/documentation/speech/speechtranscriber.md) say to check `supportedLocales` and `installedLocales`, and to consider `DictationTranscriber` when `SpeechTranscriber` cannot serve a device. Hindi support on macOS 26 is not stated there, so Chiron probes it at launch and shows the result in Settings.
 
@@ -336,14 +336,12 @@ The base app uses `SpeechAnalyzer` with `SpeechTranscriber` locked to `en-US`. A
 | --- | --- | --- | --- |
 | 1 | Apple `SpeechTranscriber`, current app language | Free, on-device | The locale is supported |
 | 2 | Apple `DictationTranscriber`, same locale | Free, on-device | 1 is unavailable |
-| 3 | [Sarvam Saaras](https://docs.sarvam.ai/api-reference-docs/getting-started/models/saaras.md), `codemix` mode | About ₹0.49 a minute ([pricing](https://docs.sarvam.ai/api-reference-docs/pricing.md)) | On-device Hindi is missing or weak; key added in Settings |
-| 4 | Apple `en-US` (today) | Free | Offline fallback |
+| 3 | Apple `en-US` (today) | Free | The chosen language is not available on this Mac |
 
-Saaras handles mixed-language speech: its `codemix` mode writes English words in Latin script and Hindi words in Devanagari, across 23 languages. Audio goes to the cloud only while fn is held.
 
 **Understanding.** A normaliser maps Devanagari, romanised Hindi and English to one form before routing, and the base app's dictation dictionary (`dictate_hints()`, `dictate_spellings()`) fixes names and app words.
 
-**Speaking.** Apple's built-in voices for each language through the base app's `ReadAloudVoice` picker (free, offline); Sarvam Bulbul optional at about ₹1 per 1,000 characters. Default speed 0.85x, and every spoken line also appears on screen. "Say that again" repeats the last line with no AI.
+**Speaking.** Apple's built-in voices for each language through the base app's `ReadAloudVoice` picker (free, offline). Default speed 0.85x, and every spoken line also appears on screen. "Say that again" repeats the last line with no AI.
 
 ## Cost plan
 
@@ -359,8 +357,7 @@ Assumptions: 20 asks a day (half free replays), 2 new lessons a day, 20 Guardian
 | Claude Haiku (lessons, questions) | about 300 asks | about $1.20 |
 | Claude Sonnet (papers, edits) | about 13 papers | about $1.50 (approximate) |
 | Apple speech | 300 minutes | $0 |
-| Sarvam speech, only if needed | 300 minutes | about $1.70 |
-| **Total** |  | **about $3.10, or $4.80 with Sarvam** |
+| **Total** |  | **about $3.10** |
 
 **Plan or key.** API keys are cheapest for light use. Claude Code on an existing Claude Pro or Max plan (the base app's default) adds no cost if the household already pays for one. Local models through Ollama or LM Studio are free but weaker at tool use.
 
@@ -381,7 +378,6 @@ Everything Chiron learns stays in `~/.config/chiron/` on the Mac with owner-only
 - **Stored locally:** skill cards, memory and style note, history with costs (no audio, no screenshots), the Guardian block list, Home's counters.
 - **Sent to Claude:** the ask, window text or a downscaled screenshot, and at most 15 relevant memory lines (the base app's `relevant_rules()`).
 - **Sent to Jev:** text only, plus the questions.
-- **Sent to Sarvam (if enabled):** audio while fn is held.
 - **Safety:** The base app's Safe mode sandbox stays on; `rm`, `sudo`, disk tools and shutdown stay blocked, plus settings changes, app installs, payments and remote-access apps; send, delete, move, print and upload ask first by voice; "Chiron, stop" pauses everything.
 - **No telemetry:** The base app's PostHog calls and failure reports are removed.
 - **Your data, your call:** Settings exports or deletes everything.
@@ -400,7 +396,7 @@ The two biggest risks are Hindi recognition quality and Jev access; Phase 1 test
 
 | Risk | Effect | Plan |
 | --- | --- | --- |
-| On-device Hindi or mixed speech is missing or weak | Wrong asks | Locale probe in Phase 1; Sarvam `codemix` fallback; household dictionary |
+| On-device Hindi or mixed speech is missing or weak | Wrong asks | Locale probe; on-device English fallback with a clear message; normaliser and household dictionary |
 | Jev is behind a waitlist ([eesel](https://www.eesel.ai/blog/typesafe-jev-pricing) found no self-serve tier) | No fast checks at launch | Join now; try Cloudflare Workers AI (`typesafe/jev`); Haiku fallback behind the same interface |
 | Jev pricing changes | Higher cost | Monthly cap; Haiku fallback; batched checks |
 | A wrong correction | Learner loses trust | Act only on high confidence; otherwise ask a yes/no question |
@@ -420,6 +416,4 @@ The two biggest risks are Hindi recognition quality and Jev access; Phase 1 test
 - [Wispr Flow: navigating the app and the Flow Bar](https://docs.wisprflow.ai/articles/5096240724-navigating-the-wispr-flow-app-desktop-ios-and-android)
 - [Wispr Flow: supported keyboard shortcuts](https://docs.wisprflow.ai/articles/2612050838-supported-unsupported-keyboard-hotkey-shortcuts)
 - [Apple: SpeechTranscriber](https://developer.apple.com/documentation/speech/speechtranscriber.md)
-- [Sarvam: Saaras speech-to-text](https://docs.sarvam.ai/api-reference-docs/getting-started/models/saaras.md)
-- [Sarvam: API pricing](https://docs.sarvam.ai/api-reference-docs/pricing.md)
 - [Price Per Token: Claude Haiku 4.5](https://pricepertoken.com/pricing-page/model/anthropic-claude-haiku-4.5)

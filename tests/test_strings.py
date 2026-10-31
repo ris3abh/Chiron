@@ -10,7 +10,7 @@ PAGE = ROOT / 'ui' / 'home.html'
 # Words that stay in Latin script in Hindi: brand names, product names and technical tokens a Hindi speaker sees as-is.
 ALLOWED_LATIN = {
     'Chiron', 'Claude', 'Code', 'Anthropic', 'OpenAI', 'Jev', 'TypeSafe', 'API', 'AI', 'fn', 'URL', 'Keychain', 'macOS', 'Mac',
-    'YouTube', 'WhatsApp', 'Ollama', 'LM', 'Studio', 'Sarvam', 'OK',
+    'YouTube', 'WhatsApp', 'Ollama', 'LM', 'Studio', 'OK',
     # On-screen names are copied exactly as the Mac shows them (System Settings labels, app names).
     'Accessibility', 'Automation', 'Notes', 'Safari', 'Microphone', 'Screen', 'Recording', 'Speech', 'Recognition', 'System', 'Settings',
 }

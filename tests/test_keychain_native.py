@@ -12,7 +12,7 @@ APP = os.environ.get('CHIRON_APP') or str(Path.home() / 'Applications/Chiron.app
                      'writes to the login Keychain; runs only in the VM or with CHIRON_ALLOW_HOST_UI=1')
 @unittest.skipUnless(os.path.exists(APP), 'needs a built Chiron.app (./build.sh)')
 class KeychainNativeTest(unittest.TestCase):
-    name = 'sarvam'   # the one account Phase 1 never uses, so a run never clobbers a real key
+    name = 'custom'   # the rarest real key; setUp's cleanup puts back whatever was there
 
     def secret(self, *args, data=None):
         return subprocess.run([APP, '--secret', *args], input=data, capture_output=True, text=True, timeout=20)
