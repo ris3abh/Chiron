@@ -758,6 +758,7 @@
       else if (!on && !$('ask').value && document.activeElement !== $('ask')) comp(false);
     },
     compose(on) { comp(on, on); },
+    clearCards() { $('thread').querySelectorAll('.ok, .pk').forEach(e => e.remove()); },   // answered on the Voice Bar's card: this page's expiry timers must not fire
     draft(t) { $('ask').value = t; comp(true, true); },
     tap([x, y]) {   // a click on the box, not a drag: on the answer = copy it, anywhere else = type
       const el = document.elementFromPoint(x, y), b = el?.closest('a[href], .ok button, .ok, .pk button, .pk, .rewrite button, .mem-i, .mem-h, .mem, .shot, #pointbar button, .redo, .dn button');

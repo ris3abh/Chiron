@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
 <title>Chiron Voice Bar</title>
 <style>
-/* The always-on bar. Swift owns the panel; the page draws the pill, tells Swift its size, and takes no clicks (VoiceBar lays a native view over it). */
+/* The always-on bar and the card above it. Swift owns the panel; the page draws both and tells Swift their sizes. A native view lies over the pill and takes its mouse; the card takes its own clicks. */
 @font-face { font-family: "Noto Sans Devanagari"; src: url("fonts/NotoSansDevanagari-400.woff2") format("woff2"); font-weight: 400; font-display: swap; unicode-range: U+0900-097F, U+200C-200D, U+25CC; }
 @font-face { font-family: "Noto Sans Devanagari"; src: url("fonts/NotoSansDevanagari-600.woff2") format("woff2"); font-weight: 600 800; font-display: swap; unicode-range: U+0900-097F, U+200C-200D, U+25CC; }
 :root { --accent: #F5B53F; --ink: #F4F4F5; --pill: rgba(24,24,28,.94); --good: #3DD68C; --warn: #FF8A80; --dur: 180ms; --ease: cubic-bezier(.2,.8,.2,1); }
@@ -15,17 +15,17 @@
 html, body { margin: 0; background: transparent; overflow: hidden; }
 body { font: 500 17px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Noto Sans Devanagari", system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; user-select: none; cursor: default; }
 body.hi { line-height: 1.5; }
-#bar { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 10px; width: max-content; max-width: 560px; min-height: 44px; padding: 8px 18px;
-  border-radius: 24px; background: var(--pill); box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 6px 18px rgba(0,0,0,.28); transition: opacity var(--dur) var(--ease); }
+#bar { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; width: max-content; max-width: 380px; min-height: 36px; padding: 5px 14px;
+  border-radius: 20px; background: var(--pill); box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 6px 18px rgba(0,0,0,.28); transition: opacity var(--dur) var(--ease); }
 #orb { width: 14px; height: 14px; border-radius: 50%; flex: none; background: radial-gradient(circle at 35% 35%, #FFE3A3, var(--accent)); }
-#wave { display: none; align-items: center; gap: 2px; height: 26px; flex: none; }
+#wave { display: none; align-items: center; gap: 2px; height: 24px; flex: none; }
 #wave i { display: block; width: 3px; height: 3px; border-radius: 3px; background: var(--accent); }
 #check { display: none; color: var(--good); font-weight: 700; flex: none; }
 #label { display: none; overflow-wrap: anywhere; }
 
-/* Idle: a small, quiet handle (about 120 × 28 pt) that says it is there and asks for nothing. */
-body[data-state="idle"] #bar { min-height: 28px; width: 120px; padding: 0; justify-content: center; opacity: .6; border-radius: 14px; }
-body[data-state="idle"] #orb { width: 10px; height: 10px; }
+/* Idle: a small, quiet handle that says it is there and asks for nothing. */
+body[data-state="idle"] #bar { min-height: 20px; width: 56px; padding: 0; justify-content: center; opacity: .6; border-radius: 10px; }
+body[data-state="idle"] #orb { width: 8px; height: 8px; }
 body:not([data-state="idle"]) #label { display: block; }
 body[data-state="listening"] #wave { display: flex; }
 body[data-state="listening"] #orb { display: none; }
@@ -35,27 +35,112 @@ body[data-state="speaking"] #orb { animation: breathe .7s ease-in-out infinite; 
 body[data-state="done"] #orb { display: none; }
 body[data-state="done"] #check { display: block; }
 body[data-state="guardian"] #orb { background: var(--warn); }
+
+/* The card: long answers, Allow, choices, rewrites and typed replies. It replaces the old corner box. */
+#card { position: fixed; left: 50%; transform: translateX(-50%); bottom: 44px; width: 520px; max-height: 440px; overflow: auto; padding: 18px 20px; border-radius: 18px; background: #1E1E22; color: var(--ink);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 14px 40px rgba(0,0,0,.4); font-size: 19px; line-height: 1.5; font-weight: 400; user-select: text; cursor: auto; }
+#card[hidden] { display: none; }
+#card .x { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: #B9B9C0; font-size: 20px; cursor: pointer; }
+#card .x:hover { color: #fff; }
+#card h2 { font-size: 19px; font-weight: 650; margin: 0 40px 10px 0; }
+#card p { margin: 0 0 10px; overflow-wrap: anywhere; } #card ul, #card ol { margin: 0 0 10px; padding-left: 24px; }
+#card code { display: block; font: 15px/1.4 ui-monospace, Menlo, monospace; padding: 10px 12px; margin: 0 0 12px; border-radius: 10px; background: #2D2D31; overflow-wrap: anywhere; white-space: pre-wrap; }
+#card .acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+#card button.b { min-height: 44px; padding: 8px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,.18); background: transparent; color: inherit; font: 600 17px var(--font, inherit); cursor: pointer; }
+#card button.b:hover { background: rgba(255,255,255,.08); }
+#card button.go { background: var(--accent); color: #1C1406; border-color: transparent; }
+#card button.link { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+#card .opt { display: block; width: 100%; text-align: left; margin-bottom: 8px; }
+#card .opt small { display: block; color: #B9B9C0; font-size: 15px; font-weight: 400; }
+#card textarea { width: 100%; min-height: 88px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.18); background: #2D2D31; color: inherit; font: inherit; resize: vertical; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 </style>
 </head>
 <body data-state="idle">
+<section id="card" role="dialog" aria-label="Chiron" hidden></section>
 <div id="bar" role="status" aria-live="polite"><span id="orb" aria-hidden="true"></span><span id="wave" aria-hidden="true"></span><span id="check" aria-hidden="true">✓</span><span id="label"></span></div>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
 const STATES = ['idle', 'listening', 'thinking', 'speaking', 'done', 'message', 'teaching', 'practice', 'guardian'];
 const LABELS = { listening: 'bar.listening', thinking: 'bar.thinking', speaking: 'bar.speaking', done: 'bar.done', teaching: 'bar.teaching', practice: 'bar.practice', guardian: 'bar.guardian' };
-for (let i = 0; i < 9; i++) $('wave').append(document.createElement('i'));
+for (let i = 0; i < 7; i++) $('wave').append(document.createElement('i'));
 let strings = {}, state = 'idle', detail = '';
 const post = m => { const h = window.webkit && webkit.messageHandlers && webkit.messageHandlers.bar; if (h) h.postMessage(m); };
 // The panel follows the pill: measured here, resized around its bottom centre by Swift.
-const fit = () => { const r = $('bar').getBoundingClientRect(); post({ size: [Math.ceil(r.width), Math.ceil(r.height)] }); };
+const fit = () => {
+  const r = $('bar').getBoundingClientRect(), c = $('card').hidden ? null : $('card').getBoundingClientRect();
+  $('card').style.bottom = Math.ceil(r.height) + 8 + 'px';
+  post({ pill: [Math.ceil(r.width), Math.ceil(r.height)], size: c ? [Math.ceil(Math.max(c.width, r.width)), Math.ceil(c.height + r.height + 8)] : [Math.ceil(r.width), Math.ceil(r.height)] });
+};
 function paint() {
   document.body.dataset.state = state;
   const label = detail || strings[LABELS[state]] || '';
   $('label').textContent = detail.length > 140 ? '…' + detail.slice(-140) : label;   // long speech keeps its newest words in view
   fit();
 }
+/* ---------------- The card ---------------- */
+const T = k => strings[k] || k, act = a => post({ act: a });
+function mk(tag, attrs, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) { if (k === 'text') n.textContent = v; else if (k === 'click') n.addEventListener('click', v); else n.setAttribute(k, v); }
+  kids.forEach(c => n.append(c)); return n;
+}
+const button = (label, click, go) => mk('button', { class: 'b' + (go ? ' go' : ''), type: 'button', text: label, click });
+// Answers are short Markdown: paragraphs, lists, bold and links, built from text nodes, never HTML.
+function inline(host, s) {
+  String(s).split(/(\*\*[^*]+\*\*|\[[^\]]+\]\(https?:[^)\s]+\))/).forEach(part => {
+    const link = /^\[([^\]]+)\]\((.+)\)$/.exec(part);
+    if (/^\*\*.+\*\*$/.test(part)) host.append(mk('b', { text: part.slice(2, -2) }));
+    else if (link) host.append(mk('button', { class: 'link', type: 'button', text: link[1], click: () => act({ link: link[2] }) }));
+    else if (part) host.append(document.createTextNode(part));
+  });
+  return host;
+}
+function markdown(text) {
+  const out = document.createDocumentFragment(); let list = null;
+  String(text).replace(/\u2028/g, '\n').split('\n').forEach(line => {
+    const item = /^\s*(?:[-*•]|\d+[.)])\s+(.*)$/.exec(line);
+    if (item) { if (!list) out.append(list = mk(/^\s*\d/.test(line) ? 'ol' : 'ul')); list.append(inline(mk('li'), item[1])); }
+    else { list = null; if (line.trim()) out.append(inline(mk('p'), line.replace(/^#+\s*/, ''))); }
+  });
+  return out;
+}
+let cardKind = '';
+function openCard(kind, ...kids) {
+  cardKind = kind;
+  const card = $('card'), top = card.scrollTop; card.textContent = ''; card.hidden = false;
+  card.append(mk('button', { class: 'x', type: 'button', 'aria-label': T('card.close'), text: '✕', click: () => post({ close: true }) }), ...kids);
+  if (kind === 'answer') card.scrollTop = top;
+  fit();
+}
+const CARDS = {
+  answer: ({ text }) => openCard('answer', markdown(text)),
+  allow: ({ q, cmd, retry, details }) => openCard('allow', mk('h2', { text: q || '' }), mk(retry ? 'p' : 'code', { text: cmd || '' }), mk('div', { class: 'acts' },
+    ...(retry ? [button(T('card.notNow'), () => act({ pick: 'n' })), button(T('card.tryAgain'), () => act({ pick: 'r' }), true)].concat(details ? [button(T('card.copyDetails'), () => act({ copy: details }))] : [])
+      : [button(T('card.deny'), () => act({ allow: false })), button(T('card.allow'), () => act({ allow: true }), true)]))),
+  pick: ({ q, options }) => openCard('pick', mk('h2', { text: q || '' }),
+    ...(Array.isArray(options) ? options : []).map((o, i) => { const b = button(o.label || '', () => act({ pick: String(i) })); b.classList.add('opt'); if (o.sub) b.append(mk('small', { text: o.sub })); return b; }),
+    mk('div', { class: 'acts' }, button(T('card.none'), () => act({ pick: '' })))),
+  rewrite: ({ draft, mode, editable }) => openCard('rewrite', ...(mode === 'delete' ? [] : [markdown(draft)]), mk('div', { class: 'acts' },
+    ...(editable ? [button(T(mode === 'draft' ? 'card.insert' : mode === 'delete' ? 'card.delete' : 'card.replace'), () => act({ replace: true }), true)] : []),
+    ...(mode === 'delete' ? [] : [button(T('card.copy'), () => act({ copy: draft }))]), button(T('card.tryAgain'), () => act({ retry: true })))),
+  draft: ({ text, label }) => {
+    const box = mk('textarea', { 'aria-label': T('card.typeHere'), placeholder: T('card.typeHere') }); box.value = text || '';
+    const send = () => { if (box.value.trim()) act({ send: box.value.trim() }); };
+    box.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+    box.addEventListener('mousedown', () => post({ key: true }));
+    openCard('draft', ...(label ? [mk('h2', { text: label })] : []), box, mk('div', { class: 'acts' }, button(T('card.send'), send, true)));
+    post({ key: true }); box.focus();
+  },
+  failed: () => openCard('failed', mk('p', { text: T('card.workerFailed') }), mk('div', { class: 'acts' }, button(T('card.tryAgain'), () => act({ workerRetry: true }), true))),
+};
+new ResizeObserver(fit).observe($('card'));
+
 window.bar = {
+  card(kind, data) { if (CARDS[kind]) CARDS[kind](data && typeof data === 'object' ? data : {}); },
+  closeCard() { cardKind = ''; $('card').hidden = true; $('card').textContent = ''; fit(); },
+  get cardKind() { return cardKind; },
   strings(table, lang) { strings = table && typeof table === 'object' ? table : {}; document.documentElement.lang = lang || 'en'; document.body.classList.toggle('hi', lang === 'hi'); paint(); },
   state(name, text) { state = STATES.includes(name) ? name : 'idle'; detail = typeof text === 'string' ? text : ''; paint(); },
   words(text) { if (state === 'listening') { detail = typeof text === 'string' ? text : ''; paint(); } },

@@ -446,6 +446,7 @@ final class Harness {
     func close(clear: Bool) { events.append("close"); hush() }
     func review(_ text: String) { events.append("review"); hush() }
     func cue(_ text: String) {}
+    func closeOpenCard() { events.append("closeCard") }
     func js(_ f: String, _ text: Any? = nil) { if f == "agentEscape" || f == "locked" { events.append(f) } }
     func hide(after: Double) {}
     var pausedNotice = Date.distantPast; func show() {}

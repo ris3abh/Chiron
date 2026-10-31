@@ -71,3 +71,38 @@ macOS voices Lekha and Rishi spoke 10 asks each into `--speech-eval`. This is a 
 
 ## Ready for Phase 3?
 - **Not yet.** Needs steps 1–12 by a person, and the 8 of 10 gate on real recordings in both languages.
+
+---
+
+## Addendum: real failures, rooms, card (Rishabh's review)
+
+### Changed
+- **Real Recent-list failures:** `, bhajan, chalage, batav.`, `YouTube Khol Ke Batao?`, `YouTube chalu Karna` and `Open YouTube for me.` were all paid model calls. They now resolve with no AI. Everyday sites (`SITES` in `chiron.py`: YouTube, Google, Gmail and others) open instantly, and "play X on YouTube" opens its results page.
+- **App names in both scripts:** `SpeechLocale.hints` gives a Hindi ask each installed app's English name, Devanagari spelling and a spoken form, on the live path and in `--speech-file`.
+- **Pill:** idle 56 × 20 pt (was 120 × 28); active at most 380 wide and 36 tall.
+- **Old chat window removed from the screen.** `App.show()` no longer orders it front. The card above the pill (`ui/bar.html`) shows long answers (closes on ✕, Esc, or 20 s after it ends), Allow, choices, rewrite actions, typed replies and a retry. Allow keeps its refuse button; voice replies and the 60 s expiry still work through `ui/ui.html`, which stays loaded off screen as App's state machine.
+
+### Room test (`scripts/speech-rooms.py`, 27 asks, macOS voices)
+| Room | English | Hindi |
+|---|---|---|
+| Close | 11 of 12 | 11 of 15 |
+| Slow | 11 of 12 | 9 of 15 * |
+| Soft | 11 of 12 | 10 of 15 * |
+| Far | 11 of 12 | 10 of 15 * |
+| TV | 11 of 12 | 10 of 15 * |
+| **All together** | **0 of 12** | **1 of 15** |
+
+\* Scored before the `करना` fix, which added one in Close; the others may gain one.
+
+- **All together fails outright:** the engine transcribed the TV news, not the person. Each condition alone holds up; the slow, soft, far voice under a TV does not.
+- **The two-script hints fixed none of the misses.** Calculator, WhatsApp and Chrome are heard wrongly with them too, and Calendar missed as well. This is a robot Hindi voice saying English names, so real voices may differ; there is no evidence yet that the hints help.
+- Everything here is a rehearsal. The gate is still real people.
+
+### Lost with the old window
+- The "point at your screen" button, picture previews and the typed "something else" in choices, maths rendering in answers, and Undo on a learned word (remove it in Dictionary). The model picker and Full access chip went too.
+
+### Compiled but unverified
+- No card has been opened by a real ask: Allow, choices, typed replies, Esc and the 20 s close were seen only in the mock. **Check Allow first.**
+
+### Tests
+- `python3 -m unittest discover -s tests -v`: **623 tests, 0 failures, 114 skipped.** Two assertions that the box follows the pointer went with that feature.

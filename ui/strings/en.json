@@ -278,5 +278,20 @@
   "fast.stillOpen": "{name} is still open.",
   "fast.searched": "Searched {query}.",
   "fast.searchedOn": "Searched {query} on {site}.",
-  "voice.preview": "This is how I will sound."
+  "voice.preview": "This is how I will sound.",
+  "card.close": "Close",
+  "card.allow": "Allow",
+  "card.deny": "Don't Allow",
+  "card.notNow": "Not now",
+  "card.tryAgain": "Try again",
+  "card.copyDetails": "Copy details",
+  "card.none": "None of these",
+  "card.replace": "Replace",
+  "card.insert": "Insert",
+  "card.delete": "Delete",
+  "card.copy": "Copy",
+  "card.send": "Send",
+  "card.typeHere": "Type here",
+  "card.workerFailed": "That didn't start. Try again.",
+  "bar.learned": "Learned \"{word}\""
 }

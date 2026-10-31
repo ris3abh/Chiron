@@ -94,19 +94,32 @@ enum SpeechLocale {
             }
             let t = SpeechTranscriber(locale: locale, preset: .transcription), analyzer = SpeechAnalyzer(modules: [t])
             // The same hint a live ask gets: this Mac's app names and the user's dictionary.
-            let ctx = AnalysisContext(); ctx.contextualStrings[.general] = appHints(); try? await analyzer.setContext(ctx)
+            let ctx = AnalysisContext(); ctx.contextualStrings[.general] = appHints(lang); try? await analyzer.setContext(ctx)
             let reading = Task { var out = ""; for try await r in t.results where r.isFinal { out += String(r.text.characters) }; return out }
             try await analyzer.start(inputAudioFile: file, finishAfterFile: true)
             return (try await reading.value, c.engine)
         } catch { return nil }
     }
 
-    static func appHints() -> [String] {
-        let apps = [NSHomeDirectory() + "/Applications", "/Applications", "/System/Applications", "/System/Applications/Utilities"].flatMap {
+    // Apple's hi-IN engine writes romanised Hindi and an English name in Hindi speech comes out wrong ("bhat saheb" for WhatsApp),
+    // so a Hindi ask hints each name the way it is said and written there as well as its English spelling.
+    static let spellings: [String: [String]] = [
+        "Calculator": ["कैलकुलेटर", "calculator kholo"], "WhatsApp": ["व्हाट्सऐप", "व्हाट्सएप", "whatsapp kholo"], "Google Chrome": ["Chrome", "क्रोम", "chrome kholo"],
+        "Safari": ["सफ़ारी"], "Mail": ["मेल"], "Notes": ["नोट्स"], "Photos": ["फ़ोटो"], "Calendar": ["कैलेंडर"], "Messages": ["मैसेज"], "Music": ["म्यूज़िक"],
+        "System Settings": ["Settings", "सेटिंग्स"], "FaceTime": ["फ़ेसटाइम"], "Maps": ["मैप्स"], "Finder": ["फ़ाइंडर"], "zoom.us": ["Zoom", "ज़ूम"], "Reminders": ["रिमाइंडर"],
+    ]
+    static let hindiWeb = ["YouTube", "यूट्यूब", "youtube kholo", "Google", "गूगल", "Gmail", "जीमेल"]
+    static func hints(_ apps: [String], words: [String], lang: String) -> [String] {
+        var seen = Set<String>()
+        let known = lang == "hi" ? hindiWeb + spellings.flatMap { name, forms in apps.contains(name) ? [name] + forms : [] } : []
+        return (words + known + apps).filter { !$0.isEmpty && seen.insert($0).inserted }
+    }
+    static func installedApps() -> [String] {
+        [NSHomeDirectory() + "/Applications", "/Applications", "/System/Applications", "/System/Applications/Utilities"].flatMap {
             ((try? FileManager.default.contentsOfDirectory(atPath: $0)) ?? []).filter { $0.hasSuffix(".app") }.map { String($0.dropLast(4)) }
         }
-        return DictationData.words + apps.prefix(100)
     }
+    static func appHints(_ lang: String) -> [String] { Array(hints(installedApps(), words: DictationData.words, lang: lang).prefix(DictationData.words.count + 100)) }
 
     static func publish() {
         home.push("speech", status)

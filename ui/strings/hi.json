@@ -278,5 +278,20 @@
   "fast.stillOpen": "{name} अभी भी खुला है।",
   "fast.searched": "{query} खोज दिया।",
   "fast.searchedOn": "{site} पर {query} खोज दिया।",
-  "voice.preview": "मैं ऐसे बोलूँगा।"
+  "voice.preview": "मैं ऐसे बोलूँगा।",
+  "card.close": "बंद करें",
+  "card.allow": "अनुमति दें",
+  "card.deny": "अनुमति न दें",
+  "card.notNow": "अभी नहीं",
+  "card.tryAgain": "फिर कोशिश करें",
+  "card.copyDetails": "जानकारी कॉपी करें",
+  "card.none": "इनमें से कोई नहीं",
+  "card.replace": "बदलें",
+  "card.insert": "लिखें",
+  "card.delete": "हटाएँ",
+  "card.copy": "कॉपी करें",
+  "card.send": "भेजें",
+  "card.typeHere": "यहाँ लिखें",
+  "card.workerFailed": "यह शुरू नहीं हो पाया। फिर कोशिश करें।",
+  "bar.learned": "\"{word}\" सीख लिया"
 }

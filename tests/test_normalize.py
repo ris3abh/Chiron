@@ -16,6 +16,9 @@ PAIRS = [   # same ask, however it was said
     ('search weather on google', 'गूगल पर मौसम खोजो'), ('search weather on google', 'google pe weather dhundo'), ('search weather', 'मौसम ढूंढो'), ('show photos', 'फोटो दिखाओ'),
     ('show photos', 'photo dikhao'), ('search weather on google', 'Google par Mausam khojo'), ('open safari', 'safari Kholo'), ('close notes', 'notes band karo'),
     ('play bhajan on youtube', 'YouTube par bhajan lagao'),   # heard this way from Apple's hi-IN engine, 2026-10-30
+    # Real asks from the Recent list, 2026-10-30: all of them cost a paid model call.
+    ('play bhajan', ', bhajan, chalage, batav.'), ('open youtube', 'YouTube Khol Ke Batao?'), ('open youtube', 'YouTube chalu Karna'), ('play news', 'news chala ke batao'),
+    ('open youtube', 'यूट्यूब खोल के बताओ'), ('open chrome', 'chrome khol kar batao'), ('play songs', 'gaane laga ke batao'),
     ('say that again', 'फिर से बोलो'), ('say that again', 'dobara bolo'), ('say that again', 'phir se bolo'), ('say that again', 'repeat that'),
 ]
 
@@ -38,6 +41,8 @@ class NormalizeTests(unittest.TestCase):
         self.assertEqual(normalize.command('कैलकुलेटर खोलो'), 'open calculator')
         self.assertEqual(normalize.command('safari band karo'), 'close safari')
         self.assertEqual(normalize.command('YouTube pe news lagao'), 'play news on youtube')
+        self.assertEqual(normalize.command('YouTube Khol Ke Batao?'), 'open youtube')
+        self.assertEqual(normalize.command(', bhajan, chalage, batav.'), 'play bhajan')
 
     def test_a_hindi_question_is_left_for_the_model(self):
         said = 'पीडीएफ क्या होता है'

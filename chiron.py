@@ -1728,6 +1728,22 @@ def gist(text):
     return [{'create': 'make', 'start': 'make'}.get(w, w) for w in re.findall(r"[a-z0-9'.-]+", plain(text)) if w not in STOP | FILLER]
 
 
+SITES = {'youtube': 'https://www.youtube.com', 'google': 'https://www.google.com', 'gmail': 'https://mail.google.com', 'facebook': 'https://www.facebook.com',
+         'wikipedia': 'https://www.wikipedia.org', 'amazon': 'https://www.amazon.in', 'flipkart': 'https://www.flipkart.com', 'netflix': 'https://www.netflix.com'}
+SITE_NAMES = {'youtube': 'YouTube', 'gmail': 'Gmail', 'google': 'Google', 'facebook': 'Facebook', 'wikipedia': 'Wikipedia', 'amazon': 'Amazon', 'flipkart': 'Flipkart', 'netflix': 'Netflix'}
+
+
+def opened_site(url, name):
+    """Opens a page in the default browser, in front: the person asked to see it. None lets the AI try."""
+    free_focus(user=True)
+    try:
+        if subprocess.run(['open', url]).returncode: return None
+    except OSError:
+        return None
+    fast.cmds = ['open ' + shlex.quote(url)]
+    return f'Opened {SITE_NAMES.get(name, name)}.'
+
+
 def last_spoken():
     """The newest finished reply, for "say that again": no AI, and None when there is nothing to repeat."""
     rows = [r for r in paths.read_jsonl(paths.LOG) if isinstance(r.get('reply'), str) and r['reply'].strip()]
@@ -1816,6 +1832,9 @@ def fast(text):
             return None
         fast.cmds = [f'{SHOW} --bg {shlex.quote(target)}']
         return f'Searched {query}' + (f' on {site[1]}.' if site else '.')
+    m = re.fullmatch(r'(?:play|search(?: for)?) (.+) on youtube', t)
+    if m and not DEICTIC.search(m[1]):   # "YouTube pe news lagao": its results page, free; picking a video stays with the user
+        return opened_site('https://www.youtube.com/results?search_query=' + urllib.parse.quote_plus(m[1]), 'YouTube')
     m = re.fullmatch(r'(?:open(?: up)?|launch|start|pull up|bring up|focus(?: on)?|switch to|go to)\s+(?!up$)(.+?)'
                      r'(?:\s+(?:on|to|in|at)\s+(?:the\s+|my\s+)?(left|right|full ?screen|center|middle|laptop|monitor)(?:\s+(?:side|half|screen))?)?', t)
     if m and m[2]:   # "open Chrome on my monitor": open it, then the move command below
@@ -1845,6 +1864,8 @@ def fast(text):
             fast.cmds = ['open ' + shlex.quote(site if site.startswith(('https://', 'http://')) else 'https://' + site)]
             return f'Opened {target}.'
         app = app_named(target) or app_heard(target)
+        if not app and target in SITES:   # "open YouTube": the everyday sites need no AI
+            return opened_site(SITES[target], target)
         if not app:
             return None
         if pref('openOn', 'here') == 'other':

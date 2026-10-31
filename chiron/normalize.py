@@ -13,20 +13,20 @@ LEXICON = {
     'न्यूज़': 'news', 'न्यूज': 'news', 'समाचार': 'news', 'गाने': 'songs', 'गाना': 'song', 'भजन': 'bhajan', 'मौसम': 'weather', 'फ़िल्म': 'movie', 'फिल्म': 'movie',
     'ओपन': 'open', 'क्लोज़': 'close', 'क्लोज': 'close', 'प्ले': 'play', 'सर्च': 'search', 'टाइप': 'type', 'सेंड': 'send', 'शो': 'show',
     'कृपया': 'kripya', 'ज़रा': 'zara', 'जरा': 'zara', 'जी': 'ji', 'थोड़ा': 'thoda', 'को': 'ko', 'पे': 'pe', 'पर': 'par', 'में': 'mein', 'मे': 'mein',
-    'खोलो': 'kholo', 'खोलिए': 'kholiye', 'खोलिये': 'kholiye', 'खोल': 'khol', 'दो': 'do', 'दीजिए': 'dijiye', 'दीजिये': 'dijiye', 'बंद': 'band', 'बन्द': 'band', 'करो': 'karo', 'कर': 'kar', 'करिए': 'kijiye',
+    'खोलो': 'kholo', 'खोलिए': 'kholiye', 'खोलिये': 'kholiye', 'खोल': 'khol', 'दो': 'do', 'दीजिए': 'dijiye', 'दीजिये': 'dijiye', 'बंद': 'band', 'बन्द': 'band', 'करो': 'karo', 'कर': 'kar', 'करना': 'karna', 'के': 'ke', 'बताओ': 'batao', 'बताइए': 'bataiye', 'करिए': 'kijiye',
     'कीजिए': 'kijiye', 'कीजिये': 'kijiye', 'चालू': 'chalu', 'बजाओ': 'bajao', 'बजा': 'baja', 'चलाओ': 'chalao', 'चला': 'chala', 'लगाओ': 'lagao', 'लगा': 'laga', 'सुनाओ': 'sunao', 'दिखाओ': 'dikhao',
     'दिखा': 'dikha', 'दिखाइए': 'dikhaiye', 'ढूंढो': 'dhundo', 'ढूँढो': 'dhundo', 'ढूंढ़ो': 'dhundo', 'खोजो': 'khojo', 'भेजो': 'bhejo', 'भेज': 'bhej', 'लिखो': 'likho', 'लिख': 'likh',
     'फिर': 'phir', 'से': 'se', 'बोलो': 'bolo', 'दोबारा': 'dobara', 'दुबारा': 'dobara',
 }
 # Apple's hi-IN engine writes romanised Hindi ("notes band karo"), so these meet the same words the lexicon gives.
 ROMAN = {'photo': 'photos', 'foto': 'photos', 'mausam': 'weather', 'samachar': 'news', 'gana': 'song', 'gaana': 'song', 'gane': 'songs', 'gaane': 'songs', 'film': 'movie', 'filmein': 'movies'}
-FILLER = {'please', 'kripya', 'zara', 'jara', 'ji', 'thoda', 'ko', 'kindly', 'bhai'}
+FILLER = {'please', 'kripya', 'zara', 'jara', 'ji', 'thoda', 'ko', 'kindly', 'bhai', 'batao', 'batav', 'bataiye', 'na', 'tu', 'zaroor'}
 LOCATIVE = {'pe', 'par', 'mein', 'me', 'main'}
 # Longest first, so "band kar do" wins over "band".
 VERBS = {
-    'open': ('khol do', 'khol dijiye', 'kholo', 'kholiye', 'kholna', 'khol', 'open karo', 'open kar do', 'open kijiye', 'chalu karo', 'chalu kar do', 'open'),
+    'open': ('khol ke', 'khol kar', 'khol do', 'khol dijiye', 'kholo', 'kholiye', 'kholna', 'khol', 'open karo', 'open kar do', 'open kijiye', 'open karna', 'chalu karna', 'chalu karo', 'chalu kar do', 'chalu kijiye', 'chalu kar', 'open'),
     'close': ('band kar do', 'band kar dijiye', 'band karo', 'band kijiye', 'band karna', 'close karo', 'close kar do', 'close'),
-    'play': ('baja do', 'bajao', 'chala do', 'chalao', 'laga do', 'lagao', 'sunao', 'suna do', 'play karo', 'play kar do', 'play'),
+    'play': ('chala ke', 'chala kar', 'chalage', 'chalake', 'laga ke', 'laga kar', 'lagake', 'baja ke', 'baja do', 'bajao', 'chala do', 'chalao', 'chalaiye', 'laga do', 'lagao', 'lagaiye', 'sunao', 'suna do', 'play karo', 'play kar do', 'play karna', 'play'),
     'show': ('dikha do', 'dikhao', 'dikhaiye', 'show karo', 'show'),
     'search': ('search karo', 'search kar do', 'dhundo', 'dhundho', 'dhoondo', 'khojo', 'search'),
     'send': ('bhej do', 'bhejo', 'send karo', 'send kar do', 'send'),
@@ -121,4 +121,5 @@ def command(text, words=()):
 
 
 HINDI_WORDS = {w for forms in VERBS.values() for form in forms for w in form.split() if w not in VERBS and w != 'do'} | LOCATIVE | {'ko', 'kripya', 'zara', 'jara'}
+HINDI_WORDS |= {'batao', 'batav', 'bataiye', 'karna'}
 HINDI_WORDS -= {'main', 'me', 'par', 'close', 'open', 'play', 'show', 'search', 'send', 'type'}   # also English words

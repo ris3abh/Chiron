@@ -229,7 +229,7 @@ class OpenAppsAndSitesTests(Ask):
         self.shell.assert_called_once_with(['open', 'https://nike.com'])
 
     def test_a_near_name_that_is_not_an_app_goes_to_the_model(self):
-        said, pill, model = self.ask('open gmail', 'Opened Gmail.', [f'{brain.SHOW} "https://mail.google.com"'])
+        said, pill, model = self.ask('open smail', 'Opened it.', [f'{brain.SHOW} "https://smail.example"'])
         self.assertTrue(model)   # one letter from Mail, but another first sound: never opens Mail
         self.assertNotIn(['open', '-a', 'Mail'], [c.args[0] for c in self.shell.call_args_list])
         self.assertIsNone(brain.app_heard('open my homework folder now'))

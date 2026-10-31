@@ -218,8 +218,6 @@ print("hidden rewrite target kept")
         self.assertIn("panel.isVisible, !dragging, !hovering, let f = pointerFollow(panel.frame)", follow)
         self.assertNotIn("composing", follow)   # the typing box follows too
         self.assertIn("frame(f)", follow)
-        show = self.swift[self.swift.index("    func show()"):self.swift.index("    func hide(")]
-        self.assertIn("startFollowingPointerScreen()", show)
         gone = self.swift[self.swift.index("    func gone()"):self.swift.index("    func pill(")]
         self.assertIn("followTimer?.invalidate()", gone)
         self.assertIn("if !dictate && !drawingReply { targetScreen = currentRequestScreen(panel) }", self.swift)
@@ -260,8 +258,6 @@ print("shelf follows")
             self.assertNotIn(slide, box)
         self.assertEqual(self.swift.count("pointerFollow("), 2)   # definition and box: no per-panel copies
         self.assertEqual(self.swift.count("MeetingFrame.follow("), 1)
-        show = self.swift[self.swift.index("    func show()"):self.swift.index("    func hide(")]
-        self.assertIn("startFollowingPointerScreen()", show)   # the dictation pill opens through show() too
         self.assertIn("pill(true); show()", self.swift)
 
 

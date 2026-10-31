@@ -31,6 +31,23 @@ class BarPageTests(unittest.TestCase):
         for rule in ('prefers-reduced-motion', 'prefers-reduced-transparency', 'min-height: 44px', '17px'):
             self.assertIn(rule, PAGE)
 
+    def test_card_covers_what_the_old_window_did(self):
+        for kind in ('answer', 'allow', 'pick', 'rewrite', 'draft', 'failed'):
+            self.assertRegex(PAGE, rf'\b{kind}: \(', kind)
+        self.assertIn("act({ allow: false })", PAGE, 'Allow always comes with a way to refuse')
+        self.assertIn("act({ allow: true })", PAGE)
+        for key in re.findall(r"T\('(card\.\w+)'\)", PAGE):
+            self.assertTrue(EN.get(key) and HI.get(key), key)
+
+    def test_the_old_window_is_never_shown(self):
+        swift = (ROOT / 'Chiron.swift').read_text()
+        show = swift[swift.index('    func show() {'):swift.index('    func hide(after')]
+        self.assertNotIn('orderFront', show)
+        self.assertNotIn('panel.makeKey', swift[swift.index('    func practice('):swift.index('    func practice(') + 300])
+        bar = (ROOT / 'app' / 'VoiceBar.swift').read_text()
+        for card in ('case "pick"', 'case "ask"', 'case "rewrite"', 'case "draft"', 'case "workerFailed"'):
+            self.assertIn(card, bar, 'every card the old window drew still reaches the person')
+
     def test_it_is_installed(self):
         self.assertIn('cp ui/*.html', (ROOT / 'build.sh').read_text())
 

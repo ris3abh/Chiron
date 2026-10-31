@@ -627,7 +627,7 @@ if (!answer.classList.contains('old')) process.exit(console.error('a real ask no
         self.assertIn('animation: none !important', reduce)
         self.assertIn('body.dictate #orb { animation: fade', reduce)
         self.assertIn('body.dictate :is(#check, .dn) { animation: fade', reduce)
-        sizing = source[source.index('let size = ((m.body as? [NSNumber])'):source.index('    func js(_ call: String')]
+        sizing = source[source.index('let size = ((body as? [NSNumber])'):source.index('    func js(_ call: String')]
         self.assertIn('!NSWorkspace.shared.accessibilityDisplayShouldReduceMotion', sizing)   # Reduce Motion: the panel just takes its size
 
     def test_locked_pill_wears_a_ring_that_fades_and_respects_reduce_motion(self):
@@ -654,7 +654,7 @@ if (!answer.classList.contains('old')) process.exit(console.error('a real ask no
         # Oct 21, 2026: the orb (in #head) was hidden while listening and on the check; only #head's other parts may go
         hidden = re.search(r'body\.dictate #head \{ height: auto; \} ([^{]*)\{ display: none; \}', page).group(1)
         self.assertTrue(all('#head >' in s for s in hidden.split(', ') if '#head' in s), hidden)
-        sizing = source[source.index('let size = ((m.body as? [NSNumber])'):source.index('    func js(_ call: String')]
+        sizing = source[source.index('let size = ((body as? [NSNumber])'):source.index('    func js(_ call: String')]
         self.assertIn('size.count == 2 && pillOn', sizing)   # a late pill size never narrows the box
         pill = source[source.index('    func pill(_ on: Bool)'):source.index('    func allow(_ ok: Bool)')]
         self.assertIn('pillOn = on', pill)

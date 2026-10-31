@@ -27,6 +27,17 @@ class VoiceBrainTest(unittest.TestCase):
                 self.assertEqual(brain.fast(said), 'handled')
         self.assertEqual(seen, ['open calculator'] * 3)
 
+    def test_everyday_sites_and_youtube_searches_are_instant(self):
+        opened = []
+        with patch.object(brain, 'app_named', return_value=None), patch.object(brain, 'app_heard', return_value=None), patch.object(brain, 'free_focus'), \
+             patch.object(brain, 'named_shortcut', return_value=None), patch.object(brain, 'fast_hands', return_value=None), \
+             patch.object(brain.subprocess, 'run', side_effect=lambda c, **k: opened.append(c) or type('R', (), {'returncode': 0})()):
+            for said in ('Open YouTube for me.', 'YouTube Khol Ke Batao?', 'YouTube chalu Karna'):
+                self.assertEqual(brain.fast(said), 'Opened YouTube.', said)
+            self.assertEqual(brain.fast('YouTube pe news lagao'), 'Opened YouTube.')
+        self.assertEqual(opened[:3], [['open', 'https://www.youtube.com']] * 3)
+        self.assertEqual(opened[3], ['open', 'https://www.youtube.com/results?search_query=news'])
+
     def test_say_that_again_replays_the_last_reply_with_no_ai(self):
         self.write('log.jsonl', [{'task': 'a', 'reply': 'first'}, {'task': 'b', 'reply': 'Opened Notes.'}, {'task': 'c', 'status': 'running'}])
         self.assertEqual(brain.fast('फिर से बोलो'), 'Opened Notes.')

@@ -5,21 +5,30 @@
   .bar { display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 10px 16px; background: #1f1b16; color: #f3ede4; }
   button { font: inherit; padding: 5px 10px; border-radius: 7px; border: 1px solid #5c554c; background: transparent; color: inherit; cursor: pointer; }
   button[aria-pressed="true"] { background: #c8782a; border-color: #c8782a; color: #fff; }
-  iframe { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); width: 600px; height: 130px; border: 0; background: transparent; }
+  iframe { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); width: 600px; height: 560px; border: 0; background: transparent; }
 </style>
 <div class="bar" id="controls"></div>
 <iframe id="frame" title="Voice Bar" src="../ui/bar.html" allowtransparency="true"></iframe>
 <script>
 'use strict';
-// Query params for screenshots: ?state=&lang=&words=
+// Query params for screenshots: ?state=&lang=&words=&card=answer|allow|pick|rewrite|draft|failed
 const q = new URLSearchParams(location.search), frame = document.getElementById('frame'), box = document.getElementById('controls');
 const STATES = ['idle', 'listening', 'thinking', 'speaking', 'done', 'message', 'teaching', 'practice', 'guardian'];
+const CARDS = {
+  answer: { text: 'A **PDF** is a file that looks the same on every computer.\n\n- It keeps its pages and pictures\n- You can open it in Preview\n\n[Read more](https://example.com)' },
+  allow: { q: 'Send this message?', cmd: 'Send "I will call after lunch" to Asha on WhatsApp' },
+  pick: { q: 'Which Asha?', options: [{ label: 'Asha Verma', sub: 'Mobile' }, { label: 'Asha Kulkarni', sub: 'Home' }] },
+  rewrite: { draft: 'Dear Sir, please find my bill attached.', mode: 'replace', editable: true },
+  draft: { text: 'open Calculator', label: 'Check these words, then press Return.' },
+  failed: {},
+};
 const SAMPLE = { en: { words: 'open Calculator', message: "I didn't catch that." }, hi: { words: 'कैलकुलेटर खोलो', message: 'मैं समझ नहीं पाया।' } };
 let lang = q.get('lang') === 'hi' ? 'hi' : 'en', state = STATES.includes(q.get('state')) ? q.get('state') : 'idle', timer;
 const bar = () => frame.contentWindow.bar;
 async function apply() {
   const table = await (await fetch(`../ui/strings/${lang}.json`)).json();
   bar().strings(table, lang);
+  bar().closeCard(); if (CARDS[q.get('card')]) bar().card(q.get('card'), CARDS[q.get('card')]);
   bar().state(state, state === 'message' ? SAMPLE[lang].message : state === 'listening' ? (q.get('words') ?? SAMPLE[lang].words) : '');
   clearInterval(timer);
   if (state === 'listening') timer = setInterval(() => bar().level(Math.random()), 80);

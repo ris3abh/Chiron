@@ -1,10 +1,11 @@
-// The always-on Voice Bar: a small pill on every desktop that shows what Chiron is doing. App's existing listening and
-// answering stay as they are; every call to the box also comes here (mirror), and the box opens only for long answers,
-// cards and typed replies, docked above the bar.
+// The always-on Voice Bar: a small pill on every desktop that shows what Chiron is doing, and the card above it for what
+// needs more room: long answers, Allow, choices, rewrites, typed replies. App still drives ui/ui.html, now never on screen,
+// as its state machine; every call to it also comes here (mirror), and the card's buttons send the same messages back.
 import Cocoa
 import WebKit
 
-final class BarPanel: NSPanel { override var canBecomeKey: Bool { false } }   // never takes focus from the app the user is talking about
+// Never takes focus from the app the user is talking about, unless a card is open and they click into it.
+final class BarPanel: NSPanel { var takesKeys = false; override var canBecomeKey: Bool { takesKeys } }
 
 // The web view draws; this transparent layer over it takes the mouse, so a click can never reach the page or activate Chiron.
 final class BarHandle: NSView {
@@ -25,10 +26,12 @@ final class BarHandle: NSView {
 }
 
 final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
-    static let width: CGFloat = 120, height: CGFloat = 28, margin: CGFloat = 16
+    static let width: CGFloat = 56, height: CGFloat = 20, margin: CGFloat = 16
     let panel = BarPanel(contentRect: NSRect(x: 0, y: 0, width: VoiceBar.width, height: VoiceBar.height), styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: false)
     let web: WKWebView
     var loaded = false, pending: [(String, [Any])] = [], settle: DispatchWorkItem?
+    var handle: BarHandle?, cardKind = "", cardClose: DispatchWorkItem?
+    var cardOpen: Bool { !cardKind.isEmpty }
 
     override init() {
         let cfg = WKWebViewConfiguration()
@@ -41,8 +44,9 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         applySharing(panel)
         let root = NSView(frame: web.frame); root.autoresizingMask = [.width, .height]
-        let handle = BarHandle(frame: root.bounds); handle.autoresizingMask = [.width, .height]
+        let handle = BarHandle(frame: root.bounds)
         root.addSubview(web); root.addSubview(handle); panel.contentView = root
+        self.handle = handle
         let ui = URL(fileURLWithPath: dir + "/ui", isDirectory: true)
         web.loadFileURL(ui.appendingPathComponent("bar.html"), allowingReadAccessTo: ui)
     }
@@ -60,8 +64,16 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         pending.forEach { callJS(web, "bar." + $0.0, $0.1) }; pending = []
     }
     func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
-        guard let body = m.body as? [String: Any], let s = body["size"] as? [NSNumber], s.count == 2 else { return }
+        guard let body = m.body as? [String: Any] else { return }
+        if let a = body["act"] as? [String: Any] { app.boxAction(a) }
+        if body["close"] != nil { closeCard(); app.cardClosed() }
+        if body["key"] != nil { panel.takesKeys = true; panel.makeKey() }
+        guard let s = body["size"] as? [NSNumber], s.count == 2 else { return }
         resize(CGFloat(s[0].doubleValue), CGFloat(s[1].doubleValue))
+        if let p = body["pill"] as? [NSNumber], p.count == 2 {   // only the pill drags; the card's own buttons take their clicks
+            let w = CGFloat(p[0].doubleValue), h = CGFloat(p[1].doubleValue)
+            handle?.frame = NSRect(x: (panel.frame.width - w) / 2, y: 0, width: w, height: h)
+        }
     }
     // Grows around its bottom centre, so it stays under the eye.
     private func resize(_ w: CGFloat, _ h: CGFloat) {
@@ -111,6 +123,26 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     @objc func resetPosition() { reset() }
     @objc func quit() { NSApp.terminate(nil) }
 
+    // ---- The card ----
+    func card(_ kind: String, _ data: [String: Any]) {
+        guard !(kind == "draft" && ["allow", "pick"].contains(cardKind)) else { return }   // a voice reply to a card keeps the card
+        cardClose?.cancel(); cardClose = nil
+        cardKind = kind; panel.takesKeys = true; call("card", [kind, data])
+    }
+    func closeCard() {
+        cardClose?.cancel(); cardClose = nil
+        guard cardOpen else { return }
+        cardKind = ""; panel.takesKeys = false; call("closeCard", [])
+        if panel.isKeyWindow { panel.resignKey() }
+    }
+    // An answer stays 20 s after it ends, or after it has been read aloud. Anything waiting on the person stays until answered.
+    func answerEnded() {
+        cardClose?.cancel(); cardClose = nil
+        guard cardKind == "answer", app.voice?.isRunning != true else { return }
+        let close = DispatchWorkItem { [weak self] in self?.closeCard() }
+        cardClose = close; DispatchQueue.main.asyncAfter(deadline: .now() + 20, execute: close)
+    }
+
     // ---- States ----
     func state(_ name: String, _ text: String = "", settleAfter: Double? = nil) {
         settle?.cancel(); settle = nil
@@ -121,11 +153,11 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     }
     func idle() { state("idle") }
 
-    // What the box is told, in bar terms. A short answer stays on the bar; a long one, a card or a typed reply opens the box.
+    // What ui.html is told, in bar terms. A short answer stays on the pill; a long one, or anything needing a reply, is a card.
     func mirror(_ call: String, _ arg: Any?) {
         let text = arg as? String ?? ""
         switch call {
-        case "listen": state("listening")
+        case "listen": if cardKind == "answer" || cardKind == "rewrite" || cardKind == "failed" { closeCard() }; state("listening")
         case "level": if let v = arg as? Double ?? (arg as? NSNumber)?.doubleValue { self.call("level", [v]) }
         case "words": self.call("words", [text])
         case "think", "finishing": state("thinking")
@@ -133,13 +165,27 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
             let line = (arg as? [String: Any])?["text"] as? String ?? ""
             line.isEmpty ? state("done", settleAfter: 2) : state("message", line, settleAfter: 4)
         case "msg", "stopped", "notice":
-            if text.isEmpty { idle() } else { VoiceBar.long(text, 140) ? app.openBox() : state("message", text, settleAfter: 4) }
+            if call == "stopped", ["allow", "pick"].contains(cardKind) { closeCard() }
+            if text.isEmpty { idle() } else if VoiceBar.long(text, 140) { card("answer", ["text": text]); idle(); answerEnded() } else { state("message", text, settleAfter: 4) }
         case "line":
             let tag = text.first, words = String(text.dropFirst(2))
-            if tag == "✓" { if VoiceBar.long(words, 90) { app.openBox() }; state("done", VoiceBar.long(words, 90) ? "" : words, settleAfter: 4) }
-            else if tag == "…" { if VoiceBar.long(words, 90) { app.openBox() } }
+            if tag == "✓" { if VoiceBar.long(words, 90) { card("answer", ["text": words]); answerEnded() }; state("done", VoiceBar.long(words, 90) ? "" : words, settleAfter: 4) }
+            else if tag == "…" { if VoiceBar.long(words, 90) { card("answer", ["text": words]) } }
             else if tag == "▸" || tag == "·" { state("thinking", words) }
-        case "pick", "ask", "rewrite", "draft", "workerFailed": app.openBox()
+        case "pick": card("pick", arg as? [String: Any] ?? [:])
+        case "ask":
+            let a = arg as? [Any] ?? []
+            card("allow", ["q": a.first as? String ?? "", "cmd": a.count > 1 ? a[1] as? String ?? "" : "", "retry": a.count > 2 && (a[2] as? String ?? "") == "retry", "details": a.count > 3 ? a[3] as? String ?? "" : ""])
+        case "rewrite":
+            let a = arg as? [Any] ?? []
+            card("rewrite", ["draft": a.first as? String ?? "", "mode": a.count > 1 ? a[1] as? String ?? "replace" : "replace", "editable": a.count > 2 ? a[2] as? Bool ?? false : false])
+        case "draft": card("draft", ["text": text])
+        case "compose": if arg as? Bool == true { card("draft", ["text": ""]) }
+        case "workerFailed": card("failed", [:])
+        case "respond", "reset", "replaced": closeCard()
+        case "copied": state("done", settleAfter: 2)
+        case "paused": if arg as? Bool != false { state("message", L("menu.paused"), settleAfter: 4) }
+        case "learned": state("message", L("bar.learned", ["word": text]), settleAfter: 4)
         default: break
         }
     }
@@ -148,6 +194,9 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
 let voiceBar = VoiceBar()
 
 extension App {
+    func cardClosed() { pinned = false; if !busy { gone() } }
+    func closeOpenCard() { if voiceBar.cardOpen { voiceBar.closeCard(); cardClosed() } }
+
     // Test my voice: five seconds through the normal listening path in the chosen language, ending before anything is asked.
     func testVoice(_ lang: String, _ done: @escaping (String) -> Void) {
         guard !engine.isRunning, !busy, voiceTest == nil else { return done("") }

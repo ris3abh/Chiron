@@ -1617,7 +1617,7 @@ final class App: NSObject, WKScriptMessageHandler {
     var nextFeed: AsyncStream<AnalyzerInput>.Continuation?, nextAnalyzer: SpeechAnalyzer?, nextReading: Task<Void, Never>?
     var nextSpeechInputID: UUID?, nextSpeechSegment = 0, nextSpeechRollover = 50.0
     var speechFormat: AVAudioFormat?, preparingSpeech = false   // what the model wants (found at launch and when the model changes)
-    var boxQuiet = false, voiceTestLang: String?, voiceTest: ((String) -> Void)?, talkTap: DispatchWorkItem?, talkPressed = Date.distantPast, missingNoticed = false
+    var voiceTestLang: String?, voiceTest: ((String) -> Void)?, talkTap: DispatchWorkItem?, talkPressed = Date.distantPast, missingNoticed = false
     // Settings → Speech model: Apple's newer SpeechTranscriber, or the Dictation model the keyboard mic uses.
     // Dictation drops fastResults / frequentFinalization (Apple: faster but less accurate); asks keep them for live commands.
     func speechModule(dictate: Bool = false) -> any SpeechModule {
@@ -1722,9 +1722,7 @@ final class App: NSObject, WKScriptMessageHandler {
         let shortcuts = (try? JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: config + "/skills.json")))) as? [String: Any] ?? [:]
         var seen = Set<String>()
         return Array((DictationData.words + ["Chiron", profileName(config + "/me.json")] + shortcuts.keys.sorted() +
-        [NSHomeDirectory() + "/Applications", "/Applications", "/System/Applications", "/System/Applications/Utilities"].flatMap {
-            ((try? FileManager.default.contentsOfDirectory(atPath: $0)) ?? []).filter { $0.hasSuffix(".app") }.map { String($0.dropLast(4)) }
-        }).filter { !$0.isEmpty && seen.insert($0).inserted }.prefix(DictationData.words.count + 100))
+        SpeechLocale.hints(SpeechLocale.installedApps(), words: [], lang: voiceTestLang ?? Strings.lang)).filter { !$0.isEmpty && seen.insert($0).inserted }.prefix(DictationData.words.count + 100))
     }
     func sound(_ name: String, _ v: Float) { let s = NSSound(named: name); s?.volume = v; s?.play() }
     func cue(_ k: String) { let n = Prefs.str(k); if n != "None" { sound(n, Float(Prefs.num("volume"))) } }   // soundStart / soundRelease / soundDone / soundStop
@@ -1748,7 +1746,7 @@ final class App: NSObject, WKScriptMessageHandler {
             shush(); let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/say"); p.arguments = arguments
             voiceBar.state("speaking")
             p.terminationHandler = { [weak self] _ in DispatchQueue.main.async {
-                guard let self, self.voice === p else { return }; self.voice = nil; voiceBar.idle(); self.hide(after: 2)
+                guard let self, self.voice === p else { return }; self.voice = nil; voiceBar.idle(); voiceBar.answerEnded(); self.hide(after: 2)
             } }
             try? p.run(); voice = p
         }
@@ -1912,7 +1910,7 @@ final class App: NSObject, WKScriptMessageHandler {
                 let p = e.locationInWindow
                 if let ed = edges(p), !(overX(p) && !ed.r && !ed.t) { sizing = (NSEvent.mouseLocation, panel.frame, ed); fromTop = ed.t; pinned = true; dragging = true }
                 else if overX(p) { close(clear: true) }
-                else if p.y < compH { if !panel.isKeyWindow && replacement == nil { selection = TextSelection.capture() }; pinned = true; panel.makeKey(); panel.makeFirstResponder(web); return e }   // the typing box: a normal click; a waiting Insert/Replace keeps its target
+                else if p.y < compH { if !panel.isKeyWindow && replacement == nil { selection = TextSelection.capture() }; pinned = true; return e }   // the typing box: a normal click; a waiting Insert/Replace keeps its target
                 else { if !pillOn { pinned = true }; grab = (NSEvent.mouseLocation, panel.frame.origin); moved = false; dragging = true }   // the pill is not a box to keep
             case .leftMouseDragged:
                 if let z = sizing {   // width from the side edges, height from the top/bottom; a corner does both
@@ -1984,7 +1982,14 @@ final class App: NSObject, WKScriptMessageHandler {
 
     // The page reports its height; grow the box down from the top-left corner. "c": the typing box.
     func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
-        if m.name == "c", let b = m.body as? [String: Any] {
+        if m.name == "c", let b = m.body as? [String: Any] { boxAction(b); return }
+        boxSize(m.body)
+    }
+    // A button pressed on the Voice Bar's card, or ui.html's own timers and voice replies.
+    func boxAction(_ b: [String: Any]) {
+        if b["allow"] != nil || b["pick"] != nil { voiceBar.closeCard(); callJS(web, "ui.clearCards", []) }
+        if ["send", "replace", "retry", "workerRetry"].contains(where: { b[$0] != nil }) { voiceBar.closeCard() }
+        do {
             if b["learnedUndo"] != nil, let word = learnedWord {
                 if DictationData.forget(word) {
                     learnedWord = nil; js("dictated", ["text": "Forgot that spelling", "ok": true]); hide(after: 2)
@@ -2044,9 +2049,10 @@ final class App: NSObject, WKScriptMessageHandler {
             if let k = b["off"] as? String, k == "tips" { Chiron.settings.apply(k, false); Chiron.settings.push() }   // a tip's own "Turn off"; never safe mode
             if let item = b["memory"] as? [String: Any] { Chiron.settings.reveal(item) }   // a receipt's item: Settings → Memory, at that item
             if let ok = b["allow"] as? Bool, !askFile.isEmpty { allow(ok) }
-            return
         }
-        let size = ((m.body as? [NSNumber]) ?? [m.body as? NSNumber].compactMap { $0 }).map { CGFloat($0.doubleValue) }
+    }
+    func boxSize(_ body: Any) {
+        let size = ((body as? [NSNumber]) ?? [body as? NSNumber].compactMap { $0 }).map { CGFloat($0.doubleValue) }
         guard let h = size.last, h > 0 else { return }
         var f = panel.frame
         if !fromTop { f.origin.y = f.maxY - h }   // grows down from the top, unless the user is dragging the top edge
@@ -2062,8 +2068,6 @@ final class App: NSObject, WKScriptMessageHandler {
     }
 
     func js(_ call: String, _ arg: Any? = nil) { callJS(web, "ui." + call, arg.map { [$0] } ?? []); voiceBar.mirror(call, arg) }
-    // The voice ask's answer turned out too long for the bar, or needs an answer: the box, docked above it.
-    func openBox() { guard boxQuiet else { return }; boxQuiet = false; show() }
     func armEsc() { if escRef == nil { RegisterEventHotKey(UInt32(kVK_Escape), 0, EventHotKeyID(signature: 0x41545443, id: 2), GetApplicationEventTarget(), 0, &escRef) } }
     var pointerNext: String?, pointerBusy = false, pointerHand = false
     func pointer(_ args: String) {   // Chiron never activates, so WebKit runs no :hover or cursor in the box: the page marks .hot and says if the cursor is a hand
@@ -2086,26 +2090,7 @@ final class App: NSObject, WKScriptMessageHandler {
     }
     func show() {
         gen += 1; js("visible", true); js("mode", Prefs.bool("safe")); js("models", modelChoices())
-        if boxQuiet { armEsc(); return }   // the bar is showing this one
-        startFollowingPointerScreen()
-        if panel.isVisible {   // still up: stay where the user dragged it
-            NSAnimationContext.runAnimationGroup { $0.duration = 0.18; panel.animator().alphaValue = 1 }
-            return
-        }
-        defer { if drawing.active { avoidDrawing() } }
-        let screen = mouseScreen, vf = screen.visibleFrame   // open where the user is looking: the cursor's screen
-        var f = panel.frame
-        if !pillOn { f.size.width = boxWidth(Prefs.num("boxW"), vf) }
-        f.origin = NSPoint(x: Prefs.str("corner") == "top-right" ? vf.maxX - f.width - 14 : vf.minX + 14, y: vf.maxY - f.height - 10)
-        if !Prefs.bool("paused") {   // docked above the bar
-            let b = voiceBar.panel.frame
-            f.origin = NSPoint(x: min(max(vf.minX + 14, b.midX - f.width / 2), vf.maxX - f.width - 14), y: min(b.maxY + 10, vf.maxY - f.height - 10))
-        }
-        frame(f, on: screen)
-        panel.alphaValue = 0
-        panel.orderFrontRegardless()
-        armEsc()
-        NSAnimationContext.runAnimationGroup { $0.duration = 0.18; panel.animator().alphaValue = 1 }
+        armEsc()   // what the box showed is on the Voice Bar and its card now; ui.html stays off screen as App's state machine
     }
 
     func hide(after s: Double) {
@@ -2123,7 +2108,7 @@ final class App: NSObject, WKScriptMessageHandler {
 
     func gone() {
         followTimer?.invalidate(); followTimer = nil
-        panel.orderOut(nil); pinned = false; stuck = false; boxHome = nil; composing = false; boxQuiet = false; js("compose", false); js("visible", false)
+        panel.orderOut(nil); pinned = false; stuck = false; boxHome = nil; composing = false; js("compose", false); js("visible", false)
         if hovering { hovering = false; js("hover", false); pointer("[]") }   // a hidden panel gets no mouseExited
         pill(false)
         if let r = escRef { UnregisterEventHotKey(r); escRef = nil }
@@ -2170,9 +2155,7 @@ final class App: NSObject, WKScriptMessageHandler {
             cancel()
         } else if drawing.active {
             drawing.clear()
-        } else if panel.isVisible {
-            close(clear: false)
-        }
+        } else { closeOpenCard() }
     }
 
     func hush() { hush(keepReply: false) }
@@ -2316,7 +2299,7 @@ final class App: NSObject, WKScriptMessageHandler {
 
     func review(_ message: String) {
         hush(); js("msg", message)
-        pinned = true; panel.makeKey(); panel.makeFirstResponder(web); js("draft", text)
+        pinned = true; js("draft", text)
     }
 
     func recordingLimit() {
@@ -2477,7 +2460,7 @@ final class App: NSObject, WKScriptMessageHandler {
                 if composing && panel.isVisible { return dismiss() }   // pressed again = put it away
                 unwarm(); warm = spawn()
                 onboarding.tried(); show()
-                panel.makeKey(); panel.makeFirstResponder(web); js("compose", true)
+                js("compose", true)
                 return
             }
         }
@@ -2485,7 +2468,6 @@ final class App: NSObject, WKScriptMessageHandler {
         cue("soundStart")
         if !dictate && (!replying || drawingReply) { unwarm(); warm = spawn() }
         hovering = false
-        boxQuiet = !replying   // the bar shows listening and short answers; the box opens if it's needed
         if !missingNoticed, voiceTestLang == nil, (SpeechLocale.status[Strings.lang]?["state"] as? String ?? "ready") != "ready" {
             missingNoticed = true; DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { voiceBar.state("message", L("speech.langMissing"), settleAfter: 5) }
         }
@@ -3000,7 +2982,7 @@ final class App: NSObject, WKScriptMessageHandler {
         aheadItem?.cancel()
         if liveRevised {
             hush(); js("msg", "Your words changed after Chiron acted. Check them, then press Return.")
-            pinned = true; panel.makeKey(); panel.makeFirstResponder(web); js("draft", text); return
+            pinned = true; js("draft", text); return
         }
         let rest = rest()
         if did.isEmpty, !rest.isEmpty && transcriptKey(rest) == transcriptKey(ahead), proc?.isRunning == true {   // already started on exactly this while the user talked
@@ -3111,7 +3093,7 @@ final class App: NSObject, WKScriptMessageHandler {
     // A due routine (RoutineWake): the box opens with its ask ready to send, as a typed draft is; Return starts an ordinary ask.
     func practice(_ ask: String, label: String) {
         js("reset"); gen += 1; pill(false); show()
-        pinned = true; panel.makeKey(); panel.makeFirstResponder(web)
+        pinned = true
         js("msg", label.isEmpty ? "Practice time" : "Practice · " + label); js("draft", ask)
     }
 
