@@ -13,7 +13,7 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
     func detach(_ web: WKWebView?) { if let web { pages[ObjectIdentifier(web)] = nil } }
 
     // Prefs the page may write. Anything else (paused, safe, hotkeys) keeps its own native path.
-    static let writable: Set<String> = ["lang", "cap", "brain", "apiBase", "apiModel", "jevBase", "openaiModel", "theme", "talkKey", "speak", "speakRate", "voice.en", "voice.hi", "ttsVoice.en", "ttsVoice.hi"]
+    static let writable: Set<String> = ["lang", "cap", "brain", "apiBase", "apiModel", "jevBase", "openaiModel", "theme", "talkKey", "speak", "speakRate", "voice.en", "voice.hi", "ttsVoice.en", "ttsVoice.hi", "appleVoice"]
     // The page's names for prefs whose stored key predates it (apiBase/apiModel).
     static let aliases = ["capUsd": "cap", "customUrl": "apiBase", "customModel": "apiModel", "jevBaseUrl": "jevBase"]
     // Changing these must not reuse a Claude worker started with the old brain or key.

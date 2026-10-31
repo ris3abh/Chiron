@@ -30,7 +30,7 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     let panel = BarPanel(contentRect: NSRect(x: 0, y: 0, width: VoiceBar.width, height: VoiceBar.height), styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: false)
     let web: WKWebView
     var loaded = false, pending: [(String, [Any])] = [], settle: DispatchWorkItem?
-    var handle: BarHandle?, cardKind = "", cardClose: DispatchWorkItem?
+    var handle: BarHandle?, cardKind = "", cardClose: DispatchWorkItem?, lastStep = ""
     var cardOpen: Bool { !cardKind.isEmpty }
 
     override init() {
@@ -144,9 +144,9 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     }
 
     // ---- States ----
-    func state(_ name: String, _ text: String = "", settleAfter: Double? = nil) {
+    func state(_ name: String, _ text: String = "", done: String = "", settleAfter: Double? = nil) {
         settle?.cancel(); settle = nil
-        call("state", [name, text])
+        call("state", [name, text, done])
         guard let settleAfter else { return }
         let idle = DispatchWorkItem { [weak self] in self?.call("state", ["idle", ""]) }
         settle = idle; DispatchQueue.main.asyncAfter(deadline: .now() + settleAfter, execute: idle)
@@ -157,7 +157,7 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     func mirror(_ call: String, _ arg: Any?) {
         let text = arg as? String ?? ""
         switch call {
-        case "listen": if cardKind == "answer" || cardKind == "rewrite" || cardKind == "failed" { closeCard() }; state("listening")
+        case "listen": lastStep = ""; if cardKind == "answer" || cardKind == "rewrite" || cardKind == "failed" { closeCard() }; state("listening")
         case "level": if let v = arg as? Double ?? (arg as? NSNumber)?.doubleValue { self.call("level", [v]) }
         case "words": self.call("words", [text])
         case "think", "finishing": state("thinking")
@@ -169,9 +169,14 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
             if text.isEmpty { idle() } else if VoiceBar.long(text, 140) { card("answer", ["text": text]); idle(); answerEnded() } else { state("message", text, settleAfter: 4) }
         case "line":
             let tag = text.first, words = String(text.dropFirst(2))
-            if tag == "✓" { if VoiceBar.long(words, 90) { card("answer", ["text": words]); answerEnded() }; state("done", VoiceBar.long(words, 90) ? "" : words, settleAfter: 4) }
+            if tag == "✓" {   // silent replies stay readable: about 2.5 words a second, never under 8 s
+                lastStep = ""
+                if VoiceBar.long(words, 90) { card("answer", ["text": words]); answerEnded() }
+                state("done", VoiceBar.long(words, 90) ? "" : words, settleAfter: max(8, Double(words.split(separator: " ").count) / 2.5))
+            }
             else if tag == "…" { if VoiceBar.long(words, 90) { card("answer", ["text": words]) } }
-            else if tag == "▸" || tag == "·" { state("thinking", words) }
+            else if tag == "▸" { state("thinking", words, done: lastStep); lastStep = words }   // what it just did, above what it is doing
+            else if tag == "·" { state("thinking", words, done: lastStep) }
         case "pick": card("pick", arg as? [String: Any] ?? [:])
         case "ask":
             let a = arg as? [Any] ?? []
@@ -197,16 +202,31 @@ extension App {
     // chiron.py --speak: voice stays the one running reader, so the talk key's and Esc's shush() stop it like `say`.
     func speakCloud(_ words: String, lang: String, voice speaker: String?, fallback: [String] = []) {
         shush()
-        let chosen = speaker ?? Prefs.str("ttsVoice." + lang), speed = Prefs.num("speakRate") > 0 ? Prefs.num("speakRate") : 0.85
-        let say = String(decoding: (try? JSONSerialization.data(withJSONObject: fallback.isEmpty ? sayRate() : fallback)) ?? Data("[]".utf8), as: UTF8.self)
-        let p = py(["--speak", lang, chosen, String(speed)], ["CHIRON_SAY_ARGS": say]), input = Pipe()
-        p.standardInput = input
+        guard let (p, input) = cloudProcess(lang, speaker, fallback) else { return }
         p.terminationHandler = { [weak self] p in DispatchQueue.main.async {
             guard let self, self.voice === p else { return }; self.voice = nil; voiceBar.idle(); voiceBar.answerEnded(); self.hide(after: 2)
         } }
         do { try p.run() } catch { return }
         voice = p; voiceBar.state("speaking")
-        input.fileHandleForWriting.write(Data(words.utf8)); try? input.fileHandleForWriting.close()
+        input.write(Data(words.utf8)); try? input.close()
+    }
+    func cloudProcess(_ lang: String, _ speaker: String?, _ fallback: [String]) -> (Process, FileHandle)? {
+        let chosen = speaker ?? Prefs.str("ttsVoice." + lang), speed = Prefs.num("speakRate") > 0 ? Prefs.num("speakRate") : 0.85
+        let say = String(decoding: (try? JSONSerialization.data(withJSONObject: fallback)) ?? Data("[]".utf8), as: UTF8.self)
+        let p = py(["--speak", lang, chosen, String(speed)], ["CHIRON_SAY_ARGS": say]), input = Pipe()
+        p.standardInput = input
+        return (p, input.fileHandleForWriting)
+    }
+    // A lesson caption: the same cached cloud voice; nil is silence, and the caption is on screen anyway.
+    func speakCaption(_ words: String) -> Process? {
+        let apple = Prefs.bool("appleVoice")
+        if Keychain.has("google"), let (p, input) = cloudProcess(Strings.lang, nil, apple ? sayRate() : []) {
+            do { try p.run() } catch { return nil }
+            input.write(Data(words.utf8)); try? input.close(); return p
+        }
+        guard apple else { return nil }
+        let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/say"); p.arguments = readAloudArguments(words, rate: sayRate()) {}
+        try? p.run(); return p
     }
 
     func cardClosed() { pinned = false; if !busy { gone() } }

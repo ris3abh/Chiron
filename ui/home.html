@@ -661,6 +661,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
         <div class="group-title" style="margin-top:28px"><h3 data-i18n="voice.speak.title">Speaking</h3></div>
         <div class="set-rows">
           <div><div class="t"><label for="speakOn"><b data-i18n="voice.speak.on">Read replies aloud</b></label></div><input class="switch" id="speakOn" type="checkbox" role="switch"></div>
+          <div><div class="t"><label for="appleOn"><b data-i18n="voice.apple.on">Use my Mac's voice when Google can't speak</b></label><p data-i18n="voice.apple.help">Off: Chiron stays silent and shows the words in the bar.</p></div><input class="switch" id="appleOn" type="checkbox" role="switch"></div>
           <div data-voice="en"><div class="t"><label for="voice-en"><b data-i18n="voice.speak.en">English voice</b></label></div>
             <div class="actions"><select class="input" id="voice-en"></select><button class="btn" type="button" data-preview="en" data-i18n="voice.speak.preview">Preview</button></div></div>
           <div data-voice="hi"><div class="t"><label for="voice-hi"><b data-i18n="voice.speak.hi">Hindi voice</b></label></div>
@@ -1238,6 +1239,8 @@ function renderTalk() {
 }
 function renderSpeak() {
   $('#speakOn').checked = S.prefs.speak === true;
+  $('#appleOn').checked = S.prefs.appleVoice === true;
+  $$('[data-voice]').forEach(row => { row.hidden = S.prefs.appleVoice !== true; });
   const rate = $('#speakRate'), v = isNum(S.prefs.speakRate) ? S.prefs.speakRate : 0.85;
   if (document.activeElement !== rate) rate.value = String(v);
   $('#speakRateOut').textContent = t('voice.speak.rate', { rate: new Intl.NumberFormat(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(rate.value)) });
@@ -1657,6 +1660,7 @@ function wire() {
   $('#globeFix').addEventListener('click', () => bridge.call('globe.fix').catch(() => toast(t('common.error'))));
   $('#barReset').addEventListener('click', () => bridge.call('bar.reset').then(() => saved($('#sec-voice'))).catch(() => toast(t('common.error'))));
   $('#speakOn').addEventListener('change', e => setPref('speak', e.target.checked, $('#sec-voice')));
+  $('#appleOn').addEventListener('change', async e => { await setPref('appleVoice', e.target.checked, $('#sec-voice')); renderSpeak(); });
   $('#speakRate').addEventListener('input', renderSpeak);
   $('#speakRate').addEventListener('change', e => setPref('speakRate', Number(e.target.value), $('#sec-voice')));
   VOICE_LANGS.forEach(lang => $('#voice-' + lang).addEventListener('change', e => setPref('voice.' + lang, e.target.value, $('#sec-voice'))));

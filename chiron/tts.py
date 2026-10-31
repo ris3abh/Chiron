@@ -1,4 +1,5 @@
-"""Spoken replies with a cloud voice: Google Cloud Text-to-Speech, Chirp 3 HD first, then WaveNet, then Apple's `say`.
+"""Spoken replies with a cloud voice: Google Cloud Text-to-Speech, Chirp 3 HD first, then WaveNet. When neither can speak, Chiron
+stays silent and the words stay on the Voice Bar and its card: Apple's voice is used only if the person turned it on in Settings.
 
 `chiron.py --speak <lang>` reads an answer on stdin, turns it into a spoken version, and plays sentence by sentence while the
 rest is fetched, so the first words start after one request. Google's true streaming is gRPC only and this app has no gRPC
@@ -202,7 +203,7 @@ def audio_for(text, lang, voice, speed, key):
 
 # ---- Speaking ----
 def fallback(words, arguments):
-    """Apple's on-device voice, with the voice and speed Swift chose."""
+    """Apple's on-device voice, only when Settings allows it: Swift then passes its voice and speed."""
     return subprocess.Popen(['/usr/bin/say', *arguments, '--', words])
 
 
@@ -210,7 +211,7 @@ def speak(text, lang, voice=None, speed=0.85, key=None, say_args=(), player='/us
     """Plays the reply. Fetching runs ahead on a thread, so the first sentence starts while the rest arrives."""
     key = paths.secret('google') if key is None else key
     items, left = script(text, lang)
-    if not items: return 0
+    if not items or not (key or say_args): return 0   # nothing can speak: the text is already on screen
     if left:
         paths.private_json(REST, {'at': time.time(), 'lang': lang, 'text': left})
         items.append((i18n.t('tts.goOn', lang), True))
@@ -234,6 +235,7 @@ def speak(text, lang, voice=None, speed=0.85, key=None, say_args=(), player='/us
         got = ready.get()
         if got is None: return spoken
         sentence, end, path = got
+        if not path and not say_args: return spoken   # Google is unavailable: silence, not another voice mid-answer
         current[0] = subprocess.Popen([player, path]) if path else fallback(sentence, say_args)
         current[0].wait(); current[0] = None; spoken += 1
         if end: time.sleep(PAUSE)

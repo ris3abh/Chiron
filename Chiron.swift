@@ -189,7 +189,7 @@ enum Prefs {
         "soundStart": "Pop", "soundRelease": "Bottle", "soundDone": "Glass", "soundStop": "Tink", "volume": 0.16, "model": "haiku", "instant": true,
         "microphone": "automatic", "quietAudio": false, "quietLevel": 0.18, "agentModel": "sonnet", "fixSetup": false,   // agentModel: the work model escalation uses; the old key name is kept so saved choices carry over
         "selection": true, "ahead": true, "aheadDelay": 0.7, "live": true, "screen": "auto", "openOn": "here", "workIn": "back", "draw": true, "guideSteps": "auto",
-        "speak": true, "showAnswers": "stream", "autoCopy": false, "hideWhenSharing": true, "menuIcon": true,
+        "speak": true, "appleVoice": false, "showAnswers": "stream", "autoCopy": false, "hideWhenSharing": true, "menuIcon": true,
         "learn": true, "safe": true, "pointer": false, "learnMe": true, "saveChats": true, "tips": true, "askMe": true, "input": "voice", "talkMode": "hold", "speechModel": "speech", "draftInsert": "ask",
         "dictateHotkeyCode": -1, "dictateHotkeyMods": 0, "dictateHotkeyLabel": "", "dictateMode": "cleanup", "dictateHistory": true, "dictateLearn": true, "dictateWords": [], "dictateFixes": [String: String](), "boxW": 500, "boxH": 420]
     static let retiredKeys = ["quietAudio", "quietLevel", "autoCopy", "askMe", "corner", "linger", "soundStart", "soundRelease", "soundDone", "soundStop",
@@ -1114,7 +1114,7 @@ final class ScreenDrawing {
     var cleanup: (() -> Void)?
     var status: ((String) -> Void)?
     var speechEnabled: () -> Bool = { false }
-    var sayArguments: (String) -> [String] = { ["--", $0] }
+    var speakStep: (String) -> Process? = { _ in nil }   // a caption: the cloud voice through its cache, or silence
     var active: Bool { request != nil }
     var hasInput: Bool { inputMode || !inputPath.isEmpty }
     var summary: [String:Any]? {   // what is on screen, for the next ask to build on
@@ -1482,10 +1482,7 @@ final class ScreenDrawing {
         if !words.isEmpty || r.steps.count > 1 {
             showCallout(words,step:index+1,total:r.steps.count,marks:marks.isNull ? shapeBounds(shapes) ?? target.bounds : marks,avoid:earlier + (hit.map { [$0] } ?? []))
         }
-        if !words.isEmpty, speechEnabled() {
-            let p = Process(); p.executableURL = URL(fileURLWithPath:"/usr/bin/say"); p.arguments = sayArguments(words)
-            try? p.run(); voice = p
-        }
+        if !words.isEmpty, speechEnabled() { voice = speakStep(words) }
         let top = NSScreen.screens.first?.frame.maxY ?? 0
         occupied = panels.flatMap { ($0.contentView as? DrawingView)?.hitBounds ?? [] } + [boardFrame, hit].compactMap { $0 }
             + (calloutPanel.map { f in [CGRect(x:f.frame.minX,y:top-f.frame.maxY,width:f.frame.width,height:f.frame.height)] } ?? [])
@@ -1742,10 +1739,12 @@ final class App: NSObject, WKScriptMessageHandler {
     func deliver(_ a: String, aloud: Bool = true) {   // Settings: read answers aloud, copy them
         if Prefs.bool("autoCopy") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(a, forType: .string) }
         if Prefs.bool("speak") && aloud {
-            let arguments = readAloudArguments(spoken(a), rate: sayRate()) { voiceQualityTip() }
+            // Google speaks, or nobody does: the words stay on the bar. Apple's voice only if Settings turned it on.
+            let apple = Prefs.bool("appleVoice")
+            let arguments = apple ? readAloudArguments(spoken(a), rate: sayRate()) { voiceQualityTip() } : []
             shush()
-            // A Google key: the cloud voice, with Apple's arguments for its fallback. No key: Apple's voice, no helper process.
             if Keychain.has("google") { return speakCloud(a, lang: Strings.lang, voice: nil, fallback: Array(arguments.prefix { $0 != "--" })) }
+            guard apple else { return }
             let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/say"); p.arguments = arguments
             voiceBar.state("speaking")
             p.terminationHandler = { [weak self] _ in DispatchQueue.main.async {
@@ -1858,7 +1857,7 @@ final class App: NSObject, WKScriptMessageHandler {
         drawing.cleanup = Hands.restoreAccessibility
         drawing.status = { [weak self] words in self?.js("msg",words) }
         drawing.speechEnabled = { Prefs.bool("speak") }
-        drawing.sayArguments = { [weak self] words in readAloudArguments(words, rate: sayRate()) { self?.voiceQualityTip() } }
+        drawing.speakStep = { [weak self] words in self?.speakCaption(words) }
         drawing.autoSteps = { Prefs.str("guideSteps") != "next" }
         drawing.inputCleared = { [weak self] in self?.clearPointContext() }
         drawing.inputAway = { [weak self] in self?.finishPointing() }
@@ -4222,7 +4221,7 @@ enum Hands {
     }
     struct Map: Codable {
         var pid: Int32, app: String, window: String, windowFrame: [Double], nodes: [Node], texts: [String], page: String, focused: String, scroll: [Double]
-        var windowID: String = "", focusIdentity: String = ""
+        var windowID: String = "", focusIdentity: String = "", focusSubmits = false
         var signature: String { Hands.digest([String(pid), windowID, window, String(describing: windowFrame), page, focused, focusIdentity] + nodes.map { "\($0.path):\($0.role):\($0.label):\($0.value):\($0.frame)" } + texts + scroll.map(String.init(describing:))) }
         var settled: String { Hands.digest([window] + nodes.map { "\($0.role):\($0.label):\($0.value):\($0.frame.map { Int($0 / 16) })" } + texts, maskDigits: true) }
         var rich: Bool { let count = nodes.filter { !$0.role.contains("Menu") }.count; return count >= 8 || count >= 4 && texts.count >= 6 }
@@ -4303,6 +4302,17 @@ enum Hands {
     static func riskyKey(_ text: String) throws -> Bool {
         let (code, flags) = try keys(text)
         return (flags.contains(.maskCommand) && [12,13,36,51,117].contains(code)) || (flags.contains([.maskCommand,.maskShift]) && code == 2) || (flags.contains([.maskCommand,.maskAlternate]) && code == 53)
+    }
+    // Return in a filled-in message box sends it, with no Send button to catch: it asks like clicking Send does.
+    // Search and address boxes don't, and an empty field has nothing to send.
+    static func submitsText(_ text: String, _ focusSubmits: Bool) -> Bool {
+        guard let (code, flags) = try? keys(text), code == 36 || code == 76, flags.isDisjoint(with: [.maskCommand, .maskControl, .maskAlternate]) else { return false }
+        return focusSubmits
+    }
+    // A multi-line box counts even when it reads empty: web message boxes often report no value.
+    static func returnSubmits(_ role: String, _ label: String, _ value: String) -> Bool {
+        if matches(label, #"(?i)search|address|url|find|filter|खोज"#) || role == "AXSearchField" { return false }
+        return role == "AXTextArea" || (["AXTextField", "AXComboBox"].contains(role) && !value.isEmpty)
     }
     static func attribute(_ e: AXUIElement, _ name: String) -> CFTypeRef? { axAttribute(e, name) }
     static func element(_ e: AXUIElement, _ name: String) -> AXUIElement? {
@@ -4558,7 +4568,7 @@ enum Hands {
             }
             if role == "AXWebArea", let url = attribute(item, "AXURL") { let s = (url as? URL)?.absoluteString ?? (url as? String ?? ""); if s.hasPrefix("http") { m.page = mask(s) } }
             if role == "AXWebArea", deferring { later.append((item, path, clip)); visited.removeLast(); continue }
-            if let focused, CFEqual(focused, item) { m.focused = mask(label.isEmpty ? role : label); m.focusIdentity = "\(role):\(path):\(array(bounds))" }
+            if let focused, CFEqual(focused, item) { m.focused = mask(label.isEmpty ? role : label); m.focusIdentity = "\(role):\(path):\(array(bounds))"; m.focusSubmits = returnSubmits(role, label, stringValue(item) ?? "") }
             if role == "AXScrollArea", let bar = element(item, kAXVerticalScrollBarAttribute), let n = attribute(bar, kAXValueAttribute) as? NSNumber { m.scroll.append(n.doubleValue) }
             if ["AXStaticText", "AXHeading"].contains(role) {
                 let text = mask(label.isEmpty ? value : label)
@@ -5330,7 +5340,7 @@ enum Hands {
                let focused = element(AXUIElementCreateApplication(a.processIdentifier),kAXFocusedUIElementAttribute),
                selectedRange(focused) != nil { throw Failure("Backspace cannot prove the text belongs to Chiron. Undo Chiron's last edit with cmd+z instead.") }
         }
-        let keyRisk = verb == "press" ? try riskyKey(args[1]) : false
+        let keyRisk = verb == "press" ? try riskyKey(args[1]) || submitsText(args[1], map.focusSubmits) : false
         let risk = labels.contains { $0.hasPrefix("Unidentified screen point ") || riskyLabel($0,map) || (verb == "drag" && matches($0,#"(?i)\b(bin|recycle)\b"#)) } || keyRisk || (verb == "type" && args.dropFirst(3).contains("submit"))
         // The approval covers the target and its window, not the whole tree: a clock, or a neighbour an app builds lazily after first contact, must not void it.
         return ["labels":labels,"secure":secure,"risky":risk,"at":at,"pid":map.pid,"args":args,"windowID":map.windowID,"windowFrame":map.windowFrame,"window":mask(map.window),"app":map.app]
@@ -5491,6 +5501,8 @@ enum Hands {
         precondition(matches("Delete draft",riskyPattern) && matches("Send",riskyPattern) && !matches("Export",riskyPattern))
         precondition((try! keys("⌘+⇧+4")).0 == 21 && (try! keys("cmd++")).0 == 24)
         precondition(!(try! riskyKey("return")))
+        precondition(returnSubmits("AXTextArea", "Type a message", "") && returnSubmits("AXTextField", "To", "Asha"))
+        precondition(!returnSubmits("AXTextField", "To", "") && !returnSubmits("AXTextField", "Search or type URL", "news") && !returnSubmits("AXSearchField", "", "x"))
         precondition(try! riskyKey("cmd+q")); precondition(!(try! riskyKey("cmd+t")))
         let (code,flags) = try! keys("cmd+shift+4"); precondition(code == 21 && flags == [.maskCommand,.maskShift])
         precondition(digest(["count 1"],maskDigits:true) == digest(["count 2"],maskDigits:true))

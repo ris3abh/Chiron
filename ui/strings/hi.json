@@ -306,9 +306,9 @@
   "settings.conn.cc.plan.active": "प्लान चालू है",
   "voice.conn.title": "आवाज़ (बोलना)",
   "voice.conn.name": "Google आवाज़",
-  "voice.conn.sub": "जवाबों के लिए स्वाभाविक आवाज़ें। कुंजी के बिना आपका Mac बोलेगा।",
+  "voice.conn.sub": "जवाबों के लिए स्वाभाविक आवाज़ें। कुंजी के बिना जवाब लिखकर दिखेंगे।",
   "voice.conn.key": "Google Cloud कुंजी",
-  "voice.conn.onMac": "इसी Mac पर",
+  "voice.conn.onMac": "सिर्फ़ लिखकर",
   "voice.conn.help": "बोले जाने वाले जवाब टेक्स्ट के रूप में Google को भेजे जाते हैं। आप जो बोलते हैं वह इसी Mac पर रहता है।",
   "settings.conn.checks": "त्वरित जाँच",
   "nav.conversations": "बातचीत",
@@ -336,5 +336,7 @@
   "conv.outcome.taught": "सिखाया",
   "conv.outcome.question": "सवाल",
   "tts.goOn": "क्या आगे बोलूँ?",
-  "conn.result.voice": "यह आवाज़ उपलब्ध नहीं है।"
+  "conn.result.voice": "यह आवाज़ उपलब्ध नहीं है।",
+  "voice.apple.on": "जब Google न बोल पाए तो मेरे Mac की आवाज़ इस्तेमाल करें",
+  "voice.apple.help": "बंद होने पर Chiron चुप रहेगा और शब्द बार में दिखाएगा।"
 }

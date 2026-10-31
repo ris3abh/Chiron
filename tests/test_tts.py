@@ -96,11 +96,17 @@ class SynthesisTests(unittest.TestCase):
             self.assertTrue(all(c[0] == '/usr/bin/afplay' for c in played))
             played.clear()
             tts.speak('No key.', 'en', key='', say_args=['-v', 'Rishi', '-r', '160'])
-        self.assertEqual(played, [['/usr/bin/say', '-v', 'Rishi', '-r', '160', '--', 'No key.']])
+        self.assertEqual(played, [['/usr/bin/say', '-v', 'Rishi', '-r', '160', '--', 'No key.']], 'only when Settings turned Apple on')
+
+    def test_with_google_unavailable_chiron_stays_silent_by_default(self):
+        with patch.object(tts.subprocess, 'Popen') as started, patch.object(tts, 'request', side_effect=tts.TTSError('offline')), patch.object(tts, 'PAUSE', 0), patch('signal.signal'):
+            self.assertEqual(tts.speak('One here. Two here.', 'en', key='k'), 0)
+            self.assertEqual(tts.speak('No key at all.', 'en', key=''), 0)
+        started.assert_not_called()
 
     def test_long_answer_saves_the_rest_and_asks(self):
         spoken = []
-        with patch.object(tts, 'audio_for', side_effect=lambda s, *a: spoken.append(s)), patch.object(tts, 'fallback') as say, patch.object(tts, 'PAUSE', 0), patch('signal.signal'):
+        with patch.object(tts, 'audio_for', side_effect=lambda s, *a: spoken.append(s) or 'clip.mp3'), patch.object(tts.subprocess, 'Popen'), patch.object(tts, 'PAUSE', 0), patch('signal.signal'):
             tts.speak(' '.join(['This sentence has exactly six words.'] * 40), 'en', key='k')
         self.assertEqual(spoken[-1], 'Shall I go on?')
         self.assertIn('This sentence', tts.pending_rest()['text'])

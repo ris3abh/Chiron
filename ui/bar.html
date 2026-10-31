@@ -22,6 +22,9 @@ body.hi { line-height: 1.5; }
 #wave i { display: block; width: 3px; height: 3px; border-radius: 3px; background: var(--accent); }
 #check { display: none; color: var(--good); font-weight: 700; flex: none; }
 #label { display: none; overflow-wrap: anywhere; }
+#text { min-width: 0; }
+#doneline { display: block; color: #B9B9C0; font-size: 15px; overflow-wrap: anywhere; }
+#doneline:empty { display: none; }
 
 /* Idle: a small, quiet handle that says it is there and asks for nothing. */
 body[data-state="idle"] #bar { min-height: 20px; width: 56px; padding: 0; justify-content: center; opacity: .6; border-radius: 10px; }
@@ -58,14 +61,14 @@ body[data-state="guardian"] #orb { background: var(--warn); }
 </head>
 <body data-state="idle">
 <section id="card" role="dialog" aria-label="Chiron" hidden></section>
-<div id="bar" role="status" aria-live="polite"><span id="orb" aria-hidden="true"></span><span id="wave" aria-hidden="true"></span><span id="check" aria-hidden="true">✓</span><span id="label"></span></div>
+<div id="bar" role="status" aria-live="polite"><span id="orb" aria-hidden="true"></span><span id="wave" aria-hidden="true"></span><span id="check" aria-hidden="true">✓</span><span id="text"><span id="doneline"></span><span id="label"></span></span></div>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
 const STATES = ['idle', 'listening', 'thinking', 'speaking', 'done', 'message', 'teaching', 'practice', 'guardian'];
 const LABELS = { listening: 'bar.listening', thinking: 'bar.thinking', speaking: 'bar.speaking', done: 'bar.done', teaching: 'bar.teaching', practice: 'bar.practice', guardian: 'bar.guardian' };
 for (let i = 0; i < 7; i++) $('wave').append(document.createElement('i'));
-let strings = {}, state = 'idle', detail = '';
+let strings = {}, state = 'idle', detail = '', doneStep = '';
 const post = m => { const h = window.webkit && webkit.messageHandlers && webkit.messageHandlers.bar; if (h) h.postMessage(m); };
 // The panel follows the pill: measured here, resized around its bottom centre by Swift.
 const fit = () => {
@@ -76,6 +79,7 @@ const fit = () => {
 function paint() {
   document.body.dataset.state = state;
   const label = detail || strings[LABELS[state]] || '';
+  $('doneline').textContent = state === 'idle' || !doneStep ? '' : '✓ ' + doneStep;
   $('label').textContent = detail.length > 140 ? '…' + detail.slice(-140) : label;   // long speech keeps its newest words in view
   fit();
 }
@@ -142,7 +146,7 @@ window.bar = {
   closeCard() { cardKind = ''; $('card').hidden = true; $('card').textContent = ''; fit(); },
   get cardKind() { return cardKind; },
   strings(table, lang) { strings = table && typeof table === 'object' ? table : {}; document.documentElement.lang = lang || 'en'; document.body.classList.toggle('hi', lang === 'hi'); paint(); },
-  state(name, text) { state = STATES.includes(name) ? name : 'idle'; detail = typeof text === 'string' ? text : ''; paint(); },
+  state(name, text, done) { state = STATES.includes(name) ? name : 'idle'; detail = typeof text === 'string' ? text : ''; doneStep = typeof done === 'string' ? done : ''; paint(); },
   words(text) { if (state === 'listening') { detail = typeof text === 'string' ? text : ''; paint(); } },
   level(v) {
     const bars = [...$('wave').children], wave = Math.sqrt(Math.max(0, Math.min(1, v) - .02) / .98);   // a quiet voice still fills it; room noise stays flat

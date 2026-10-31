@@ -306,9 +306,9 @@
   "settings.conn.cc.plan.active": "Plan active",
   "voice.conn.title": "Voice (speaking)",
   "voice.conn.name": "Google voice",
-  "voice.conn.sub": "Natural voices for spoken replies. Without a key, your Mac speaks.",
+  "voice.conn.sub": "Natural voices for spoken replies. Without a key, replies appear as text.",
   "voice.conn.key": "Google Cloud key",
-  "voice.conn.onMac": "On this Mac",
+  "voice.conn.onMac": "Text only",
   "voice.conn.help": "Spoken replies are sent to Google as text. What you say stays on this Mac.",
   "settings.conn.checks": "Quick checks",
   "nav.conversations": "Conversations",
@@ -336,5 +336,7 @@
   "conv.outcome.taught": "Taught",
   "conv.outcome.question": "Question",
   "tts.goOn": "Shall I go on?",
-  "conn.result.voice": "That voice isn't available."
+  "conn.result.voice": "That voice isn't available.",
+  "voice.apple.on": "Use my Mac's voice when Google can't speak",
+  "voice.apple.help": "Off: Chiron stays silent and shows the words in the bar."
 }

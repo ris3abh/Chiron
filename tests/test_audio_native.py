@@ -17,7 +17,7 @@ class AudioNativeTests(unittest.TestCase):
         deliver = source[source.index("    func deliver("):source.index("    func linger(")]
         self.assertIn("readAloudArguments(spoken(a), rate: sayRate())", deliver)
         drawing = source[source.index("final class ScreenDrawing"):source.index("// The box can take typing")]
-        self.assertIn("p.arguments = sayArguments(words)", drawing)
+        self.assertIn("voice = speakStep(words)", drawing)
 
     def test_best_installed_english_voice_prefers_quality_then_region(self):
         source = (ROOT / "Chiron.swift").read_text()
