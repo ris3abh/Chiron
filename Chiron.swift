@@ -185,11 +185,11 @@ enum DictationData {
 // Settings, shared with chiron.py (model, screen, openOn, instant): ~/.config/chiron/settings.json
 enum Prefs {
     static let path = (ProcessInfo.processInfo.environment["CHIRON_DIR"] ?? NSString(string: "~/.config/chiron").expandingTildeInPath) + "/settings.json"
-    static let defaults: [String: Any] = ["hotkeyCode": 49, "hotkeyMods": controlKey | optionKey, "hotkeyLabel": "⌃⌥Space", "login": true, "paused": false, "corner": "top-left", "linger": "normal",
+    static let defaults: [String: Any] = ["hotkeyCode": -2, "hotkeyMods": 1 << 20, "hotkeyLabel": "fn", "talkKey": "fn", "speakRate": 0.85, "voice.en": "", "voice.hi": "", "login": true, "paused": false, "corner": "top-left", "linger": "normal",
         "soundStart": "Pop", "soundRelease": "Bottle", "soundDone": "Glass", "soundStop": "Tink", "volume": 0.16, "model": "haiku", "instant": true,
         "microphone": "automatic", "quietAudio": false, "quietLevel": 0.18, "agentModel": "sonnet", "fixSetup": false,   // agentModel: the work model escalation uses; the old key name is kept so saved choices carry over
         "selection": true, "ahead": true, "aheadDelay": 0.7, "live": true, "screen": "auto", "openOn": "here", "workIn": "back", "draw": true, "guideSteps": "auto",
-        "speak": false, "showAnswers": "stream", "autoCopy": false, "hideWhenSharing": true, "menuIcon": true,
+        "speak": true, "showAnswers": "stream", "autoCopy": false, "hideWhenSharing": true, "menuIcon": true,
         "learn": true, "safe": true, "pointer": false, "learnMe": true, "saveChats": true, "tips": true, "askMe": true, "input": "voice", "talkMode": "hold", "speechModel": "speech", "draftInsert": "ask",
         "dictateHotkeyCode": -1, "dictateHotkeyMods": 0, "dictateHotkeyLabel": "", "dictateMode": "cleanup", "dictateHistory": true, "dictateLearn": true, "dictateWords": [], "dictateFixes": [String: String](), "boxW": 500, "boxH": 420]
     static let retiredKeys = ["quietAudio", "quietLevel", "autoCopy", "askMe", "corner", "linger", "soundStart", "soundRelease", "soundDone", "soundStop",
@@ -203,9 +203,12 @@ enum Prefs {
                 (values["escalate"] as? Bool != false && values["escalateAuto"] as? Bool != false ? "balanced" : "cheapest")
         }
         for (k, old) in [("boxW", 460.0), ("boxH", 360.0)] where (values[k] as? NSNumber)?.doubleValue == old { values[k] = defaults[k] }   // every write saves the defaults too: the old size untouched is no choice
-        // No dictation shortcut, never cleared on purpose: fn alone (code -2, chironFnKey), unless the talk shortcut already holds fn.
-        if values["dictateHotkeyLabel"] as? String == "", values["dictateHotkeyOff"] as? Bool != true, (values["hotkeyMods"] as? Int ?? 0) & (1 << 20) == 0 {
-            values["dictateHotkeyCode"] = -2; values["dictateHotkeyMods"] = 1 << 20; values["dictateHotkeyLabel"] = "fn"
+        // Once, for installs from before the Voice Bar: fn stops dictating and becomes the talk key (saying "type …" dictates now),
+        // ⌃⌥Space stops being the default, and replies are spoken. A shortcut someone recorded themselves stays.
+        if values["voiceBar"] as? Bool != true {
+            if values["dictateHotkeyLabel"] as? String == "fn" { values["dictateHotkeyCode"] = -1; values["dictateHotkeyMods"] = 0; values["dictateHotkeyLabel"] = "" }
+            if values["hotkeyCode"] as? Int == 49, values["hotkeyMods"] as? Int == controlKey | optionKey { values["hotkeyCode"] = -2; values["hotkeyMods"] = 1 << 20; values["hotkeyLabel"] = "fn" }
+            values["speak"] = true; values["voiceBar"] = true
         }
         return values   // persisted with the next preference write; legacy keys remain readable
     }()
@@ -531,13 +534,13 @@ func usableReadAloudVoice(_ words: String) -> String? {
     }
     // shortcut: Apple's selection schema is undocumented; use an installed fallback until a public selection API exists.
     let selections = CFPreferencesCopyAppValue("SpokenContentDefaultVoiceSelectionsByLanguage" as CFString, "com.apple.Accessibility" as CFString) as? [Any] ?? []
-    return preferredReadAloudVoice(selections, voices: voices, names: names, selected: Prefs.str("voice"), region: Locale.current.region?.identifier, majorVersion: ProcessInfo.processInfo.operatingSystemVersion.majorVersion,
+    return preferredReadAloudVoice(selections, voices: voices, names: names, selected: { let c = String((NLLanguageRecognizer.dominantLanguage(for: words)?.rawValue ?? "en").prefix(2)); return Prefs.str("voice." + c).isEmpty ? Prefs.str("voice") : Prefs.str("voice." + c) }(), region: Locale.current.region?.identifier, majorVersion: ProcessInfo.processInfo.operatingSystemVersion.majorVersion,
                                    language: NLLanguageRecognizer.dominantLanguage(for: words)?.rawValue ?? "en")
 }
-func readAloudArguments(_ words: String, pick: (String) -> String? = usableReadAloudVoice, compactTip: () -> Void) -> [String] {
+func readAloudArguments(_ words: String, pick: (String) -> String? = usableReadAloudVoice, rate: [String] = [], compactTip: () -> Void) -> [String] {
     let voice = pick(words)
     if voice == nil { compactTip() }
-    return (voice.flatMap { $0.isEmpty ? nil : ["-v", $0] } ?? []) + ["--", words]
+    return (voice.flatMap { $0.isEmpty ? nil : ["-v", $0] } ?? []) + rate + ["--", words]
 }
 
 // The talk shortcut, any key plus modifiers, recorded in Settings: Carbon modifiers to register, and the
@@ -565,8 +568,8 @@ func dictateHotkey() -> (code: Int, mods: Int, flags: NSEvent.ModifierFlags) { c
 // Dictation is fn alone and macOS's own "Press 🌐 key to" action (emoji, input source, its dictation) fires on that press too.
 // 0 is Do Nothing; unset means the system default action.
 func globeKeyTaken() -> Bool {
-    let h = dictateHotkey(), domain = "com.apple.HIToolbox" as CFString
-    guard !Prefs.str("dictateHotkeyLabel").isEmpty, h.code < 0, h.mods == chironFnKey else { return false }
+    let domain = "com.apple.HIToolbox" as CFString, onFn = { (h: (code: Int, mods: Int, flags: NSEvent.ModifierFlags)) in h.code < 0 && h.mods == chironFnKey }
+    guard onFn(hotkey()) || !Prefs.str("dictateHotkeyLabel").isEmpty && onFn(dictateHotkey()) else { return false }
     CFPreferencesAppSynchronize(domain)
     return (CFPreferencesCopyAppValue("AppleFnUsageType" as CFString, domain) as? Int ?? 1) != 0
 }
@@ -1614,15 +1617,17 @@ final class App: NSObject, WKScriptMessageHandler {
     var nextFeed: AsyncStream<AnalyzerInput>.Continuation?, nextAnalyzer: SpeechAnalyzer?, nextReading: Task<Void, Never>?
     var nextSpeechInputID: UUID?, nextSpeechSegment = 0, nextSpeechRollover = 50.0
     var speechFormat: AVAudioFormat?, preparingSpeech = false   // what the model wants (found at launch and when the model changes)
+    var boxQuiet = false, voiceTestLang: String?, voiceTest: ((String) -> Void)?, talkTap: DispatchWorkItem?, talkPressed = Date.distantPast, missingNoticed = false
     // Settings → Speech model: Apple's newer SpeechTranscriber, or the Dictation model the keyboard mic uses.
     // Dictation drops fastResults / frequentFinalization (Apple: faster but less accurate); asks keep them for live commands.
     func speechModule(dictate: Bool = false) -> any SpeechModule {
-        let en = Locale(identifier: "en-US"), locale = en   // SpeechTranscriber rejects the Mac locale ("unsupported locale") even when SFSpeechRecognizer lists it: every voice ask died (1.5.0)
-        if Prefs.str("speechModel") == "dictation" {
-            return dictate ? DictationTranscriber(locale: en, contentHints: [.shortForm], transcriptionOptions: [.punctuation], reportingOptions: [.volatileResults], attributeOptions: [])
+        // Only locales SpeechLocale probed: an unprobed one fails with "unsupported locale", and every voice ask died that way in 1.5.0.
+        let pick = SpeechLocale.current(voiceTestLang ?? Strings.lang), locale = pick.locale
+        if pick.engine == "dictation" || Prefs.str("speechModel") == "dictation" {
+            return dictate ? DictationTranscriber(locale: locale, contentHints: [.shortForm], transcriptionOptions: [.punctuation], reportingOptions: [.volatileResults], attributeOptions: [])
                 : DictationTranscriber(locale: locale, preset: .progressiveShortDictation)
         }
-        return dictate ? SpeechTranscriber(locale: en, transcriptionOptions: [], reportingOptions: [.volatileResults], attributeOptions: [])
+        return dictate ? SpeechTranscriber(locale: locale, transcriptionOptions: [], reportingOptions: [.volatileResults], attributeOptions: [])
             : SpeechTranscriber(locale: locale, preset: .progressiveTranscription)
     }
     func prepareSpeech() {   // make sure the speech model is installed, and learn its audio format
@@ -1739,10 +1744,11 @@ final class App: NSObject, WKScriptMessageHandler {
     func deliver(_ a: String, aloud: Bool = true) {   // Settings: read answers aloud, copy them
         if Prefs.bool("autoCopy") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(a, forType: .string) }
         if Prefs.bool("speak") && aloud {
-            let arguments = readAloudArguments(spoken(a)) { voiceQualityTip() }
+            let arguments = readAloudArguments(spoken(a), rate: sayRate()) { voiceQualityTip() }
             shush(); let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/say"); p.arguments = arguments
+            voiceBar.state("speaking")
             p.terminationHandler = { [weak self] _ in DispatchQueue.main.async {
-                guard let self, self.voice === p else { return }; self.voice = nil; self.hide(after: 2)
+                guard let self, self.voice === p else { return }; self.voice = nil; voiceBar.idle(); self.hide(after: 2)
             } }
             try? p.run(); voice = p
         }
@@ -1851,7 +1857,7 @@ final class App: NSObject, WKScriptMessageHandler {
         drawing.cleanup = Hands.restoreAccessibility
         drawing.status = { [weak self] words in self?.js("msg",words) }
         drawing.speechEnabled = { Prefs.bool("speak") }
-        drawing.sayArguments = { [weak self] words in readAloudArguments(words) { self?.voiceQualityTip() } }
+        drawing.sayArguments = { [weak self] words in readAloudArguments(words, rate: sayRate()) { self?.voiceQualityTip() } }
         drawing.autoSteps = { Prefs.str("guideSteps") != "next" }
         drawing.inputCleared = { [weak self] in self?.clearPointContext() }
         drawing.inputAway = { [weak self] in self?.finishPointing() }
@@ -2055,7 +2061,10 @@ final class App: NSObject, WKScriptMessageHandler {
         if drawing.active && !stuck && !dragging { avoidDrawing() }   // grew onto a mark; a box the user placed waits for the next step
     }
 
-    func js(_ call: String, _ arg: Any? = nil) { callJS(web, "ui." + call, arg.map { [$0] } ?? []) }
+    func js(_ call: String, _ arg: Any? = nil) { callJS(web, "ui." + call, arg.map { [$0] } ?? []); voiceBar.mirror(call, arg) }
+    // The voice ask's answer turned out too long for the bar, or needs an answer: the box, docked above it.
+    func openBox() { guard boxQuiet else { return }; boxQuiet = false; show() }
+    func armEsc() { if escRef == nil { RegisterEventHotKey(UInt32(kVK_Escape), 0, EventHotKeyID(signature: 0x41545443, id: 2), GetApplicationEventTarget(), 0, &escRef) } }
     var pointerNext: String?, pointerBusy = false, pointerHand = false
     func pointer(_ args: String) {   // Chiron never activates, so WebKit runs no :hover or cursor in the box: the page marks .hot and says if the cursor is a hand
         pointerNext = args
@@ -2077,6 +2086,7 @@ final class App: NSObject, WKScriptMessageHandler {
     }
     func show() {
         gen += 1; js("visible", true); js("mode", Prefs.bool("safe")); js("models", modelChoices())
+        if boxQuiet { armEsc(); return }   // the bar is showing this one
         startFollowingPointerScreen()
         if panel.isVisible {   // still up: stay where the user dragged it
             NSAnimationContext.runAnimationGroup { $0.duration = 0.18; panel.animator().alphaValue = 1 }
@@ -2087,12 +2097,14 @@ final class App: NSObject, WKScriptMessageHandler {
         var f = panel.frame
         if !pillOn { f.size.width = boxWidth(Prefs.num("boxW"), vf) }
         f.origin = NSPoint(x: Prefs.str("corner") == "top-right" ? vf.maxX - f.width - 14 : vf.minX + 14, y: vf.maxY - f.height - 10)
+        if !Prefs.bool("paused") {   // docked above the bar
+            let b = voiceBar.panel.frame
+            f.origin = NSPoint(x: min(max(vf.minX + 14, b.midX - f.width / 2), vf.maxX - f.width - 14), y: min(b.maxY + 10, vf.maxY - f.height - 10))
+        }
         frame(f, on: screen)
         panel.alphaValue = 0
         panel.orderFrontRegardless()
-        if escRef == nil {
-            RegisterEventHotKey(UInt32(kVK_Escape), 0, EventHotKeyID(signature: 0x41545443, id: 2), GetApplicationEventTarget(), 0, &escRef)
-        }
+        armEsc()
         NSAnimationContext.runAnimationGroup { $0.duration = 0.18; panel.animator().alphaValue = 1 }
     }
 
@@ -2111,7 +2123,7 @@ final class App: NSObject, WKScriptMessageHandler {
 
     func gone() {
         followTimer?.invalidate(); followTimer = nil
-        panel.orderOut(nil); pinned = false; stuck = false; boxHome = nil; composing = false; js("compose", false); js("visible", false)
+        panel.orderOut(nil); pinned = false; stuck = false; boxHome = nil; composing = false; boxQuiet = false; js("compose", false); js("visible", false)
         if hovering { hovering = false; js("hover", false); pointer("[]") }   // a hidden panel gets no mouseExited
         pill(false)
         if let r = escRef { UnregisterEventHotKey(r); escRef = nil }
@@ -2202,7 +2214,7 @@ final class App: NSObject, WKScriptMessageHandler {
 
     func cancel() {
         if dictating { cue("soundStop"); return close(clear: false) }   // listening or finishing: fade out, nothing inserted
-        hush(); shush()
+        VoiceLog.cancelled(); hush(); shush()
         cue("soundStop"); js("stopped", "Answer stopped"); hide(after: 1.5)
     }
 
@@ -2222,13 +2234,26 @@ final class App: NSObject, WKScriptMessageHandler {
         if !pressed {
             shortcutDown = false; Self.keysUp = Date()
             guard engine.isRunning && !toggleTalk && !clickTalk else { return }
-            // a tap: nobody spoke in 0.3 s, so stop now instead of waiting on the recognizer to report nothing
-            if text.isEmpty && offerText == nil && Date().timeIntervalSince(began) < 0.3 { hush(); js("msg", ""); return hide(after: 0.2) }
+            // a tap: nobody spoke in 0.3 s. Wait as long again for a second tap, which locks listening on; alone, it stops quietly
+            if text.isEmpty && offerText == nil && Date().timeIntervalSince(talkPressed) < 0.3 {
+                let id = listenID, tap = DispatchWorkItem { [weak self] in
+                    guard let self else { return }
+                    talkTap = nil; guard listenID == id, !toggleTalk else { return }
+                    hush(); js("msg", ""); hide(after: 0.2)
+                }
+                talkTap = tap; DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: tap)
+                return
+            }
             stop()
             return
         }
         guard !shortcutDown else { return }   // one action per physical press, including key repeat
         shortcutDown = true
+        if let tap = talkTap {   // the second tap: listening stays on until the next press
+            tap.cancel(); talkTap = nil
+            if engine.isRunning { toggleTalk = true; js("locked", true); return }
+        }
+        talkPressed = Date()
         guard !Prefs.bool("paused") else {
             if Date().timeIntervalSince(pausedNotice) > 4 { pausedNotice = Date(); js("paused"); show(); hide(after: 4) }
             return
@@ -2247,6 +2272,13 @@ final class App: NSObject, WKScriptMessageHandler {
         if drawing.active || drawing.hasInput { drawing.clear() }
         quietAudio.end(immediate: true)
         if transient { gone() }
+    }
+
+    // fn held for another key (fn+Delete, fn+←): that key's own shortcut, so a press that has heard nothing goes away quietly.
+    func talkChord() -> Bool {
+        guard shortcutDown, !dictating, !toggleTalk, engine.isRunning, text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        shortcutDown = false; talkTap?.cancel(); talkTap = nil
+        close(clear: false); return true
     }
 
     // Hold to talk, release to insert. A quick tap waits a moment: a second tap locks it on until the next press (toggleTalk).
@@ -2453,6 +2485,10 @@ final class App: NSObject, WKScriptMessageHandler {
         cue("soundStart")
         if !dictate && (!replying || drawingReply) { unwarm(); warm = spawn() }
         hovering = false
+        boxQuiet = !replying   // the bar shows listening and short answers; the box opens if it's needed
+        if !missingNoticed, voiceTestLang == nil, (SpeechLocale.status[Strings.lang]?["state"] as? String ?? "ready") != "ready" {
+            missingNoticed = true; DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { voiceBar.state("message", L("speech.langMissing"), settleAfter: 5) }
+        }
         if dictate { js("listen", "dict") }
         else if replying && !drawingReply { js("draft", "") } else { js("listen"); if let s = selection { js("selected", s.text) } }   // talking about a drawing still shows the listening orb
         show()
@@ -2619,6 +2655,11 @@ final class App: NSObject, WKScriptMessageHandler {
         let once: (Bool) -> Void = { [weak self] confirmed in
             guard let self, g == stops else { return }
             stops += 1; listenID += 1; pause?.cancel()
+            if voiceTest != nil { return endVoiceTest(text) }
+            if confirmed, !dictating, offerText == nil, !text.isEmpty {
+                if let words = dictationRequest(text) { return routeToDictation(words) }
+                VoiceLog.add(text, seconds: Date().timeIntervalSince(began))
+            }
             if confirmed || dictating && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { dictating ? finishDictation() : finish() }
             else {
                 if let old = offerText { let partial = text; text = old; offerText = nil; busy = proc?.isRunning == true; js("draft", partial); return }   // a drawing reply has no worker; a card's keeps waiting
@@ -3676,7 +3717,7 @@ final class MenuBar: NSObject, NSMenuDelegate {
         item.isVisible = Prefs.bool("menuIcon")
         paint()
     }
-    func paint() { item.button?.appearsDisabled = Prefs.bool("paused") }
+    func paint() { item.button?.appearsDisabled = Prefs.bool("paused"); voiceBar.sync() }
     // Chiron's mark (docs/icon.svg: a C holding a star) as a template image, so the menu bar tints it.
     static func mark() -> NSImage {
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { r in
@@ -5492,6 +5533,15 @@ if CommandLine.arguments.dropFirst() == ["--calendar"] {
     exit(0)
 }
 if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "--hands" { exit(Hands.cli(Array(CommandLine.arguments.dropFirst(2)))) }
+if CommandLine.arguments.count == 4, CommandLine.arguments[1] == "--speech-file" {   // chiron.py --speech-eval: one JSON line, then out
+    let done = DispatchSemaphore(value: 0), a = CommandLine.arguments
+    Task {
+        let r = await SpeechLocale.transcribe(a[2], a[3])
+        let row: [String: Any] = ["text": r?.text ?? "", "engine": r?.engine ?? "", "ok": r != nil]
+        print(String(decoding: try! JSONSerialization.data(withJSONObject: row), as: UTF8.self)); done.signal()
+    }
+    done.wait(); exit(0)
+}
 if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "--secret" { exit(Keychain.cli(Array(CommandLine.arguments.dropFirst(2)))) }   // chiron.py's only way to a key
 if CommandLine.arguments.dropFirst() == ["--draw-target"] {
     let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly,kCGNullWindowID) as? [[String:Any]] ?? []
@@ -5634,7 +5684,7 @@ func updateSpecialHotkey(_ e: NSEvent, _ h: (code: Int, mods: Int, flags: NSEven
     down = next; action(next)
 }
 func handleSpecialHotkeys(_ e: NSEvent) {
-    updateSpecialHotkey(e, hotkey(), &specialMainDown) { app.shortcut($0) }
+    updateSpecialHotkey(e, hotkey(), &specialMainDown, chord: app.talkChord) { app.shortcut($0) }
     if !Prefs.str("dictateHotkeyLabel").isEmpty {
         updateSpecialHotkey(e, dictateHotkey(), &specialDictateDown, chord: app.dictateChord) { app.dictateShortcut($0) }
     }
@@ -5672,6 +5722,8 @@ let home = HomeWindows()
 let bar = MenuBar()
 let delegate = Delegate()
 NSApplication.shared.delegate = delegate
+voiceBar.start()
+SpeechLocale.refresh()
 if !hotkeyRegistered || !dictateHotkeyRegistered { DispatchQueue.main.async { settings.open() } }   // another app owns a saved shortcut: show the warning, not a silent dead key
 Updater.schedule()
 

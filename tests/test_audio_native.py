@@ -15,7 +15,7 @@ class AudioNativeTests(unittest.TestCase):
         self.assertNotIn("CFPreferencesSetAppValue", source)
         self.assertNotIn("siriVoice", source)
         deliver = source[source.index("    func deliver("):source.index("    func linger(")]
-        self.assertIn("readAloudArguments(spoken(a))", deliver)
+        self.assertIn("readAloudArguments(spoken(a), rate: sayRate())", deliver)
         drawing = source[source.index("final class ScreenDrawing"):source.index("// The box can take typing")]
         self.assertIn("p.arguments = sayArguments(words)", drawing)
 

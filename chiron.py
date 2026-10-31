@@ -32,7 +32,7 @@ from pathlib import Path
 
 # The package chiron/ sits beside this script and wins over chiron.py on sys.path. llm.py calls back into this module
 # (main_model, server, log_turn...), which runs as __main__, so it is handed over instead of imported.
-from chiron import llm, paths
+from chiron import i18n, llm, normalize, paths
 llm.bind(sys.modules[__name__])
 from chiron.llm import llm_call, llm_process, llm_payload
 
@@ -1728,12 +1728,36 @@ def gist(text):
     return [{'create': 'make', 'start': 'make'}.get(w, w) for w in re.findall(r"[a-z0-9'.-]+", plain(text)) if w not in STOP | FILLER]
 
 
+def last_spoken():
+    """The newest finished reply, for "say that again": no AI, and None when there is nothing to repeat."""
+    rows = [r for r in paths.read_jsonl(paths.LOG) if isinstance(r.get('reply'), str) and r['reply'].strip()]
+    return rows[-1]['reply'] if rows else None
+
+
+# The instant path's replies are built in English; these are the ones a person hears.
+FAST_LINES = ((re.compile(r'Opened (.+)\.'), 'fast.opened'), (re.compile(r'Closed (.+)\.'), 'fast.closed'), (re.compile(r'(.+) is still open\.'), 'fast.stillOpen'))
+FAST_SEARCH = re.compile(r'Searched (.+?)(?: on (.+))?\.')
+
+
+def fast_line(reply):
+    """An instant reply in the app language; the same English words when no line matches."""
+    if i18n.lang() == 'en': return reply
+    for pattern, key in FAST_LINES:
+        m = pattern.fullmatch(reply)
+        if m: return i18n.t(key, name=m[1])
+    m = FAST_SEARCH.fullmatch(reply)
+    if m: return i18n.t('fast.searchedOn', query=m[1], site=m[2]) if m[2] else i18n.t('fast.searched', query=m[1])
+    return reply
+
+
 def fast(text):
     """Simple commands with no AI: learned shortcuts, open <app/site>, close <app>, snap/move <it/app> left/right/full/center, to laptop/monitor.
     Returns a reply, or None to hand the request to Haiku."""
     fast.cmds = []
     fast.shortcut = fast.failed = None
-    text = text.strip()
+    text = normalize.command(text.strip(), pref('dictateWords', []))   # "कैलकुलेटर खोलो" and "calculator kholo" are "open calculator" from here on
+    if text == 'say that again':
+        return None if os.environ.get('CHIRON_LIVE') == '1' else last_spoken()
     named = named_shortcut(text)
     if named and pref('learn', True):
         if os.environ.get('CHIRON_LIVE') == '1': return None
@@ -4476,6 +4500,7 @@ def main():
         if not r:
             checkpoint(status='not_handled')
             sys.exit(1)
+        r = fast_line(r)
         if r.startswith('The user said no.'): end_turn('cancelled', emit=False)
         elif failed_action_reply(r, bool(getattr(fast, 'cmds', []))): end_turn('failed', emit=False)
         remember_turn(' '.join(args[1:]), r, getattr(fast, 'shortcut', None))
@@ -4543,6 +4568,9 @@ def main():
         except ValueError: request = {}
         try: return print(json.dumps(home.do(args[1], request), ensure_ascii=False))
         except KeyError: print(json.dumps({'error': 'unknown method ' + args[1]})); return sys.exit(2)
+    if args[:1] == ['--speech-eval']:   # accuracy per language and engine over tests/audio (see its README)
+        from chiron import speech_eval
+        return print(speech_eval.report(args[1] if len(args) > 1 else None))
     if args == ['--check']:   # the setup window asks this
         return print(json.dumps(plan()))
     if args[:1] == ['--search']:

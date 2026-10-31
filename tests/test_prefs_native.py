@@ -83,7 +83,7 @@ if CommandLine.arguments.contains("--saved") {
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertFalse((fresh / "settings.json").exists())
 
-    def test_dictation_shortcut_defaults_to_fn_but_keeps_any_choice(self):
+    def test_fn_moves_to_talking_but_a_recorded_dictation_shortcut_stays(self):
         source = (ROOT / "Chiron.swift").read_text()
         prefs = source[source.index("enum Prefs"):source.index("func applySharing(")]
         swift = """import Foundation
@@ -96,12 +96,11 @@ print(Prefs.str("dictateHotkeyLabel") + "|" + String(Int(Prefs.num("dictateHotke
             path.write_text(swift)
             compiled = subprocess.run(["swiftc", str(path), "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(compiled.returncode, 0, compiled.stderr)
-            fn = f"fn|-2|{1 << 20}"
-            cases = [(None, fn),   # fresh install
-                     ('{"dictateHotkeyLabel": "", "dictateHotkeyCode": -1, "dictateHotkeyMods": 0}', fn),   # an old build saved its empty default
+            off = "|-1|0"
+            cases = [(None, off),   # fresh install: fn talks, and saying "type …" dictates
+                     ('{"dictateHotkeyLabel": "fn", "dictateHotkeyCode": -2, "dictateHotkeyMods": 1048576}', off),   # fn dictated before the Voice Bar
                      ('{"dictateHotkeyLabel": "⌃⌥D", "dictateHotkeyCode": 2, "dictateHotkeyMods": 3}', "⌃⌥D|2|3"),   # recorded: kept
-                     ('{"dictateHotkeyLabel": "", "dictateHotkeyCode": -1, "dictateHotkeyMods": 0, "dictateHotkeyOff": true}', "|-1|0"),   # cleared on purpose
-                     (f'{{"hotkeyLabel": "fn", "hotkeyCode": -2, "hotkeyMods": {1 << 20}}}', "|-1|0")]   # the talk shortcut already holds fn
+                     ('{"dictateHotkeyLabel": "", "dictateHotkeyCode": -1, "dictateHotkeyMods": 0, "dictateHotkeyOff": true}', off)]   # cleared on purpose
             for i, (before, want) in enumerate(cases):
                 case = Path(root) / str(i); case.mkdir()
                 if before: (case / "settings.json").write_text(before)

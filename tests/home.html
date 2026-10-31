@@ -57,6 +57,8 @@
       "connections": {"brain": {"kind": "claude-code", "ok": false}, "jev": {"ok": false, "missing": true}, "speech": {"engine": "apple", "ok": true}}
     },
     "dictionary": {"words": [], "fixes": {}},
+    "speech": {"en": {"state": "ready"}, "hi": {"state": "missing"}},
+    "voices": {"en": [], "hi": []},
     "conn": {"anthropic": {"saved": false}, "openai": {"saved": false}, "jev": {"saved": false, "base_url": "https://api.typesafe.ai/v1"}, "custom": {"saved": false, "url": "", "model": ""}, "brain": "claude-code"},
     "prefs": {"lang": "en", "capUsd": 5},
     "claudeCode": {"installed": false, "signedIn": false, "plan": null},
@@ -96,6 +98,8 @@
     "prefs": {"lang": "en", "capUsd": 5},
     "claudeCode": {"installed": true, "signedIn": true, "plan": "Claude Pro"},
     "perms": {"microphone": "granted", "speech": "granted", "accessibility": "granted", "screen": "denied", "automation": "unknown"},
+    "speech": {"en": {"state": "ready"}, "hi": {"state": "downloading", "progress": 0.42}},
+    "voices": {"en": [{"id": "com.apple.voice.premium.en-IN.Isha", "name": "Isha"}, {"id": "com.apple.voice.compact.en-IN.Rishi", "name": "Rishi"}], "hi": [{"id": "com.apple.voice.compact.hi-IN.Lekha", "name": "Lekha"}]},
     "dictionary": {"words": ["Rishabh Sharma", "Asha", "Shivaji Nagar", "Dr. Kulkarni", "rishabh.sharma1103@gmail.com"], "fixes": {"aasha": "Asha", "shivaji nagger": "Shivaji Nagar"}},
     "servers": [{"url": "http://localhost:11434", "models": ["qwen3:8b", "llama3.2:3b", "gemma3:4b"]}, {"url": "http://localhost:1234", "models": ["mistral-small"]}],
     "info": {"version": "0.1.0", "build": "42 (phase-1)"}
@@ -121,6 +125,8 @@
       "connections": {"brain": {"kind": "anthropic", "ok": false}, "jev": {"ok": false}, "speech": "broken"}
     },
     "dictionary": {"words": ["ok word", 7, null, ""], "fixes": "broken"},
+    "speech": {"en": "broken"},
+    "voices": "broken",
     "conn": {"anthropic": {"saved": true, "last4": "bad0", "_value": "sk-ant-bad-key-bad0"}, "openai": {"saved": false}, "jev": {"saved": true, "last4": "dead", "_value": "ts-timeout-dead"}, "custom": {"saved": false}, "brain": "anthropic"},
     "prefs": {"lang": "en"},
     "claudeCode": {"installed": true, "signedIn": false, "plan": null},
@@ -169,7 +175,7 @@ async function handle(method, args) {
   switch (method) {
     case 'state.get': await wait(120); return clone(db.state);
     case 'lang.set': await wait(80); db.state.lang = args.lang; db.prefs.lang = args.lang; return { ok: true };
-    case 'prefs.get': await wait(60); return Object.assign({ hotkeyLabel: '⌃⌥Space', dictateHotkeyLabel: 'fn' }, clone(db.prefs));
+    case 'prefs.get': await wait(60); return Object.assign({ hotkeyLabel: 'fn', dictateHotkeyLabel: '', talkKey: 'fn', globeTaken: true, speak: true, speakRate: 0.85 }, clone(db.prefs));
     case 'prefs.set': await wait(150); db.prefs[args.k] = args.v; if (args.k === 'capUsd' && db.state.spend && typeof db.state.spend === 'object') db.state.spend.cap_usd = args.v; return { ok: true };
     case 'conn.list': await wait(90); return publicConn();
     case 'conn.save': await wait(200); db.conn[args.name] = Object.assign({}, db.conn[args.name], { saved: true, last4: String(args.value).slice(-4), _value: args.value }); return { ok: true, last4: String(args.value).slice(-4) };
@@ -195,6 +201,12 @@ async function handle(method, args) {
     case 'link.open': note('would open', args.url); return { ok: true };
     case 'practice.start': case 'drill.start': case 'papers.open': return { ok: true };
     case 'ask.start': note('would start an ask'); return { ok: true };
+    case 'speech.status': await wait(120); return clone(db.speech || {});
+    case 'speech.test': await wait(1500); return { text: args.lang === 'hi' ? 'कैलकुलेटर खोलो' : 'open Calculator', engine: 'speech' };
+    case 'voices.list': await wait(80); return clone(db.voices || {});
+    case 'voices.preview': note('would speak in', args.lang); return { ok: true };
+    case 'globe.fix': note('would open Keyboard Settings'); return { ok: true };
+    case 'bar.reset': note('would reset the bar'); return { ok: true };
     case 'dictionary.list': await wait(80); return clone(db.dictionary || { words: [], fixes: {} });
     case 'dictionary.add': {
       await wait(150); const w = String(args.word || '').trim();

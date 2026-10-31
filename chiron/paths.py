@@ -18,7 +18,7 @@ def path(name):
     return os.path.join(folder(), name)
 
 
-PREFS, LOG, USAGE, DICTATION, CONNECTIONS = 'settings.json', 'log.jsonl', 'usage.jsonl', 'dictation.json', 'connections.json'
+PREFS, LOG, USAGE, DICTATION, CONNECTIONS, VOICE = 'settings.json', 'log.jsonl', 'usage.jsonl', 'dictation.json', 'connections.json', 'voice.jsonl'
 
 
 def ensure():

@@ -254,6 +254,15 @@ h1.greet { margin-bottom: 26px; }
 .heat-legend { display: flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: var(--small); }
 .heat-legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
 
+.engine-bar { height: 8px; border-radius: 99px; background: var(--card-2); overflow: hidden; margin-top: 8px; max-width: 280px; }
+.engine-bar > i { display: block; height: 100%; width: 0; background: var(--accent); }
+.voice-result:empty { display: none; }
+.voice-result { margin-top: 6px; }
+.switch { appearance: none; -webkit-appearance: none; width: 51px; height: 31px; border-radius: 999px; background: var(--card-2); position: relative; cursor: pointer; flex: none; margin: 6px 0; transition: background var(--dur) var(--ease); }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform var(--dur) var(--ease); }
+.switch:checked { background: var(--good); }
+.switch:checked::after { transform: translateX(20px); }
+
 /* ---------- Dictionary (Settings → Voice) ---------- */
 .add-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .add-row { margin-bottom: 14px; }
@@ -484,7 +493,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
 
           <aside class="card side-stats" aria-label="Summary" data-i18n-aria="home.stats.label">
             <section data-key="words" id="homeWords" aria-labelledby="wordsT" hidden>
-              <h2 id="wordsT" data-i18n="home.words.title">Words dictated</h2>
+              <h2 id="wordsT" data-i18n="home.words.title">Words spoken</h2>
               <div class="figure"><b id="wordsToday">0</b><span data-i18n="home.words.today">today</span></div>
               <div class="figure"><b id="wordsWeek">0</b><span data-i18n="home.stats.week">this week</span></div>
               <div class="figure"><b id="wordsAll">0</b><span data-i18n="home.stats.all">in all</span></div>
@@ -553,6 +562,36 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
               <button type="button" data-lang="en" aria-pressed="true"><span data-i18n="settings.voice.en">English</span></button>
               <button type="button" data-lang="hi" aria-pressed="false"><span data-i18n="settings.voice.hi">Hindi</span></button>
             </div></div>
+        </div>
+        <div class="group-title" style="margin-top:28px"><h3 data-i18n="voice.listen.title">Listening</h3></div>
+        <p class="help" data-i18n="voice.listen.help">Chiron listens on this Mac. What you say is never sent anywhere to be turned into words.</p>
+        <div class="set-rows" id="engines">
+          <div data-engine="en"><div class="t"><b data-i18n="settings.voice.en">English</b><p class="engine-state" role="status"></p><div class="engine-bar" hidden></div><p class="voice-result" role="status" aria-live="polite"></p></div>
+            <button class="btn" type="button" data-testvoice="en" data-i18n="voice.test">Test my voice</button></div>
+          <div data-engine="hi"><div class="t"><b data-i18n="settings.voice.hi">Hindi</b><p class="engine-state" role="status"></p><div class="engine-bar" hidden></div><p class="voice-result" role="status" aria-live="polite"></p></div>
+            <button class="btn" type="button" data-testvoice="hi" data-i18n="voice.test">Test my voice</button></div>
+        </div>
+        <div class="group-title" style="margin-top:28px"><h3 data-i18n="voice.talk.title">Talk key</h3></div>
+        <div class="set-rows">
+          <div><div class="t"><b id="talkKeyL" data-i18n="voice.talk.label">Hold to talk</b><p id="talkHelp"></p></div>
+            <div class="seg" role="group" aria-labelledby="talkKeyL" id="talkKey">
+              <button type="button" data-talk="fn" aria-pressed="false">fn</button>
+              <button type="button" data-talk="control-option" aria-pressed="false" data-i18n="voice.talk.ctrlOpt">Control + Option</button>
+            </div></div>
+          <div id="globeRow" hidden><div class="t"><b data-i18n="voice.globe.title">The 🌐 key does something else</b><p data-i18n="voice.globe.help">Set "Press 🌐 key to" to Do Nothing, so fn only talks to Chiron.</p></div>
+            <button class="btn" type="button" id="globeFix" data-i18n="voice.globe.fix">Open Keyboard Settings</button></div>
+          <div><div class="t"><b data-i18n="voice.barReset.title">Voice Bar position</b><p data-i18n="voice.barReset.help">Put the bar back at the bottom centre of the screen.</p></div>
+            <button class="btn" type="button" id="barReset" data-i18n="voice.barReset.button">Reset</button></div>
+        </div>
+        <div class="group-title" style="margin-top:28px"><h3 data-i18n="voice.speak.title">Speaking</h3></div>
+        <div class="set-rows">
+          <div><div class="t"><label for="speakOn"><b data-i18n="voice.speak.on">Read replies aloud</b></label></div><input class="switch" id="speakOn" type="checkbox" role="switch"></div>
+          <div data-voice="en"><div class="t"><label for="voice-en"><b data-i18n="voice.speak.en">English voice</b></label></div>
+            <div class="actions"><select class="input" id="voice-en"></select><button class="btn" type="button" data-preview="en" data-i18n="voice.speak.preview">Preview</button></div></div>
+          <div data-voice="hi"><div class="t"><label for="voice-hi"><b data-i18n="voice.speak.hi">Hindi voice</b></label></div>
+            <div class="actions"><select class="input" id="voice-hi"></select><button class="btn" type="button" data-preview="hi" data-i18n="voice.speak.preview">Preview</button></div></div>
+          <div><div class="t"><label for="speakRate"><b data-i18n="voice.speak.speed">Speed</b></label></div>
+            <div class="range-row" style="flex:1 1 240px"><input type="range" id="speakRate" min="0.7" max="1.1" step="0.05" value="0.85"><output id="speakRateOut" for="speakRate" class="num">0.85×</output></div></div>
         </div>
         <div class="group-title" style="margin-top:28px"><h3 data-i18n="dict.title">Dictionary</h3><span class="sub num" id="dictCount"></span></div>
         <p class="help" data-i18n="dict.hero.body">Add names, places and words you use, so dictation spells them right every time. When you correct a word, Chiron learns it here too.</p>
@@ -705,7 +744,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
 const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 const S = { lang: 'en', state: {}, conn: {}, prefs: {}, perms: null, cc: null, info: null, servers: [], view: '', section: 'general',
-  dict: { words: [], fixes: {} }, settingsOpen: false, settingsLoaded: false, returnFocus: null };
+  dict: { words: [], fixes: {} }, speech: {}, voices: {}, settingsOpen: false, settingsLoaded: false, returnFocus: null };
 const LANGS = ['en', 'hi'];
 
 /* ---------------- Strings ---------------- */
@@ -822,7 +861,7 @@ function rich(host, text, keys) {
     else host.append(document.createTextNode(part));
   });
 }
-const talkKeys = () => (typeof S.prefs.hotkeyLabel === 'string' && S.prefs.hotkeyLabel) || '⌃⌥Space';
+const talkKeys = () => (typeof S.prefs.hotkeyLabel === 'string' && S.prefs.hotkeyLabel) || 'fn';
 const dictateKeys = () => (typeof S.prefs.dictateHotkeyLabel === 'string' && S.prefs.dictateHotkeyLabel) || 'fn';
 function Constellation(host, skills) {
   host.textContent = '';
@@ -870,7 +909,7 @@ function renderGreeting() {
   const name = typeof S.state.name === 'string' ? S.state.name.trim() : '';
   rich($('#greet'), t(name ? 'home.greet' : 'home.greet.anon', { name }), talkKeys());
   rich($('#heroHint'), t('home.hero.hint'), talkKeys());
-  rich($('#sideTipBody'), t('side.tip.body'), dictateKeys());
+  rich($('#sideTipBody'), t('side.tip.body'), talkKeys());
 }
 function renderToday() {
   const today = obj(S.state.today);
@@ -1033,6 +1072,60 @@ function renderHome() {
   if (has('connections')) renderFooter();
   $('#heatCard').hidden = !has('activity');
   if (has('activity')) renderHeat();
+}
+
+/* ---------------- Voice ---------------- */
+const VOICE_LANGS = ['en', 'hi'];
+function renderEngines() {
+  VOICE_LANGS.forEach(lang => {
+    const row = $(`[data-engine=${lang}]`), e = obj(S.speech && S.speech[lang]) || {}, bar = $('.engine-bar', row);
+    const word = { ready: 'voice.engine.ready', downloading: 'voice.engine.downloading', missing: 'voice.engine.missing' }[e.state] || 'voice.engine.checking';
+    $('.engine-state', row).textContent = t(word);
+    bar.hidden = e.state !== 'downloading';
+    if (e.state === 'downloading') {
+      if (!bar.firstChild) bar.append(el('i'));
+      bar.firstChild.style.width = (isNum(e.progress) ? Math.max(0, Math.min(1, e.progress)) * 100 : 0) + '%';
+    }
+  });
+}
+function renderTalk() {
+  const key = S.prefs.talkKey === 'control-option' ? 'control-option' : 'fn';
+  $$('[data-talk]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.talk === key)));
+  rich($('#talkHelp'), t('voice.talk.help'), key === 'fn' ? 'fn' : t('voice.talk.ctrlOpt'));
+  $('#globeRow').hidden = !(key === 'fn' && S.prefs.globeTaken === true);
+}
+function renderSpeak() {
+  $('#speakOn').checked = S.prefs.speak === true;
+  const rate = $('#speakRate'), v = isNum(S.prefs.speakRate) ? S.prefs.speakRate : 0.85;
+  if (document.activeElement !== rate) rate.value = String(v);
+  $('#speakRateOut').textContent = t('voice.speak.rate', { rate: new Intl.NumberFormat(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(rate.value)) });
+  VOICE_LANGS.forEach(lang => {
+    const sel = $('#voice-' + lang), list = Array.isArray(S.voices[lang]) ? S.voices[lang].filter(v => obj(v) && typeof v.id === 'string') : [];
+    const current = typeof S.prefs['voice.' + lang] === 'string' ? S.prefs['voice.' + lang] : '';
+    sel.textContent = '';
+    sel.append(el('option', { value: '', text: t('voice.speak.auto') }));
+    list.forEach(v => sel.append(el('option', { value: v.id, text: String(v.name || v.id) })));
+    sel.value = list.some(v => v.id === current) ? current : '';
+  });
+}
+function renderVoice() { renderEngines(); renderTalk(); renderSpeak(); }
+async function loadVoice() {
+  renderVoice();
+  try { S.prefs = Object.assign(S.prefs, obj(await bridge.call('prefs.get')) || {}); } catch (e) { /* keep what is shown */ }
+  try { S.speech = obj(await bridge.call('speech.status')) || {}; } catch (e) { S.speech = {}; }
+  try { S.voices = obj(await bridge.call('voices.list')) || {}; } catch (e) { S.voices = {}; }
+  renderVoice();
+}
+async function testVoice(lang, btn) {
+  const row = btn.closest('[data-engine]'), out = $('.voice-result', row);
+  $$('[data-testvoice]').forEach(b => { b.disabled = true; });
+  out.className = 'voice-result sub'; out.textContent = t('voice.test.speak');
+  try {
+    const r = obj(await bridge.call('speech.test', { lang })) || {};
+    if (typeof r.text === 'string' && r.text.trim()) { out.className = 'voice-result'; out.textContent = t('voice.test.heard', { text: r.text.trim(), engine: t('voice.engine.name.' + (r.engine === 'dictation' ? 'dictation' : 'speech')) }); }
+    else { out.className = 'voice-result kf-result bad'; out.textContent = t('voice.test.nothing'); }
+  } catch (e) { out.className = 'voice-result kf-result bad'; out.textContent = t('common.error'); }
+  $$('[data-testvoice]').forEach(b => { b.disabled = false; });
 }
 
 /* ---------------- Dictionary ---------------- */
@@ -1247,9 +1340,9 @@ function renderLangSwitches() {
 }
 function renderShortcuts() {
   rich($('#askHow'), t('settings.general.askHow'), talkKeys());
-  rich($('#dictateHow'), t('settings.general.dictateHow'), dictateKeys());
+  rich($('#dictateHow'), t('settings.general.dictateHow'), talkKeys());
 }
-function renderSettings() { renderBrain(); renderCC(); renderBudget(); renderPerms(); renderAbout(); renderShortcuts(); }
+function renderSettings() { renderBrain(); renderCC(); renderBudget(); renderPerms(); renderAbout(); renderShortcuts(); renderVoice(); }
 function renderAll() { renderLangSwitches(); renderHome(); renderSettings(); renderDict(); paintTheme(); }
 
 async function loadConn() {
@@ -1322,7 +1415,7 @@ function showSection(section) {
   SECTIONS.forEach(s => { $('#sec-' + s).hidden = s !== section; });
   $$('[data-go]').forEach(b => b.setAttribute('aria-current', String(b.dataset.go === section)));
   $('#setMain').scrollTop = 0;
-  if (section === 'voice') loadDict();
+  if (section === 'voice') { loadDict(); loadVoice(); }
 }
 function openSettings(section) {
   const modal = $('#settings'), wasOpen = !modal.hidden;
@@ -1373,6 +1466,19 @@ function wire() {
   $('#todayStart').addEventListener('click', () => { const td = obj(S.state.today) || {}; bridge.call('practice.start', { skill: td.skill }).catch(() => toast(t('common.error'))); });
   $('#papersOpen').addEventListener('click', () => { const p = obj(S.state.papers) || {}; bridge.call('papers.open', { path: p.last && (p.last.path || p.last) }).catch(() => toast(t('common.error'))); });
   $('#dictForm').addEventListener('submit', addWord);
+  $$('[data-testvoice]').forEach(b => b.addEventListener('click', () => testVoice(b.dataset.testvoice, b)));
+  $$('[data-talk]').forEach(b => b.addEventListener('click', async () => {
+    S.prefs.talkKey = b.dataset.talk; renderTalk();
+    await setPref('talkKey', b.dataset.talk, $('#sec-voice')); loadVoice();
+  }));
+  $('#globeFix').addEventListener('click', () => bridge.call('globe.fix').catch(() => toast(t('common.error'))));
+  $('#barReset').addEventListener('click', () => bridge.call('bar.reset').then(() => saved($('#sec-voice'))).catch(() => toast(t('common.error'))));
+  $('#speakOn').addEventListener('change', e => setPref('speak', e.target.checked, $('#sec-voice')));
+  $('#speakRate').addEventListener('input', renderSpeak);
+  $('#speakRate').addEventListener('change', e => setPref('speakRate', Number(e.target.value), $('#sec-voice')));
+  VOICE_LANGS.forEach(lang => $('#voice-' + lang).addEventListener('change', e => setPref('voice.' + lang, e.target.value, $('#sec-voice'))));
+  $$('[data-preview]').forEach(b => b.addEventListener('click', () => bridge.call('voices.preview', { lang: b.dataset.preview, id: $('#voice-' + b.dataset.preview).value, rate: Number($('#speakRate').value) }).catch(() => toast(t('common.error')))));
+  bridge.on('speech', data => { if (obj(data)) { S.speech = data; renderEngines(); } });
   $$('[data-go]').forEach(b => b.addEventListener('click', () => { showSection(b.dataset.go); }));
   $$('[data-keyfield]').forEach(KeyField);
   $$('[data-pick]').forEach(b => b.addEventListener('click', async () => {

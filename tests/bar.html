@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Chiron Voice Bar mock</title>
+<style>
+  body { margin: 0; font: 14px system-ui, sans-serif; background: linear-gradient(160deg, #8EA9E8, #B9A6E6 55%, #EDB9A6); min-height: 100vh; }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 10px 16px; background: #1f1b16; color: #f3ede4; }
+  button { font: inherit; padding: 5px 10px; border-radius: 7px; border: 1px solid #5c554c; background: transparent; color: inherit; cursor: pointer; }
+  button[aria-pressed="true"] { background: #c8782a; border-color: #c8782a; color: #fff; }
+  iframe { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); width: 600px; height: 130px; border: 0; background: transparent; }
+</style>
+<div class="bar" id="controls"></div>
+<iframe id="frame" title="Voice Bar" src="../ui/bar.html" allowtransparency="true"></iframe>
+<script>
+'use strict';
+// Query params for screenshots: ?state=&lang=&words=
+const q = new URLSearchParams(location.search), frame = document.getElementById('frame'), box = document.getElementById('controls');
+const STATES = ['idle', 'listening', 'thinking', 'speaking', 'done', 'message', 'teaching', 'practice', 'guardian'];
+const SAMPLE = { en: { words: 'open Calculator', message: "I didn't catch that." }, hi: { words: 'कैलकुलेटर खोलो', message: 'मैं समझ नहीं पाया।' } };
+let lang = q.get('lang') === 'hi' ? 'hi' : 'en', state = STATES.includes(q.get('state')) ? q.get('state') : 'idle', timer;
+const bar = () => frame.contentWindow.bar;
+async function apply() {
+  const table = await (await fetch(`../ui/strings/${lang}.json`)).json();
+  bar().strings(table, lang);
+  bar().state(state, state === 'message' ? SAMPLE[lang].message : state === 'listening' ? (q.get('words') ?? SAMPLE[lang].words) : '');
+  clearInterval(timer);
+  if (state === 'listening') timer = setInterval(() => bar().level(Math.random()), 80);
+  box.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.textContent === state || b.textContent === lang)));
+}
+[...STATES, 'en', 'hi'].forEach(name => {
+  const b = document.createElement('button'); b.textContent = name;
+  b.onclick = () => { if (STATES.includes(name)) state = name; else lang = name; apply(); };
+  box.append(b);
+});
+frame.onload = apply;
+</script>
+</html>

@@ -434,6 +434,7 @@ final class Harness {
     var nextFeed:Input?,nextReading:Input?,nextAnalyzer:Analyzer?,nextSpeechInputID:Int?,nextSpeechSegment=0
     var shortcutDown = false, toggleTalk = false, clickTalk = false, busy = false, speaking = false
     var dictateShortcutDown = false, dictating = false, dictatePressed = Date.distantPast, dictateTap: DispatchWorkItem?
+    var talkPressed = Date.distantPast, talkTap: DispatchWorkItem?
     var events: [String] = [], text = "hello", began = Date(), wasUp = false, web = 0
     func start() { events.append("start"); engine.isRunning = true; toggleTalk = Prefs.toggle }
     func startDictation() { events.append("dictate"); engine.isRunning = true; dictating = true; toggleTalk = false }

@@ -17,7 +17,8 @@ MOCK = ROOT / 'tests' / 'home.html'
 STRINGS = ROOT / 'ui' / 'strings'
 PHASE1_METHODS = ['state.get', 'lang.set', 'prefs.get', 'prefs.set', 'conn.list', 'conn.save', 'conn.clear', 'conn.test',
                   'brain.choose', 'claudeCode.status', 'claudeCode.setup', 'local.scan', 'perms.get', 'perms.grant', 'app.info',
-                  'dictionary.list', 'dictionary.add', 'dictionary.remove', 'ask.start']
+                  'dictionary.list', 'dictionary.add', 'dictionary.remove', 'ask.start', 'speech.status', 'speech.test', 'voices.list',
+                  'voices.preview', 'globe.fix', 'bar.reset']
 # Called by the page but answered only once their phase builds them (Practice, Papers).
 LATER_METHODS = {'practice.start', 'drill.start', 'papers.open'}
 CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
@@ -228,7 +229,7 @@ class HomePageWebKitTests(unittest.TestCase):
         self.assertTrue(r['todayEmptyShown'])
         self.assertEqual(r['today'], 'Nothing due today.')
         self.assertTrue(r['recentEmpty'])
-        self.assertEqual(r['greet'], 'Hold ⌃⌥Space and ask me anything', 'no name, no "Hey"')
+        self.assertEqual(r['greet'], 'Hold fn and ask me anything', 'no name, no "Hey"')
         self.assertEqual(r['dots'], ['warn', 'off', 'ok'])
         self.assertLessEqual(r['scrollW'], r['innerW'])
 

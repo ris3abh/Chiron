@@ -12,7 +12,7 @@ ALLOWED_LATIN = {
     'Chiron', 'Claude', 'Code', 'Anthropic', 'OpenAI', 'Jev', 'TypeSafe', 'API', 'AI', 'fn', 'URL', 'Keychain', 'macOS', 'Mac',
     'YouTube', 'WhatsApp', 'Ollama', 'LM', 'Studio', 'OK',
     # On-screen names are copied exactly as the Mac shows them (System Settings labels, app names).
-    'Accessibility', 'Automation', 'Notes', 'Safari', 'Microphone', 'Screen', 'Recording', 'Speech', 'Recognition', 'System', 'Settings',
+    'Apple', 'Keyboard', 'Press', 'key', 'to', 'Do', 'Nothing', 'Control', 'Option', 'Accessibility', 'Automation', 'Notes', 'Safari', 'Microphone', 'Screen', 'Recording', 'Speech', 'Recognition', 'System', 'Settings',
 }
 PLACEHOLDER = re.compile(r'\{(\w+)\}')
 
@@ -65,7 +65,7 @@ class StringsTests(unittest.TestCase):
         brand_only = [k for k, v in self.hi.items() if not re.search(r'[ऀ-ॿ]', v)]
         for key in brand_only:
             self.assertTrue(all(w in ALLOWED_LATIN for w in latin_words(self.hi[key])), f'{key} has no Hindi')
-        self.assertLess(len(brand_only), 11, f'too many untranslated lines: {brand_only}')
+        self.assertLess(len(brand_only), 13, f'too many untranslated lines: {brand_only}')
 
     def test_nukta_spellings_stay_consistent(self):
         # ख़र्च, like ज़्यादा and हफ़्ते: the nukta form everywhere, so Home and Settings never spell one word two ways.

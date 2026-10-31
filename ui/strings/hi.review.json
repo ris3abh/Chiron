@@ -10,5 +10,13 @@
   "home.hero.title": {
     "_review": true,
     "note": "The starred words show in italics; check \"एक-एक कदम करके\" reads naturally as the main promise."
+  },
+  "bar.listening": {
+    "_review": true,
+    "note": "Masculine first person (\"रहा हूँ\"), as are bar.thinking and bar.speaking. Decide how Chiron refers to itself."
+  },
+  "voice.talk.help": {
+    "_review": true,
+    "note": "\"लगातार सुनवाने के लिए\" for keep listening: check it sounds natural."
   }
 }

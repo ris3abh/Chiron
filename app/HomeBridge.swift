@@ -1,6 +1,8 @@
 // The page's one message handler, `home`: bridge.call(method, args) posts {id, method, args}; the answer goes back
 // with bridge.reply(id, result, error). Native things (Keychain, permissions, windows) are answered here;
 // the rest by `chiron.py --home-state` and `chiron.py --home-do <method>` (JSON args on stdin, JSON on stdout).
+import AVFoundation
+import Carbon
 import Cocoa
 import WebKit
 
@@ -11,7 +13,7 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
     func detach(_ web: WKWebView?) { if let web { pages[ObjectIdentifier(web)] = nil } }
 
     // Prefs the page may write. Anything else (paused, safe, hotkeys) keeps its own native path.
-    static let writable: Set<String> = ["lang", "cap", "brain", "apiBase", "apiModel", "jevBase", "openaiModel", "theme"]
+    static let writable: Set<String> = ["lang", "cap", "brain", "apiBase", "apiModel", "jevBase", "openaiModel", "theme", "talkKey", "speak", "speakRate", "voice.en", "voice.hi"]
     // The page's names for prefs whose stored key predates it (apiBase/apiModel).
     static let aliases = ["capUsd": "cap", "customUrl": "apiBase", "customModel": "apiModel", "jevBaseUrl": "jevBase"]
     // Changing these must not reuse a Claude worker started with the old brain or key.
@@ -42,6 +44,7 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
             guard let lang = args["lang"] as? String, ["en", "hi"].contains(lang) else { return reply(nil, "bad lang") }
             Prefs.set("lang", lang)
             home.push("lang", lang)   // every open page re-labels; menus read L() each time they open
+            voiceBar.relabel(); app.prepareSpeech()
             home.refresh()
             reply(["ok": true], nil)
         case "prefs.get":
@@ -52,6 +55,7 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
             // Read-only: the page shows the real shortcuts in its greeting and Settings.
             out["hotkeyLabel"] = Prefs.str("hotkeyLabel")
             out["dictateHotkeyLabel"] = Prefs.bool("dictateHotkeyOff") ? "" : Prefs.str("dictateHotkeyLabel")
+            out["globeTaken"] = globeKeyTaken()
             reply(out, nil)
         case "prefs.set":
             guard let asked = args["k"] as? String, let v = args["v"] else { return reply(["ok": false], nil) }
@@ -62,6 +66,11 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
             if k == "cap", let n = (v as? NSNumber)?.doubleValue { Prefs.set(k, min(50, max(1, n))) } else { Prefs.set(k, v) }
             if HomeBridge.restartsWorker.contains(k) { app.unwarm() }
             if k == "theme" { home.applyTheme() }
+            if k == "talkKey" {   // modifiers alone: code -2 goes through the event monitor, like fn always has
+                let fn = v as? String == "fn"
+                Prefs.set("hotkeyCode", -2); Prefs.set("hotkeyMods", fn ? chironFnKey : controlKey | optionKey); Prefs.set("hotkeyLabel", fn ? "fn" : "⌃⌥")
+                registerHotkey()
+            }
             reply(["ok": true], nil)
         case "brain.choose":
             handle("prefs.set", ["k": "brain", "v": args["kind"] ?? ""], reply)
@@ -125,6 +134,31 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
         case "ask.start":   // Home's Ask button: the same box and listening as the shortcut or the menu's Ask
             app.clickTalk = true; app.start(); if !app.engine.isRunning { app.clickTalk = false }
             reply(["ok": true], nil)
+        case "speech.status":
+            reply(SpeechLocale.status, nil)
+        case "speech.test":
+            let lang = ["en", "hi"].contains(args["lang"] as? String ?? "") ? args["lang"] as! String : "en"
+            app.testVoice(lang) { heard in reply(["text": heard, "engine": SpeechLocale.current(lang).engine], nil) }
+        case "voices.list":
+            var out: [String: [[String: String]]] = ["en": [], "hi": []]
+            for v in AVSpeechSynthesisVoice.speechVoices() where installedSayVoices?.contains(v.name) ?? true {
+                let code = String(v.language.prefix(2))
+                if out[code] != nil { out[code]?.append(["id": v.name, "name": v.name + " (" + v.language + ")"]) }
+            }
+            reply(out, nil)
+        case "voices.preview":
+            let lang = ["en", "hi"].contains(args["lang"] as? String ?? "") ? args["lang"] as! String : "en"
+            let line = Strings.table(lang)["voice.preview"] ?? ""
+            let chosen = args["id"] as? String ?? "", rate = (args["rate"] as? NSNumber)?.doubleValue
+            app.shush()
+            let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/say")
+            p.arguments = readAloudArguments(line, pick: { chosen.isEmpty ? usableReadAloudVoice($0) : chosen }, rate: sayRate(rate)) {}
+            try? p.run(); app.voice = p
+            reply(["ok": true], nil)
+        case "globe.fix":
+            Chiron.settings.handle(["do": "globeKey"]); reply(["ok": true], nil)
+        case "bar.reset":
+            voiceBar.reset(); reply(["ok": true], nil)
         case "link.open":   // the page never navigates itself; only web links leave, in the default browser
             guard let s = args["url"] as? String, let url = URL(string: s), url.scheme == "https" else { return reply(["ok": false], nil) }
             NSWorkspace.shared.open(url); reply(["ok": true], nil)

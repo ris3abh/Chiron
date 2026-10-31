@@ -364,7 +364,7 @@ print("single delivery fallback ok")
         self.assertNotIn('dictating ?', guard[:guard.index('once(false)')])
         module = source[source.index('    func speechModule('):source.index('    func prepareSpeech(')]
         self.assertIn('let tr = speechModule(dictate: dictating)', source)
-        self.assertIn('SpeechTranscriber(locale: en, transcriptionOptions: [], reportingOptions: [.volatileResults]', module)
+        self.assertIn('SpeechTranscriber(locale: locale, transcriptionOptions: [], reportingOptions: [.volatileResults]', module)
         self.assertIn('transcriptionOptions: [.punctuation], reportingOptions: [.volatileResults]', module)
 
     def test_fn_and_modifier_only_shortcuts_use_flags_events(self):
@@ -451,7 +451,7 @@ print("clipboard borrow ok")
         source = (ROOT / 'Chiron.swift').read_text()
         check = source[source.index('func globeKeyTaken()'):source.index('func transcriptKey(')]
         self.assertIn('"AppleFnUsageType"', check)
-        self.assertIn('h.code < 0, h.mods == chironFnKey', check)
+        self.assertIn('h.code < 0 && h.mods == chironFnKey', check)
         self.assertIn('?? 1) != 0', check)   # unset is the system's own action, not Do Nothing
         self.assertIn('"globeTaken": globeKeyTaken()', source[source.index('    func push()', source.index('final class SettingsWindow')):])
         self.assertIn('case "globeKey"', source)
@@ -470,6 +470,7 @@ print("clipboard borrow ok")
         self.assertNotIn('NSPasteboard', delivery)
         swift = r'''import Foundation
 struct Prefs { static var on: Set<String> = ["dictateHistory"]; static func bool(_ key: String) -> Bool { on.contains(key) } }
+enum VoiceLog { static func cancelled() {} }
 enum DictationData { static func fixed(_ text: String) -> String { text } }
 final class AppRef: Equatable { static func == (a: AppRef, b: AppRef) -> Bool { a === b } }
 final class NSWorkspace { static let shared = NSWorkspace(); var frontmostApplication: AppRef? }

@@ -102,4 +102,4 @@ launchctl bootstrap gui/$(id -u) "$AGENT" 2>/dev/null || { sleep 1; launchctl bo
   echo "Could not add Chiron to Login Items; opening it directly instead."
   open "$APP"
 }; }
-echo "Chiron is running. Hold Control+Option+Space and talk."
+echo "Chiron is running. Hold fn and talk."

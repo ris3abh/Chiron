@@ -70,8 +70,27 @@ def words():
     # History is kept only when the user allows it; without it, a week can't be counted, so it falls back to today.
     week = sum(len(str(h.get('text', '')).split()) for h in history if isinstance(h.get('timestamp'), (int, float)) and h['timestamp'] >= week_start)
     total = int(num('words'))
-    return {'today': int(today), 'week': int(max(week, today)), 'all': total, 'minutes_saved': int(num('seconds') // 60),
-            'langs': {'en': total, 'hi': 0}}   # per-language counts arrive with the Hindi speech path (Phase 2)
+    today, week, total = int(today), int(max(week, today)), total
+    langs, saved = {'en': total, 'hi': 0}, num('seconds')   # dictation listens in English
+    day, start = time.strftime('%Y-%m-%d'), datetime.fromtimestamp(week_start).strftime('%Y-%m-%d %H:%M:%S')
+    for row in voice_rows():
+        said, at = row['words'], row['at']
+        total += said; langs[row['lang']] += said
+        if at[:10] == day: today += said
+        if at >= start: week += said
+        saved += max(0, said / 40 * 60 - row['seconds'])   # the same 40 wpm typing baseline as dictation
+    return {'today': today, 'week': week, 'all': total, 'minutes_saved': int(saved // 60), 'langs': langs}
+
+
+def voice_rows():
+    """One row per voice ask from voice.jsonl; a later row with the same id replaces it (an ask marked not understood counts no words)."""
+    rows = {}
+    for r in paths.read_jsonl(paths.VOICE):
+        if not isinstance(r.get('at'), str) or not isinstance(r.get('words'), int) or isinstance(r.get('words'), bool): continue
+        seconds = r.get('seconds') if isinstance(r.get('seconds'), (int, float)) and not isinstance(r.get('seconds'), bool) else 0
+        rows[r.get('id') or r['at']] = {'at': r['at'], 'words': max(0, r['words']) if r.get('understood', True) else 0,
+                                        'seconds': seconds, 'lang': r.get('lang') if r.get('lang') in i18n.LANGS else 'en'}
+    return list(rows.values())
 
 
 def kind(row):
