@@ -1,0 +1,10 @@
+{
+  "menu.paste": {
+    "_review": true,
+    "note": "\"चिपकाएँ\" for Paste: macOS Hindi Edit menu label may differ; copy it exactly if so."
+  },
+  "menu.hint.toggle": {
+    "_review": true,
+    "note": "Two-part hint; check it reads naturally in the menu bar."
+  }
+}

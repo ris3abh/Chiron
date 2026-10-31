@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Chiron Home mock</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; background: #e9e4dc; color: #1f1b16; font: 14px system-ui, sans-serif; }
+  .bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 10px 16px; background: #1f1b16; color: #f3ede4; }
+  .bar b { font-weight: 600; opacity: .7; margin-right: 2px; }
+  .bar button { font: inherit; padding: 5px 10px; border-radius: 7px; border: 1px solid #5c554c; background: transparent; color: inherit; cursor: pointer; }
+  .bar button[aria-pressed="true"] { background: #c8782a; border-color: #c8782a; color: #fff; }
+  .group { display: inline-flex; gap: 4px; align-items: center; }
+  .stage { padding: 20px 16px 40px; overflow-x: auto; }
+  iframe { display: block; margin: 0 auto; border: 0; border-radius: 12px; box-shadow: 0 20px 60px #0003; background: #f7f3ec; }
+  #log { max-width: 1280px; margin: 0 auto; font: 12px ui-monospace, Menlo, monospace; white-space: pre-wrap; opacity: .75; max-height: 180px; overflow: auto; padding: 0 16px; }
+  @media (prefers-color-scheme: dark) { body { background: #0e0c0a; color: #f3ede4; } iframe { background: #171411; } }
+  /* native=1: a fake macOS window. Vibrancy = a blurred desktop under a tint; the page itself draws no background. */
+  .win { position: relative; margin: 0 auto; border-radius: 14px; overflow: hidden; width: max-content;
+    box-shadow: 0 0 0 .5px rgba(0,0,0,.25), 0 30px 80px -20px rgba(0,0,0,.45);
+    background: linear-gradient(rgba(244,245,250,.60), rgba(244,245,250,.60)),
+      radial-gradient(40% 45% at 10% 15%, #6FA8FF, transparent 70%), radial-gradient(40% 40% at 90% 10%, #B79CFF, transparent 70%),
+      radial-gradient(45% 50% at 85% 90%, #FFB59A, transparent 70%), radial-gradient(40% 40% at 5% 95%, #7FDCD6, transparent 70%), #DDE3F2; }
+  .win.dark { background: linear-gradient(rgba(24,24,30,.62), rgba(24,24,30,.62)),
+      radial-gradient(40% 45% at 10% 15%, #1D4ED8, transparent 70%), radial-gradient(40% 40% at 90% 10%, #6D28D9, transparent 70%),
+      radial-gradient(45% 50% at 85% 90%, #9A3412, transparent 70%), radial-gradient(40% 40% at 5% 95%, #0E7490, transparent 70%), #0B0D17; }
+  .win iframe { background: transparent; border-radius: 0; box-shadow: none; }
+  .lights { position: absolute; top: 9px; left: 12px; display: flex; gap: 8px; z-index: 3; pointer-events: none; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.18); }
+  .lights i:nth-child(1) { background: #FF5F57; } .lights i:nth-child(2) { background: #FEBC2E; } .lights i:nth-child(3) { background: #28C840; }
+  body.bare { background: #000; } body.bare .bar, body.bare #log { display: none; } body.bare .stage { padding: 0; overflow: hidden; }
+  body.bare iframe { border-radius: 0; box-shadow: none; } body.bare .win { border-radius: 0; box-shadow: none; }
+  body.desk { background: linear-gradient(160deg, #8EA9E8, #B9A6E6 55%, #EDB9A6); } body.desk.dark { background: linear-gradient(160deg, #0B1530, #1B1236 55%, #2A1414); }
+</style>
+<div class="bar" role="toolbar" aria-label="Mock controls">
+  <span class="group" id="fx"><b>Fixture</b><button data-fx="empty">empty</button><button data-fx="typical">typical</button><button data-fx="errors">errors</button></span>
+  <span class="group" id="wd"><b>Width</b><button data-w="1280">1280</button><button data-w="880">880</button><button data-w="560">560</button><button data-w="settings" title="Settings window: 560×680 with #settings">Settings window</button></span>
+  <span class="group" id="th"><b>Theme</b><button data-t="">auto</button><button data-t="light">light</button><button data-t="dark">dark</button></span>
+  <span class="group"><b>Window</b><button id="nativeBtn" title="Simulate the app window: html.native, vibrancy, traffic lights">native</button></span>
+  <span class="group"><b>Push</b><button id="pushState">state (+120 words)</button><button id="pushLang">lang (native)</button><button id="pushConn">connection: Jev ok</button></span>
+</div>
+<div class="stage"><div class="win-host" id="host"><iframe id="frame" title="Chiron Home"></iframe></div></div>
+<div id="log"></div>
+
+<!-- Fixtures: shared with tests/test_home_page.py, which reads this block. "at": "-5m" style offsets become ISO times. -->
+<script type="application/json" id="fixtures">
+{
+  "empty": {
+    "state": {
+      "lang": "en",
+      "today": null,
+      "words": {"today": 0, "week": 0, "all": 0, "minutes_saved": 0, "langs": {"en": 0, "hi": 0}},
+      "spend": {"month_usd": 0.0, "cap_usd": 5.0, "by_engine": {}},
+      "recent": [],
+      "connections": {"brain": {"kind": "claude-code", "ok": false}, "jev": {"ok": false, "missing": true}, "speech": {"engine": "apple", "ok": true}}
+    },
+    "conn": {"anthropic": {"saved": false}, "openai": {"saved": false}, "jev": {"saved": false, "base_url": "https://api.typesafe.ai/v1"}, "custom": {"saved": false, "url": "", "model": ""}, "brain": "claude-code"},
+    "prefs": {"lang": "en", "capUsd": 5},
+    "claudeCode": {"installed": false, "signedIn": false, "plan": null},
+    "perms": {"microphone": "unknown", "speech": "unknown", "accessibility": "unknown", "screen": "unknown", "automation": "unknown"},
+    "servers": [],
+    "info": {"version": "0.1.0", "build": "1"}
+  },
+  "typical": {
+    "state": {
+      "lang": "en",
+      "today": null,
+      "words": {"today": 1284, "week": 9420, "all": 182340, "minutes_saved": 212, "langs": {"en": 120300, "hi": 62040}},
+      "spend": {"month_usd": 2.37, "cap_usd": 5.0, "by_engine": {"claude-code": 1.9, "jev": 0.04, "anthropic": 0.43}},
+      "recent": [
+        {"at": "-3m", "kind": "ask", "text": {"en": "What's the weather like in Paris?", "hi": "पेरिस में मौसम कैसा है?"}},
+        {"at": "-14m", "kind": "do", "text": {"en": "Opened Notes", "hi": "नोट्स खोला"}},
+        {"at": "-2h", "kind": "do", "text": {"en": "Played devotional songs on YouTube", "hi": "YouTube पर भजन चलाए"}},
+        {"at": "-5h", "kind": "ask", "text": {"en": "How do I make the text bigger on this page?", "hi": "इस पेज पर अक्षर बड़े कैसे करें?"}},
+        {"at": "-1d", "kind": "do", "text": {"en": "Sent the photo to Asha on WhatsApp", "hi": "WhatsApp पर आशा को फ़ोटो भेजी"}},
+        {"at": "-1d", "kind": "ask", "text": {"en": "What does this pop-up mean?", "hi": "इस पॉप-अप का क्या मतलब है?"}},
+        {"at": "-2d", "kind": "do", "text": {"en": "Printed the electricity bill", "hi": "बिजली का बिल प्रिंट किया"}},
+        {"at": "-3d", "kind": "ask", "text": {"en": "Spell 'Wednesday'", "hi": "'Wednesday' की स्पेलिंग"}},
+        {"at": "-4d", "kind": "do", "text": {"en": "Made the screen brighter", "hi": "स्क्रीन की रोशनी बढ़ाई"}},
+        {"at": "-6d", "kind": "do", "text": {"en": "Joined the family video call", "hi": "परिवार की वीडियो कॉल में जुड़े"}},
+        {"at": "-8d", "kind": "ask", "text": {"en": "This eleventh item must not appear", "hi": "यह ग्यारहवाँ नहीं दिखना चाहिए"}}
+      ],
+      "connections": {"brain": {"kind": "claude-code", "ok": true}, "jev": {"ok": true}, "speech": {"engine": "apple", "ok": true}}
+    },
+    "conn": {"anthropic": {"saved": true, "last4": "ab12", "_value": "sk-ant-api03-fixture-ab12"}, "openai": {"saved": false}, "jev": {"saved": true, "last4": "9f3c", "base_url": "https://api.typesafe.ai/v1", "_value": "ts-fixture-9f3c"}, "custom": {"saved": false, "url": "http://localhost:11434", "model": "qwen3:8b"}, "brain": "claude-code"},
+    "prefs": {"lang": "en", "capUsd": 5},
+    "claudeCode": {"installed": true, "signedIn": true, "plan": "Claude Pro"},
+    "perms": {"microphone": "granted", "speech": "granted", "accessibility": "granted", "screen": "denied", "automation": "unknown"},
+    "servers": [{"url": "http://localhost:11434", "models": ["qwen3:8b", "llama3.2:3b", "gemma3:4b"]}, {"url": "http://localhost:1234", "models": ["mistral-small"]}],
+    "info": {"version": "0.1.0", "build": "42 (phase-1)"}
+  },
+  "errors": {
+    "state": {
+      "lang": "en",
+      "today": {"kind": "practice", "minutes": "two"},
+      "words": "corrupted",
+      "spend": {"month_usd": 7.42, "cap_usd": 5.0},
+      "recent": [
+        {"at": "not a date", "kind": "do", "text": {"en": "Row with a broken time still shows", "hi": "टूटे समय वाली पंक्ति भी दिखती है"}},
+        {"at": "-1h", "kind": "mystery", "text": "Unknown kind falls back to Question"},
+        {"at": "-2h", "kind": "ask"},
+        null,
+        "garbage",
+        {"at": "-3h", "kind": "guardian", "text": {"hi": "सिर्फ़ हिंदी वाली पंक्ति"}},
+        {"at": "-30m", "kind": "do", "text": {"en": "A very long line with no breaks: chiron.local/averyveryveryveryveryveryveryveryverylongpathwithoutanyspacesatallthatmustwrapratherthantruncate", "hi": "बहुत लंबी पंक्ति: chiron.local/averyveryveryveryveryveryveryveryverylongpathwithoutanyspacesatallthatmustwrapratherthantruncate"}}
+      ],
+      "connections": {"brain": {"kind": "anthropic", "ok": false}, "jev": {"ok": false}, "speech": "broken"}
+    },
+    "conn": {"anthropic": {"saved": true, "last4": "bad0", "_value": "sk-ant-bad-key-bad0"}, "openai": {"saved": false}, "jev": {"saved": true, "last4": "dead", "_value": "ts-timeout-dead"}, "custom": {"saved": false}, "brain": "anthropic"},
+    "prefs": {"lang": "en"},
+    "claudeCode": {"installed": true, "signedIn": false, "plan": null},
+    "perms": {"microphone": "denied", "speech": "granted", "accessibility": "denied", "screen": "weird-value"},
+    "servers": [],
+    "info": null,
+    "fail": {"app.info": "app.info exploded", "perms.grant": "System Settings did not open"}
+  }
+}
+</script>
+<script>
+'use strict';
+const frame = document.getElementById('frame'), log = document.getElementById('log');
+const FIXTURES = JSON.parse(document.getElementById('fixtures').textContent);
+const SIZES = { 1280: [1280, 800], 880: [880, 720], 560: [560, 720], settings: [560, 680] };
+const ui = { fx: 'typical', w: '880', theme: '', lang: 'en', view: 'home', native: false };
+try { Object.assign(ui, JSON.parse(localStorage.getItem('chiron-mock') || '{}')); } catch (e) {}
+// Query params for headless screenshots: ?fixture=&lang=&theme=&view=home|settings&width=1280|880|560&chrome=0&native=1
+const q = new URLSearchParams(location.search);
+const BARE = q.get('chrome') === '0';
+if (q.has('fixture') && FIXTURES[q.get('fixture')]) ui.fx = q.get('fixture');
+if (['en', 'hi'].includes(q.get('lang'))) ui.lang = q.get('lang');
+if (q.has('theme')) ui.theme = ['light', 'dark'].includes(q.get('theme')) ? q.get('theme') : '';
+if (q.has('view')) ui.view = q.get('view') === 'settings' ? 'settings' : 'home';
+if (q.has('width')) ui.w = SIZES[q.get('width')] ? q.get('width') : ui.w;
+else if (q.get('view') === 'settings') ui.w = 'settings';
+if (q.has('native')) ui.native = q.get('native') === '1';
+if (ui.w === 'settings') ui.view = 'settings';
+if (BARE) document.body.classList.add('bare');
+let db, page = '';
+
+const clone = v => JSON.parse(JSON.stringify(v));
+// "-5m" → an ISO time that many minutes/hours/days ago, so relative times stay meaningful.
+function times(v) {
+  if (Array.isArray(v)) return v.map(times);
+  if (v && typeof v === 'object') { const o = {}; for (const k in v) o[k] = times(v[k]); return o; }
+  const m = typeof v === 'string' && /^-(\d+)([smhd])$/.exec(v);
+  return m ? new Date(Date.now() - m[1] * { s: 1e3, m: 6e4, h: 36e5, d: 864e5 }[m[2]]).toISOString() : v;
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const note = (...a) => { log.textContent = a.join(' ') + '\n' + log.textContent.slice(0, 4000); };
+function publicConn() { const c = clone(db.conn); for (const k in c) if (c[k] && typeof c[k] === 'object') delete c[k]._value; return c; }
+
+async function handle(method, args) {
+  const fail = db.fail && db.fail[method];
+  if (fail) { await wait(250); throw new Error(fail); }
+  switch (method) {
+    case 'state.get': await wait(120); return clone(db.state);
+    case 'lang.set': await wait(80); db.state.lang = args.lang; db.prefs.lang = args.lang; return { ok: true };
+    case 'prefs.get': await wait(60); return clone(db.prefs);
+    case 'prefs.set': await wait(150); db.prefs[args.k] = args.v; if (args.k === 'capUsd' && db.state.spend && typeof db.state.spend === 'object') db.state.spend.cap_usd = args.v; return { ok: true };
+    case 'conn.list': await wait(90); return publicConn();
+    case 'conn.save': await wait(200); db.conn[args.name] = Object.assign({}, db.conn[args.name], { saved: true, last4: String(args.value).slice(-4), _value: args.value }); return { ok: true, last4: String(args.value).slice(-4) };
+    case 'conn.clear': await wait(150); db.conn[args.name] = Object.assign({}, db.conn[args.name], { saved: false, last4: null, _value: null }); return { ok: true };
+    // A typed value is only tested here; the page calls conn.save after it passes.
+    case 'conn.test': {
+      await wait(900 + Math.random() * 500);
+      const key = args.value || (db.conn[args.name] || {})._value || '';
+      if (!key) return { ok: false, kind: 'nokey', detail: 'Add a key first.' };
+      if (/timeout/.test(key)) return { ok: false, kind: 'offline', detail: 'Request timed out after 3 s' };
+      if (/bad/.test(key)) return { ok: false, kind: 'rejected', detail: '401 invalid x-api-key' };
+      return { ok: true, detail: 'Connected.', ms: Math.round(280 + Math.random() * 400), usd: args.name === 'jev' ? 0.00002 : 0.00041 };
+    }
+    case 'brain.choose': await wait(120); db.conn.brain = args.kind; return { ok: true };
+    case 'claudeCode.status': await wait(700); return clone(db.claudeCode);
+    case 'claudeCode.setup': await wait(200); setTimeout(() => { db.claudeCode = { installed: true, signedIn: true, plan: 'Claude Max' }; }, 2500); return { ok: true };
+    case 'local.scan': await wait(1300); return clone(db.servers);
+    case 'perms.get': await wait(100); return clone(db.perms);
+    case 'perms.grant': await wait(300); db.perms[args.id] = 'granted'; return { ok: true };
+    case 'app.info': await wait(60); return clone(db.info);
+    case 'window.settings': return { opened: false };
+    case 'strings.get': return (await fetch('../ui/strings/' + args.lang + '.json')).json();
+    case 'link.open': note('would open', args.url); return { ok: true };
+    case 'practice.start': case 'drill.start': case 'papers.open': return { ok: true };
+    default: throw new Error('mock: unknown method ' + method);
+  }
+}
+
+// Called synchronously from inside the iframe, exactly where WKWebView's postMessage would be.
+window.mockHome = function (msg) {
+  note('→', msg.method, JSON.stringify(msg.args || {}));
+  handle(msg.method, msg.args || {}).then(
+    r => frame.contentWindow.bridge.reply(msg.id, r === undefined ? null : r, null),
+    e => { note('✗', msg.method, e.message); frame.contentWindow.bridge.reply(msg.id, null, e.message); });
+};
+
+async function load() {
+  db = times(clone(FIXTURES[ui.fx]));
+  if (db.state && typeof db.state === 'object') db.state.lang = ui.lang;
+  db.prefs.lang = ui.lang;
+  if (!page) page = await (await fetch('../ui/home.html', { cache: 'no-store' })).text();
+  // The app opens Settings with #settings; here the frame's name says so (a fragment on about:srcdoc trips up tooling).
+  // native=1 adds the class Swift injects at document start; theme goes on <html> before first paint.
+  const hash = `window.name=${JSON.stringify(ui.view === 'settings' ? 'chiron-settings' : 'chiron-home')};`
+    + (ui.native ? "document.documentElement.classList.add('native');" : '')
+    + (ui.theme ? `document.documentElement.dataset.theme=${JSON.stringify(ui.theme)};` : '')
+    // Headless screenshots run on virtual time, which can freeze CSS transitions mid-way: show final states.
+    + (BARE ? "document.head.insertAdjacentHTML('beforeend','<style>*,*::before,*::after{transition:none!important;animation:none!important}</style>');" : '');
+  // <base> makes strings/ and fonts/ resolve inside ui/ like the app's loadFileURL; the fake handler goes in before page scripts.
+  const inject = `<head><base href="../ui/"><script>window.webkit={messageHandlers:{home:{postMessage:m=>parent.mockHome(JSON.parse(JSON.stringify(m)))}}};${hash}<\/script>`;
+  const [w, h] = SIZES[ui.w];
+  frame.style.width = (BARE ? Math.min(w, innerWidth) : w) + 'px'; frame.style.height = (BARE ? innerHeight : h) + 'px';
+  windowChrome();
+  frame.onload = () => { theme(); if (BARE) fitHeight(); };
+  frame.srcdoc = page.replace('<head>', inject);
+  paint();
+}
+// Bare screenshots: grow the frame to its content (never shorter than the window) and record the height for the shooter.
+function fitHeight() {
+  const d = frame.contentDocument;
+  const fit = () => {
+    frame.style.height = innerHeight + 'px';
+    const hgt = Math.max(innerHeight, Math.ceil(d.querySelector('.shell').getBoundingClientRect().height));
+    frame.style.height = hgt + 'px'; document.documentElement.dataset.h = hgt;
+  };
+  new ResizeObserver(fit).observe(d.querySelector('.shell')); fit();
+}
+function windowChrome() {
+  const host = document.getElementById('host');
+  const dark = ui.theme === 'dark' || (!ui.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+  host.className = ui.native ? 'win' + (dark ? ' dark' : '') : 'win-host';
+  host.querySelector('.lights')?.remove();
+  if (ui.native) host.insertAdjacentHTML('afterbegin', '<div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>');
+  document.body.classList.toggle('desk', ui.native && !BARE); document.body.classList.toggle('dark', dark);
+  // Matching colour schemes keeps the iframe see-through, so the fake vibrancy shows behind the page.
+  document.documentElement.style.colorScheme = ui.theme || 'light dark';
+}
+function theme() {
+  const d = frame.contentDocument && frame.contentDocument.documentElement;
+  if (d) { if (ui.theme) d.dataset.theme = ui.theme; else delete d.dataset.theme; }
+  if (!ui.native && !BARE) document.body.style.background = ui.theme === 'dark' ? '#0e0c0a' : ui.theme === 'light' ? '#e9e4dc' : '';
+  windowChrome();
+}
+function paint() {
+  document.querySelectorAll('[data-fx]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.fx === ui.fx)));
+  document.querySelectorAll('[data-w]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.w === ui.w)));
+  document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === ui.theme)));
+  document.getElementById('nativeBtn').setAttribute('aria-pressed', String(!!ui.native));
+  if (!location.search) try { localStorage.setItem('chiron-mock', JSON.stringify(ui)); } catch (e) {}
+}
+document.querySelectorAll('[data-fx]').forEach(b => b.onclick = () => { ui.fx = b.dataset.fx; load(); });
+document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => {
+  const reload = (b.dataset.w === 'settings') !== (ui.w === 'settings');
+  ui.w = b.dataset.w; ui.view = ui.w === 'settings' ? 'settings' : 'home';
+  if (reload) return load();
+  const [w, h] = SIZES[ui.w]; frame.style.width = w + 'px'; frame.style.height = h + 'px'; paint();
+});
+document.getElementById('nativeBtn').onclick = () => { ui.native = !ui.native; load(); };
+document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { ui.theme = b.dataset.t; theme(); paint(); });
+document.getElementById('pushState').onclick = () => {
+  const s = db.state; if (s.words && typeof s.words === 'object') { s.words.today = (s.words.today || 0) + 120; s.words.week = (s.words.week || 0) + 120; s.words.all = (s.words.all || 0) + 120; }
+  frame.contentWindow.bridge.push('state', clone(s));
+};
+document.getElementById('pushLang').onclick = () => {
+  const next = frame.contentWindow.chiron.lang === 'hi' ? 'en' : 'hi';
+  db.state.lang = next; frame.contentWindow.bridge.push('lang', { lang: next });
+};
+document.getElementById('pushConn').onclick = () => frame.contentWindow.bridge.push('connection', { jev: { ok: true, missing: false } });
+load();
+</script>
+</html>

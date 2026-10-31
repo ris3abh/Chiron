@@ -1,0 +1,37 @@
+Chiron.app/
+__pycache__/
+.DS_Store
+
+# Local credentials and runtime state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+settings.json
+skills.json
+recent.jsonl
+log.jsonl
+usage.jsonl
+connections.json
+dictation.json
+memory.md
+license
+# the MIT license file: on macOS "license" above matches it too
+!LICENSE
+app.err
+
+# Shared agent instructions live in CLAUDE.md (committed). Personal ones, skills and the website stay on this Mac.
+AGENTS.md
+AGENTS.local.md
+CLAUDE.local.md
+.agents/
+.claude/
+.cursor/
+index.html
+docs/chiron-film.mp4
+docs/film-poster.png
+
+/test-artifacts/

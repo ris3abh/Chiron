@@ -1,0 +1,296 @@
+"""Opt-in Chrome integration: only uniquely titled pages in a fresh --user-data-dir."""
+import json
+import os
+import plistlib
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import tempfile
+import functools
+import http.server
+import threading
+import time
+import unittest
+from unittest.mock import patch
+
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+import brain
+from tests import app_sources
+
+CHROME = Path('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+
+
+@unittest.skipUnless(os.environ.get('CHIRON_VM') == '1' and sys.platform == 'darwin' and CHROME.exists(),
+                     'Isolated Chrome profile requires CHIRON_VM=1 and macOS Chrome')
+class ChromeBackgroundTests(unittest.TestCase):
+    def test_native_fullscreen_placement_repeats_without_toggling(self):
+        with tempfile.TemporaryDirectory(prefix='chiron-place-') as tmp:
+            root=Path(tmp); marker='Chiron placement '+root.name
+            page=root/'page.html';page.write_text('<title>'+marker+'</title><p>Scratch placement</p>')
+            with (root/'chrome.log').open('w') as log:
+                process=subprocess.Popen([str(CHROME),f'--user-data-dir={root / "profile"}','--no-first-run','--no-default-browser-check','--disable-sync',page.as_uri()],stdout=log,stderr=log,start_new_session=True)
+                try:
+                    selector=f'tell application "System Events" to tell process "Google Chrome" to get value of attribute "AXFullScreen" of (first window whose name contains "{marker}")'
+                    deadline=time.monotonic()+15
+                    probe=None
+                    while time.monotonic()<deadline:
+                        try: probe=subprocess.run(['osascript','-e',selector],capture_output=True,text=True,timeout=3)
+                        except subprocess.TimeoutExpired: self.skipTest('VM does not allow Apple events to scratch Chrome through System Events')
+                        if probe.stdout.strip() in ('true','false'): break
+                        if 'not allowed' in probe.stderr or 'not authorized' in probe.stderr: self.skipTest(probe.stderr.strip())
+                        time.sleep(.2)
+                    else: self.fail('Scratch Chrome window not accessible: '+(probe.stderr if probe else '')+(root/'chrome.log').read_text()[-1000:])
+                    with patch.object(brain,'preview_app'),patch.object(brain,'free_focus'):
+                        screen=brain.screens()[0][0]
+                        reply=brain.place('Google Chrome','fullscreen',screen,marker)
+                        self.assertNotIn('NOT DONE',reply);self.assertNotIn('could not check',reply)
+                        self.assertEqual(brain.osa(selector),'true',reply)
+                        # Use the actual screen name so the already-in-place path applies on the VM's virtual display.
+                        again=brain.place('Google Chrome','fullscreen',screen,marker)
+                        self.assertIn('already full screen',again)
+                        self.assertEqual(brain.osa(selector),'true',again)
+                finally:
+                    os.killpg(process.pid,signal.SIGTERM)
+                    try: process.wait(timeout=5)
+                    except subprocess.TimeoutExpired: os.killpg(process.pid,signal.SIGKILL);process.wait()
+
+
+    def test_point_click_reaches_a_canvas_in_a_background_window(self):
+        """--hands click "x,y" on a canvas in a Chrome window that is neither front nor Chrome's focused window: the page gets a
+        trusted pointerdown at that spot, nothing comes forward, and the reply says the spot changed (or that nothing did)."""
+        # No Apple events: in the guest they wait on an Automation prompt nobody can click. The pages report to a local
+        # server, Chrome flags place the window, and the foreground fixture answers which app is front and Chrome's window order.
+        root_dir = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory(prefix='chiron-canvas-') as tmp:
+            root = Path(tmp); profile = root / 'profile'; profile.mkdir()
+            say = 'const say=(p,d)=>fetch(p,{method:"POST",body:JSON.stringify(d),keepalive:true});'
+            (root / 'canvas.html').write_text(f'''<title>CHIRON CANVAS {root.name}</title><body style="margin:0"><canvas id=c aria-label="Board" role=img width=440 height=300 style="display:block;background:#fff"></canvas>
+<img alt="Blank" width=440 height=120 style="display:block" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="><script>{say}const c=document.getElementById('c'),g=c.getContext('2d');
+for(const t of ['pointerdown','mousedown','click'])c.addEventListener(t,e=>{{say('/hit',[e.type,e.offsetX,e.offsetY,e.isTrusted]);if(t=='pointerdown'){{g.fillStyle='#000';g.fillRect(e.offsetX-20,e.offsetY-15,40,30)}}}});
+for(const t of ['pointermove','mousemove','pointerdown','mouseup'])addEventListener(t,e=>say('/ev',[e.type,e.clientX,e.clientY,e.isTrusted,document.hasFocus(),document.visibilityState]),true);
+const info=()=>say('/info',{{w:'canvas',x:screenX,y:screenY,bar:outerHeight-innerHeight,focus:document.hasFocus(),vis:document.visibilityState}});info();setInterval(info,300);
+window.open('/other.html','other','left=10,top=60,width=490,height=460');</script>''')
+            # --window-position places every new window, so the popup moves itself beside the canvas window, not over it
+            (root / 'other.html').write_text(f'<title>CHIRON canvas other</title><p>Other window</p><script>{say}moveTo(10,60);resizeTo(490,460);setInterval(()=>say("/info",{{w:"other",x:screenX}}),300)</script>')
+            seen, hits, events = {}, [], []
+            class Pages(http.server.SimpleHTTPRequestHandler):
+                def log_message(self, *a): pass
+                def do_POST(self):
+                    data = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                    if self.path == '/hit': hits.append(data)
+                    elif self.path == '/ev': events.append(data)
+                    else: seen[data['w']] = data
+                    self.send_response(204); self.end_headers()
+            server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Pages, directory=tmp))
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            self.addCleanup(server.server_close); self.addCleanup(server.shutdown)
+            binary = root / 'Chiron'
+            compiled = subprocess.run(['swiftc', *app_sources(Path(binary).parent), '-o', str(binary)], capture_output=True, text=True)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            env = {**os.environ, 'CHIRON_DIR':tmp, 'CHIRON_RESOURCES_DIR':str(root_dir), 'CHIRON_HANDS_STATE':str(root / 'hands.json')}
+            env.pop('CHIRON_AX_ONLY', None); env.pop('CHIRON_HANDS_WINDOW', None)
+            def hands(*args):
+                label = subprocess.run([str(binary), '--hands', 'label', *args], env=env, capture_output=True, text=True, timeout=15)
+                self.assertEqual(label.returncode, 0, label.stdout + label.stderr)
+                r = subprocess.run([str(binary), '--hands', *args], input=label.stdout, env={**env, 'CHIRON_HANDS_RECEIPT':'1'}, capture_output=True, text=True, timeout=15)
+                self.assertEqual(r.returncode, 0, r.stdout + r.stderr); return r.stdout
+            if 'Allow Chiron' in subprocess.run([str(binary), '--hands', 'see', '2147483647'], env=env, capture_output=True, text=True).stdout:
+                self.skipTest('Temporary binary lacks Accessibility permission; no permission changes made')
+            source = root / 'cover.swift'
+            source.write_text('''import Cocoa
+let app=NSApplication.shared; app.setActivationPolicy(.regular)
+let w=NSWindow(contentRect:NSRect(x:20,y:20,width:300,height:100),styleMask:[.titled],backing:.buffered,defer:false)
+w.title="Chiron scratch foreground"; w.orderFrontRegardless()
+DispatchQueue.main.asyncAfter(deadline:.now()+0.2) { app.activate(ignoringOtherApps:true); w.makeKeyAndOrderFront(nil) }
+DispatchQueue.main.asyncAfter(deadline:.now()+0.6) { print(ProcessInfo.processInfo.processIdentifier); fflush(stdout) }
+NSWorkspace.shared.notificationCenter.addObserver(forName:NSWorkspace.didActivateApplicationNotification,object:nil,queue:.main) { n in
+ if let a=n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication, a.processIdentifier != ProcessInfo.processInfo.processIdentifier { print("FOCUS LOST: \\(a.processIdentifier)"); fflush(stdout) }
+}
+DispatchQueue.global().async { while let line=readLine() { DispatchQueue.main.async {   // "front", or "order <pid>": that app's windows front to back as number@x
+ if line=="front" { print("FRONT \\(NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0)") }
+ else if line=="key" { print("KEY \\(w.isKeyWindow) \\(app.isActive)") }
+ else { let pid=Int(line.dropFirst(6)) ?? 0, list=CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] ?? []
+  let me=Int(ProcessInfo.processInfo.processIdentifier)   // this fixture's window shows as "self", so the order covers the user's window too
+  print("ORDER "+list.filter{[pid,me].contains($0[kCGWindowOwnerPID as String] as? Int ?? -1) && ($0[kCGWindowLayer as String] as? Int)==0}.map{($0[kCGWindowOwnerPID as String] as? Int)==me ? "self" : "\\($0[kCGWindowNumber as String] as? Int ?? 0)@\\(((($0[kCGWindowBounds as String] as? [String:Any])?["X"]) as? NSNumber)?.intValue ?? 0)"}.joined(separator:" ")) }
+ fflush(stdout) } } }
+signal(SIGTERM) { _ in exit(0) }; app.run()
+''')
+            cover = root / 'ForegroundFixture.app/Contents/MacOS/cover'; cover.parent.mkdir(parents=True)
+            with open(cover.parent.parent / 'Info.plist', 'wb') as f:
+                plistlib.dump({'CFBundleIdentifier':'com.brain.canvas.foreground', 'CFBundleExecutable':'cover', 'CFBundleName':'Canvas Foreground', 'CFBundlePackageType':'APPL'}, f)
+            subprocess.run(['swiftc', str(source), '-o', str(cover)], env=env, check=True, capture_output=True)
+            log = open(root / 'chrome.log', 'w')
+            origin = f'http://127.0.0.1:{server.server_port}'
+            process = subprocess.Popen([str(CHROME), f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-sync',
+                                        '--disable-background-networking', '--use-mock-keychain', '--disable-popup-blocking',
+                                        '--window-position=520,60', '--window-size=480,460', origin + '/canvas.html'],
+                                       env=env, stdout=log, stderr=log, start_new_session=True)
+            foreground, lost = None, []
+            try:
+                deadline = time.time() + 90   # a cold first start of a fresh profile in the guest
+                while not ({'canvas', 'other'} <= seen.keys() and seen['other']['x'] + 490 <= seen['canvas']['x']):
+                    if process.poll() is not None or time.time() > deadline:
+                        self.fail(f'Scratch Chrome did not show both fixture windows side by side: {seen} ' + (root / 'chrome.log').read_text()[-3000:])
+                    time.sleep(.3)
+                time.sleep(1)
+                foreground = subprocess.Popen([str(cover)], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                pid = int(foreground.stdout.readline())
+                def ask(line, prefix):
+                    foreground.stdin.write(line + '\n'); foreground.stdin.flush()
+                    while (out := foreground.stdout.readline()):
+                        if out.startswith(prefix + ' '): return out[len(prefix) + 1:].strip()
+                        lost.append(out)
+                    self.fail('The foreground fixture quit')
+                front = lambda: int(ask('front', 'FRONT'))
+                order = lambda: ask(f'order {process.pid}', 'ORDER')
+                deadline = time.time() + 5
+                while front() != pid and time.time() < deadline: time.sleep(.2)
+                self.assertEqual(front(), pid)
+                lost.clear()   # Chrome's own start may still activate it once before the fixture is front
+                windows = order().split(); chrome = [w for w in windows if w != 'self']
+                self.assertGreaterEqual(len(chrome), 2, windows)
+                self.assertLess(int(chrome[0].split('@')[1]), seen['canvas']['x'], windows)   # Chrome's focused window is the other one
+                at = seen['canvas']
+                spot = lambda x, y: f"{at['x'] + x},{at['y'] + at['bar'] + y}"
+                # As in a main ask with no see: the map is the user's front app; the point is in Chrome's canvas window, not Chrome's focused one.
+                mapped = subprocess.run([str(binary), '--hands', 'see', str(pid)], env=env, capture_output=True, text=True, timeout=15)   # see makes the map: label needs one
+                self.assertIn('Window: Chiron scratch foreground', mapped.stdout, mapped.stdout + mapped.stderr)
+                key = lambda: ask('key', 'KEY')
+                self.assertEqual(key(), 'true true')
+                out = hands('click', spot(120, 90))
+                deadline = time.time() + 3
+                while len(hits) < 3 and time.time() < deadline: time.sleep(.1)
+                down = [h for h in hits if h[0] == 'pointerdown']
+                self.assertEqual(len(down), 1, (out, hits, events, seen['canvas']))
+                self.assertTrue(abs(down[0][1] - 120) <= 3 and abs(down[0][2] - 90) <= 3 and down[0][3], (out, hits))   # the spot, not the canvas center
+                self.assertNotIn('Nothing changed', out)   # it landed: the reply names a change (pixels at the spot, or the AX lines Chrome redrew), never the false "Nothing changed… add front"
+                self.assertEqual(front(), pid); self.assertEqual(order().split(), windows)
+                self.assertEqual(key(), 'true true', "the user's window keeps the keyboard")
+                print('CANVAS BACKGROUND CLICK: ' + json.dumps({'hits': hits, 'window events': events, 'page': seen['canvas'], 'order': windows, 'reply': out.splitlines()[0]}), flush=True)
+                count = len(hits)
+                out = hands('click', spot(120, 360))   # an inert image below the canvas: no change, and the reply says so
+                time.sleep(.5)
+                self.assertIn('Nothing changed', out); self.assertEqual(len(hits), count)
+                refused = subprocess.run([str(binary), '--hands', 'label', 'click', '110,200'], env=env, capture_output=True, text=True, timeout=15)
+                self.assertIn("the user's other", refused.stdout)   # Chrome's other window was open beside the task's: it stays the user's
+                self.assertEqual(front(), pid)
+                foreground.terminate(); rest, _ = foreground.communicate(timeout=5); foreground = None
+                self.assertNotIn('FOCUS LOST', ''.join(lost) + rest, 'Even transient focus theft is a failure')
+            finally:
+                if foreground:
+                    foreground.terminate(); foreground.communicate(timeout=5)
+                if process.poll() is None: os.killpg(process.pid, signal.SIGTERM)
+                try: process.wait(timeout=5)
+                except subprocess.TimeoutExpired: os.killpg(process.pid, signal.SIGKILL); process.wait()
+                log.close()
+
+    def test_point_click_confirms_a_landed_click_in_a_fullscreen_window(self):
+        """A real Oct 21 case: a canvas in a cross-origin iframe in a native-full-screen Chrome window, Chrome inactive while an
+        accessory app (as Chiron is) is front. The click lands, and the reply must confirm the change, not say 'Nothing changed'
+        (a full-screen window's own capture returns a stale frame; the real screen at the spot shows the change)."""
+        root_dir = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory(prefix='chiron-fs-') as tmp:
+            root = Path(tmp); profile = root / 'profile'; profile.mkdir()
+            seen, hits = {}, []
+            class Pages(http.server.SimpleHTTPRequestHandler):
+                def log_message(self, *a): pass
+                def do_POST(self):
+                    data = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                    if self.path == '/hit': hits.append(data)
+                    else: seen[data['w']] = data
+                    self.send_response(204); self.end_headers()
+            server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Pages, directory=tmp))
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            self.addCleanup(server.server_close); self.addCleanup(server.shutdown)
+            port = server.server_port
+            say = 'const say=(p,d)=>fetch(p,{method:"POST",body:JSON.stringify(d),keepalive:true});'
+            # localhost vs 127.0.0.1 is a cross-origin iframe: the canvas is in a different-origin document, as Google Minesweeper is.
+            (root / 'top.html').write_text(f'''<title>CHIRON FS {root.name}</title><body style="margin:0;background:#888"><iframe src="http://localhost:{port}/game.html" width=440 height=420 style="border:0;display:block"></iframe><script>{say}
+const info=()=>say('/info',{{w:'full',x:screenX,y:screenY,bar:outerHeight-innerHeight,ow:outerWidth,sw:screen.width,focus:document.hasFocus()}});info();setInterval(info,300);</script>''')
+            (root / 'game.html').write_text(f'''<body style="margin:0"><canvas id=c width=440 height=300 style="display:block;background:#fff"></canvas><script>{say}const c=document.getElementById('c'),g=c.getContext('2d');
+for(const t of ['pointerdown','mousedown','click'])c.addEventListener(t,e=>{{say('/hit',[e.type,e.offsetX,e.offsetY,e.isTrusted]);if(t=='pointerdown'){{g.fillStyle='#000';g.fillRect(e.offsetX-20,e.offsetY-15,40,30)}}}});</script>''')
+            binary = root / 'Chiron'
+            compiled = subprocess.run(['swiftc', *app_sources(Path(binary).parent), '-o', str(binary)], capture_output=True, text=True)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            env = {**os.environ, 'CHIRON_DIR': tmp, 'CHIRON_RESOURCES_DIR': str(root_dir), 'CHIRON_HANDS_STATE': str(root / 'hands.json')}
+            env.pop('CHIRON_AX_ONLY', None); env.pop('CHIRON_HANDS_WINDOW', None)
+            if 'Allow Chiron' in subprocess.run([str(binary), '--hands', 'see', '2147483647'], env=env, capture_output=True, text=True).stdout:
+                self.skipTest('Temporary binary lacks Accessibility permission; no permission changes made')
+            def hands(*args):
+                label = subprocess.run([str(binary), '--hands', 'label', *args], env=env, capture_output=True, text=True, timeout=20)
+                self.assertEqual(label.returncode, 0, label.stdout + label.stderr)
+                r = subprocess.run([str(binary), '--hands', *args], input=label.stdout, env={**env, 'CHIRON_HANDS_RECEIPT': '1'}, capture_output=True, text=True, timeout=20)
+                self.assertEqual(r.returncode, 0, r.stdout + r.stderr); return r.stdout
+            source = root / 'cover.swift'   # an accessory app, as Chiron is: it floats over Chrome's full-screen Space without switching away from it
+            source.write_text('''import Cocoa
+let app=NSApplication.shared; app.setActivationPolicy(.accessory)
+let w=NSWindow(contentRect:NSRect(x:0,y:0,width:300,height:120),styleMask:[.titled],backing:.buffered,defer:false)
+w.collectionBehavior=[.canJoinAllSpaces,.fullScreenAuxiliary]
+w.title="Chiron scratch foreground"; w.setFrameTopLeftPoint(NSPoint(x:700,y:(NSScreen.screens.first?.frame.height ?? 800)-200)); w.orderFrontRegardless()
+DispatchQueue.main.asyncAfter(deadline:.now()+0.2) { app.activate(ignoringOtherApps:true); w.makeKeyAndOrderFront(nil) }
+DispatchQueue.main.asyncAfter(deadline:.now()+0.6) { print(ProcessInfo.processInfo.processIdentifier); fflush(stdout) }
+NSWorkspace.shared.notificationCenter.addObserver(forName:NSWorkspace.didActivateApplicationNotification,object:nil,queue:.main) { n in
+ if let a=n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication, a.processIdentifier != ProcessInfo.processInfo.processIdentifier { print("FOCUS LOST: \\(a.processIdentifier)"); fflush(stdout) }
+}
+DispatchQueue.global().async { while let line=readLine() { DispatchQueue.main.async {
+ if line=="front" { print("FRONT \\(NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0)") }
+ else if line=="key" { print("KEY \\(w.isKeyWindow) \\(app.isActive)") }
+ fflush(stdout) } } }
+signal(SIGTERM) { _ in exit(0) }; app.run()
+''')
+            cover = root / 'ForegroundFixture.app/Contents/MacOS/cover'; cover.parent.mkdir(parents=True)
+            with open(cover.parent.parent / 'Info.plist', 'wb') as f:
+                plistlib.dump({'CFBundleIdentifier': 'com.brain.fs.foreground', 'CFBundleExecutable': 'cover', 'CFBundleName': 'FS Foreground', 'CFBundlePackageType': 'APPL'}, f)
+            subprocess.run(['swiftc', str(source), '-o', str(cover)], env=env, check=True, capture_output=True)
+            log = open(root / 'chrome.log', 'w')
+            origin = f'http://127.0.0.1:{port}'
+            process = subprocess.Popen([str(CHROME), f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-sync',
+                                        '--disable-background-networking', '--use-mock-keychain', '--disable-popup-blocking', '--start-fullscreen', origin + '/top.html'],
+                                       env=env, stdout=log, stderr=log, start_new_session=True)
+            foreground, lost = None, []
+            try:
+                deadline = time.time() + 90
+                while not ('full' in seen and seen['full']['ow'] >= seen['full']['sw'] - 2) and time.time() < deadline:
+                    if process.poll() is not None or time.time() > deadline:
+                        self.fail('Scratch Chrome did not reach full screen: ' + json.dumps(seen) + (root / 'chrome.log').read_text()[-2000:])
+                    time.sleep(.3)
+                time.sleep(2)
+                foreground = subprocess.Popen([str(cover)], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                pid = int(foreground.stdout.readline())
+                def ask(line, prefix):
+                    foreground.stdin.write(line + '\n'); foreground.stdin.flush()
+                    while (out := foreground.stdout.readline()):
+                        if out.startswith(prefix + ' '): return out[len(prefix) + 1:].strip()
+                        lost.append(out)
+                    self.fail('The foreground fixture quit')
+                front = lambda: int(ask('front', 'FRONT'))
+                deadline = time.time() + 5
+                while front() != pid and time.time() < deadline: time.sleep(.2)
+                self.assertEqual(front(), pid); lost.clear()
+                at = seen['full']
+                self.assertGreaterEqual(at['ow'], at['sw'] - 2, 'Chrome is not full screen')
+                mapped = subprocess.run([str(binary), '--hands', 'see', str(pid)], env=env, capture_output=True, text=True, timeout=15)
+                self.assertIn('Window: Chiron scratch foreground', mapped.stdout, mapped.stdout + mapped.stderr)
+                before = len(hits)
+                out = hands('click', f"{at['x'] + 120},{at['y'] + at['bar'] + 90}")
+                deadline = time.time() + 3
+                while len(hits) < before + 3 and time.time() < deadline: time.sleep(.1)
+                down = [h for h in hits[before:] if h[0] == 'pointerdown']
+                self.assertEqual(len(down), 1, (out, hits[before:]))   # the click reached the cross-origin iframe canvas in the full-screen window
+                self.assertTrue(abs(down[0][1] - 120) <= 3 and abs(down[0][2] - 90) <= 3 and down[0][3], (out, hits[before:]))
+                self.assertNotIn('Nothing changed', out)   # the fix: a landed click on a full-screen window is confirmed from the real screen, not falsely denied
+                self.assertIn('changed at that spot', out, out)
+                self.assertEqual(front(), pid); self.assertEqual(ask('key', 'KEY'), 'true true', "the user's window keeps the keyboard")
+                print('CANVAS FULLSCREEN CLICK: ' + json.dumps({'hits': hits[before:], 'page': at, 'reply': out.splitlines()[0]}), flush=True)
+                foreground.terminate(); rest, _ = foreground.communicate(timeout=5); foreground = None
+                self.assertNotIn('FOCUS LOST', ''.join(lost) + rest, 'Even transient focus theft is a failure')
+            finally:
+                if foreground:
+                    foreground.terminate(); foreground.communicate(timeout=5)
+                if process.poll() is None: os.killpg(process.pid, signal.SIGTERM)
+                try: process.wait(timeout=5)
+                except subprocess.TimeoutExpired: os.killpg(process.pid, signal.SIGKILL); process.wait()
+                log.close()
+
+if __name__ == '__main__': unittest.main()

@@ -1,0 +1,1238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<meta name="color-scheme" content="light dark">
+<title>Chiron</title>
+<style>
+/* Bundled fonts: SF (the system font) leads; Inter fills in elsewhere and Noto Sans Devanagari draws all Hindi. */
+@font-face { font-family: "Inter"; src: url("fonts/Inter-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Inter"; src: url("fonts/Inter-Variable-LatinExt.woff2") format("woff2"); font-weight: 100 900; font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Noto Sans Devanagari"; src: url("fonts/NotoSansDevanagari-400.woff2") format("woff2"); font-weight: 400; font-display: swap;
+  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09; }
+@font-face { font-family: "Noto Sans Devanagari"; src: url("fonts/NotoSansDevanagari-600.woff2") format("woff2"); font-weight: 600 800; font-display: swap;
+  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09; }
+
+/* ---------- Tokens: Apple-style glass (chosen 2026-10-28) ---------- */
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Noto Sans Devanagari", system-ui, sans-serif;
+  --body: 17px;      --small: 15px;     --title: 26px;  --big-number: 44px;
+  --radius: 22px;    --radius-sm: 12px; --gap: 22px;    --pad: 24px;
+  --blur: blur(30px) saturate(180%);
+  --ease: cubic-bezier(.2,.8,.2,1);    --dur: 220ms;
+
+  --ink: #1D1D1F;    --ink-2: #48484D;  --ink-3: #6E6E73;
+  --glass: rgba(255,255,255,.58);  --glass-strong: rgba(255,255,255,.80);  --glass-hero: rgba(255,255,255,.72);
+  --hairline: rgba(255,255,255,.55); --edge: rgba(0,0,0,.07); --sep: rgba(60,60,67,.14);
+  --highlight: inset 0 1px 0 rgba(255,255,255,.75);
+  --shadow: 0 0 0 .5px var(--edge), 0 1px 2px rgba(15,23,42,.05), 0 8px 24px -8px rgba(15,23,42,.14), 0 28px 60px -28px rgba(15,23,42,.22);
+  --fill: rgba(118,118,128,.12);   --fill-2: rgba(118,118,128,.20);
+  --control: rgba(255,255,255,.62); --control-hover: rgba(255,255,255,.85);
+  --field: rgba(255,255,255,.72);   --field-line: rgba(0,0,0,.10);
+  --solid-card: #FFFFFF;            --solid-line: rgba(0,0,0,.30);
+  /* System colours for fills and glows; the -text tints are what sits on glass (all ≥ 4.5:1). */
+  --accent: #007AFF; --accent-fill: #0068DA; --accent-text: #0062CC; --accent-ink: #FFFFFF;
+  --good: #34C759;   --good-text: #1E7F3A;
+  --warn: #FF9F0A;   --warn-text: #9A5700;
+  --danger: #FF3B30; --danger-text: #C4271C; --danger-fill: #D70015;
+  --focus: #007AFF;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #F5F5F7; --ink-2: #C7C7CC; --ink-3: #98989D;
+    --glass: rgba(38,38,44,.55); --glass-strong: rgba(58,58,64,.78); --glass-hero: rgba(44,44,52,.66);
+    --hairline: rgba(255,255,255,.12); --edge: rgba(0,0,0,.45); --sep: rgba(255,255,255,.10);
+    --highlight: inset 0 1px 0 rgba(255,255,255,.09);
+    --shadow: 0 0 0 .5px var(--edge), 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -10px rgba(0,0,0,.5), 0 30px 70px -30px rgba(0,0,0,.6);
+    --fill: rgba(118,118,128,.24); --fill-2: rgba(118,118,128,.34);
+    --control: rgba(255,255,255,.08); --control-hover: rgba(255,255,255,.14);
+    --field: rgba(0,0,0,.28); --field-line: rgba(255,255,255,.14);
+    --solid-card: #1C1C1E; --solid-line: rgba(255,255,255,.40);
+    --accent: #0A84FF; --accent-fill: #0064D2; --accent-text: #4DA3FF;
+    --good: #30D158; --good-text: #30D158; --warn-text: #FFB340; --danger: #FF453A; --danger-text: #FF6961;
+    --focus: #0A84FF; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #F5F5F7; --ink-2: #C7C7CC; --ink-3: #98989D;
+  --glass: rgba(38,38,44,.55); --glass-strong: rgba(58,58,64,.78); --glass-hero: rgba(44,44,52,.66);
+  --hairline: rgba(255,255,255,.12); --edge: rgba(0,0,0,.45); --sep: rgba(255,255,255,.10);
+  --highlight: inset 0 1px 0 rgba(255,255,255,.09);
+  --shadow: 0 0 0 .5px var(--edge), 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -10px rgba(0,0,0,.5), 0 30px 70px -30px rgba(0,0,0,.6);
+  --fill: rgba(118,118,128,.24); --fill-2: rgba(118,118,128,.34);
+  --control: rgba(255,255,255,.08); --control-hover: rgba(255,255,255,.14);
+  --field: rgba(0,0,0,.28); --field-line: rgba(255,255,255,.14);
+  --solid-card: #1C1C1E; --solid-line: rgba(255,255,255,.40);
+  --accent: #0A84FF; --accent-fill: #0064D2; --accent-text: #4DA3FF;
+  --good: #30D158; --good-text: #30D158; --warn-text: #FFB340; --danger: #FF453A; --danger-text: #FF6961;
+  --focus: #0A84FF; color-scheme: dark;
+}
+/* Less see-through for people who asked for it: near-opaque cards, firmer edges, no blur. */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --glass: var(--solid-card) !important; --glass-strong: var(--solid-card) !important; --glass-hero: var(--solid-card) !important;
+          --hairline: var(--solid-line) !important; --blur: none !important; }
+}
+@media (prefers-contrast: more) {
+  :root { --glass: var(--solid-card) !important; --glass-strong: var(--solid-card) !important; --glass-hero: var(--solid-card) !important;
+          --hairline: var(--solid-line) !important; --blur: none !important; --ink-2: var(--ink) !important; --sep: var(--solid-line) !important; }
+}
+@media (prefers-reduced-motion: reduce) { :root { --dur: 0ms; } *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; min-height: 100%; background: #E8ECF6; }
+body {
+  margin: 0; min-height: 100vh; color: var(--ink); font: 400 var(--body)/1.5 var(--font); letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased; overflow-wrap: anywhere; word-break: normal; position: relative;
+}
+/* Outside the app (browser, mock, screenshots) paint a soft wallpaper so the glass has something to refract. */
+body::before { content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 12% 18%, rgba(88,156,255,.70), transparent 70%),
+    radial-gradient(34% 40% at 88% 10%, rgba(176,140,255,.62), transparent 70%),
+    radial-gradient(40% 46% at 82% 88%, rgba(255,170,140,.55), transparent 70%),
+    radial-gradient(36% 40% at 8% 92%, rgba(110,220,215,.50), transparent 70%),
+    radial-gradient(50% 50% at 50% 50%, rgba(255,255,255,.55), transparent 80%),
+    linear-gradient(160deg, #E9EEFA, #EEE8F7 55%, #F6ECE8);
+  filter: blur(20px); }
+:root[data-theme="dark"], :root[data-theme="dark"] body { background-color: #0B0D17; }
+:root[data-theme="dark"] body::before { background:
+    radial-gradient(38% 42% at 12% 18%, rgba(40,90,220,.55), transparent 70%),
+    radial-gradient(34% 40% at 88% 10%, rgba(120,60,210,.50), transparent 70%),
+    radial-gradient(40% 46% at 82% 88%, rgba(200,90,50,.38), transparent 70%),
+    radial-gradient(36% 40% at 8% 92%, rgba(20,130,140,.40), transparent 70%),
+    linear-gradient(160deg, #0B1020, #120E22 55%, #1A0F14); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { background-color: #0B0D17; }
+  :root:not([data-theme="light"]) body::before { background:
+    radial-gradient(38% 42% at 12% 18%, rgba(40,90,220,.55), transparent 70%),
+    radial-gradient(34% 40% at 88% 10%, rgba(120,60,210,.50), transparent 70%),
+    radial-gradient(40% 46% at 82% 88%, rgba(200,90,50,.38), transparent 70%),
+    radial-gradient(36% 40% at 8% 92%, rgba(20,130,140,.40), transparent 70%),
+    linear-gradient(160deg, #0B1020, #120E22 55%, #1A0F14); }
+}
+/* In the app, macOS vibrancy (NSVisualEffectView) sits behind a transparent WKWebView: draw nothing behind the glass. */
+html.native, html.native body { background: transparent !important; }
+html.native body::before { display: none; }
+
+:lang(hi) body, body.hi { line-height: 1.65; letter-spacing: 0; }
+[hidden] { display: none !important; }
+h1, h2, h3, p { margin: 0; }
+button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 12px; }
+/* Views and headings take focus only so screen readers land in the right place; no ring for those. */
+[tabindex="-1"]:focus { outline: none; }
+.num, .big, input[type=range] + output { font-variant-numeric: tabular-nums; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* One glass recipe for every surface. */
+.today, .tile, .panel, .card, .box, .perm-list, .set-nav, .toast {
+  background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  border: 1px solid var(--hairline); box-shadow: var(--highlight), var(--shadow);
+}
+
+/* ---------- Buttons ---------- */
+.btn { min-height: 44px; padding: 10px 18px; border-radius: var(--radius-sm); border: 1px solid var(--hairline); background: var(--control);
+  box-shadow: var(--highlight), 0 0 0 .5px var(--edge), 0 1px 2px rgba(0,0,0,.06);
+  font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  text-align: center; line-height: 1.25; transition: background var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.btn:hover { background: var(--control-hover); }
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .5; cursor: default; transform: none; }
+.btn.primary { background: linear-gradient(180deg, color-mix(in srgb, var(--accent-fill) 88%, #fff), var(--accent-fill)); color: var(--accent-ink);
+  border-color: transparent; padding: 10px 26px; box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 1px 2px rgba(0,0,0,.12), 0 6px 18px -6px color-mix(in srgb, var(--accent) 70%, transparent); }
+.btn.primary:hover { background: var(--accent-fill); }
+.btn.quiet { background: transparent; border-color: transparent; box-shadow: none; color: var(--accent-text); padding-inline: 12px; }
+.btn.quiet:hover { background: var(--fill); }
+.btn.danger { color: var(--danger-text); }
+.btn.confirm { background: var(--danger-fill); color: #fff; border-color: transparent; }
+.icon-btn { width: 44px; min-width: 44px; padding: 0; border-radius: 50%; }
+.icon-btn svg { width: 22px; height: 22px; }
+
+/* ---------- Header ---------- */
+.shell { max-width: 1120px; margin: 0 auto; padding: 18px clamp(16px, 4vw, 40px) 36px; }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 4px 0 22px; }
+/* Native window: transparent title bar with traffic lights at top-left; the header is the drag area. */
+html.native header.top { padding-top: 30px; }
+html.native .shell { padding-top: 6px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand svg { width: 32px; height: 32px; color: var(--accent); flex: none; filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--accent) 45%, transparent)); }
+.wordmark { font-family: var(--font-display); font-size: 26px; font-weight: 700; letter-spacing: -0.025em; line-height: 1; }
+.top-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+/* macOS segmented control: a pill track with a raised glass thumb. */
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--fill); box-shadow: inset 0 0 0 .5px var(--edge); }
+.seg button { min-height: 40px; min-width: 56px; padding: 6px 16px; border: 0; border-radius: 999px; background: transparent; cursor: pointer;
+  font-weight: 600; color: var(--ink-2); transition: background var(--dur) var(--ease), color var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--glass-strong); color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 0 0 .5px var(--edge), 0 3px 8px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.06); }
+.seg.lang button[data-lang="hi"] { font-family: "Noto Sans Devanagari", var(--font); }
+.back { gap: 6px; }
+
+/* iOS-style switch, for later phases' on/off settings. */
+.switch { appearance: none; -webkit-appearance: none; width: 51px; height: 31px; border-radius: 999px; background: var(--fill-2); position: relative; cursor: pointer; flex: none; margin: 6px 0;
+  transition: background var(--dur) var(--ease); }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,.15), 0 1px 1px rgba(0,0,0,.16); transition: transform var(--dur) var(--ease); }
+.switch:checked { background: var(--good); }
+.switch:checked::after { transform: translateX(20px); }
+
+/* ---------- Views ---------- */
+.view { animation: rise var(--dur) var(--ease); }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Today: the hero ---------- */
+.today { position: relative; border-radius: calc(var(--radius) + 6px); padding: 30px clamp(22px, 4vw, 40px); background: var(--glass-hero);
+  overflow: hidden; margin-bottom: var(--gap);
+  box-shadow: var(--highlight), var(--shadow), 0 20px 60px -30px color-mix(in srgb, var(--accent) 55%, transparent); }
+/* A gentle accent glow behind the words. */
+.today::before { content: ""; position: absolute; width: 70%; height: 180%; left: -18%; top: -60%; pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 22%, transparent), transparent); }
+.today::after { content: ""; position: absolute; width: 50%; height: 160%; right: -12%; bottom: -90%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(175,82,222,.14), transparent); }
+.today > * { position: relative; z-index: 1; }
+.eyebrow { font-size: var(--small); font-weight: 600; color: var(--ink-2); }
+.today .eyebrow { color: var(--accent-text); display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.today .eyebrow time { font-weight: 500; color: var(--ink-2); }
+.today h1 { font-family: var(--font-display); font-size: clamp(28px, 3.6vw, 36px); line-height: 1.18; font-weight: 700; letter-spacing: -0.025em; margin: 8px 0 6px; }
+.today p.lead { font-size: 19px; color: var(--ink-2); max-width: 46ch; }
+.today .row-actions { margin-top: 20px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.note { margin-top: 18px; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--fill); color: var(--ink-2); font-size: var(--small); }
+
+/* ---------- Tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--gap); margin-bottom: var(--gap); }
+.tile { grid-column: span var(--span, 4); border-radius: var(--radius); padding: var(--pad); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tile:focus-visible { outline-offset: 3px; border-radius: var(--radius); }
+.tile h2 { font-size: var(--small); font-weight: 600; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+.tile h2 svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.big { font-family: var(--font-display); font-size: var(--big-number); line-height: 1.05; font-weight: 700; letter-spacing: -0.03em; }
+.big-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+.big-label { color: var(--ink-2); }
+.sub { color: var(--ink-2); font-size: var(--small); }
+.stats { display: flex; gap: 0; flex-wrap: wrap; margin-top: 4px; }
+.stat { padding: 2px 22px 2px 0; margin-right: 22px; border-right: 1px solid var(--sep); }
+.stat:last-child { border-right: 0; margin-right: 0; }
+.stat b { display: block; font-family: var(--font-display); font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.015em; }
+.stat span { font-size: var(--small); color: var(--ink-2); }
+.tile .spacer { flex: 1; }
+.tile .btn { align-self: flex-start; }
+
+.bar { height: 10px; border-radius: 99px; background: var(--fill-2); overflow: hidden; margin: 6px 0 2px; box-shadow: inset 0 1px 1px rgba(0,0,0,.06); }
+.bar > i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--good) 75%, #fff), var(--good));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--good) 55%, transparent); transition: width calc(var(--dur) * 3) var(--ease); }
+.bar.near > i { background: linear-gradient(90deg, #FFC15E, var(--warn)); box-shadow: 0 0 10px color-mix(in srgb, var(--warn) 55%, transparent); }
+.bar.over > i { background: linear-gradient(90deg, #FF7A70, var(--danger)); box-shadow: 0 0 10px color-mix(in srgb, var(--danger) 55%, transparent); }
+.msg-warn { color: var(--danger-text); font-size: var(--small); font-weight: 600; }
+
+.constellation svg { width: 100%; height: auto; display: block; }
+.constellation .star { fill: var(--accent); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent) 70%, transparent)); }
+.constellation .link { stroke: var(--accent); stroke-width: 1.2; opacity: .55; }
+.constellation text { fill: var(--ink-2); font-size: 11px; font-family: var(--font); }
+
+.weak-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.weak-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.weak-list .btn { padding: 8px 14px; font-size: var(--small); }
+
+/* ---------- Recent ---------- */
+.panel { border-radius: var(--radius); padding: 20px var(--pad) 8px; margin-bottom: var(--gap); }
+.panel > h2 { font-size: var(--small); font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+.recent { list-style: none; margin: 0; padding: 0; }
+.recent li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 14px; align-items: baseline; padding: 13px 0; border-top: 1px solid var(--sep); }
+.recent li:first-child { border-top: 0; }
+.chip { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--fill); color: var(--ink-2); white-space: nowrap; }
+.chip[data-kind="guardian"] { color: var(--danger-text); background: color-mix(in srgb, var(--danger) 13%, transparent); }
+.chip[data-kind="lesson"], .chip[data-kind="practice"], .chip[data-kind="ask"] { color: var(--accent-text); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.chip[data-kind="do"] { color: var(--good-text); background: color-mix(in srgb, var(--good) 14%, transparent); }
+.chip[data-kind="paper"] { color: var(--warn-text); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.recent time { color: var(--ink-2); font-size: var(--small); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.empty { color: var(--ink-2); padding: 6px 0 14px; }
+
+/* ---------- Footer status dots ---------- */
+footer.dots { display: flex; gap: 8px 10px; flex-wrap: wrap; align-items: center; padding-top: 2px; }
+footer.dots .lbl { color: var(--ink-2); font-size: var(--small); margin-right: 4px; font-weight: 500; }
+.dot-btn { min-height: 44px; padding: 8px 16px; border-radius: 99px; border: 1px solid var(--hairline); background: var(--glass); cursor: pointer;
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--highlight), 0 0 0 .5px var(--edge), 0 4px 12px -6px rgba(0,0,0,.18);
+  display: inline-flex; align-items: center; gap: 9px; font-weight: 600; font-size: var(--small); transition: background var(--dur) var(--ease); }
+.dot-btn:hover { background: var(--glass-strong); }
+.dot-btn small { font-weight: 500; color: var(--ink-2); font-size: var(--small); }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--ink-3); }
+.dot[data-s="ok"] { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 20%, transparent), 0 0 10px color-mix(in srgb, var(--good) 70%, transparent); }
+.dot[data-s="warn"] { background: var(--warn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent), 0 0 10px color-mix(in srgb, var(--warn) 70%, transparent); }
+.dot[data-s="off"] { background: transparent; border: 2px solid var(--ink-3); }
+
+/* ---------- Settings ---------- */
+.settings { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; }
+.set-nav { position: sticky; top: 16px; display: grid; gap: 2px; padding: 10px; border-radius: var(--radius); }
+.set-nav h1 { font-family: var(--font-display); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin: 6px 0 10px 12px; }
+.set-nav button { text-align: left; min-height: 44px; padding: 9px 12px; border-radius: 10px; border: 0; background: transparent; cursor: pointer; color: var(--ink); font-weight: 500; }
+.set-nav button:hover { background: var(--fill); }
+/* macOS sidebar selection: solid accent, white text. */
+.set-nav button[aria-current="true"] { background: var(--accent-fill); color: #fff; font-weight: 600; box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
+.set-main > h1 { display: none; font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 14px; }
+.set-sec { padding-bottom: 40px; scroll-margin-top: 12px; }
+.set-sec > header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.set-sec h2 { font-family: var(--font-display); font-size: var(--title); font-weight: 700; letter-spacing: -0.022em; }
+.set-sec h3 { font-size: 19px; font-weight: 650; letter-spacing: -0.01em; }
+.set-sec .help { color: var(--ink-2); margin-bottom: 16px; max-width: 62ch; }
+.saved { color: var(--good-text); font-size: var(--small); font-weight: 600; opacity: 0; transition: opacity var(--dur) var(--ease); }
+.saved.on { opacity: 1; }
+.group-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 8px 0 4px; }
+
+.brain-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; margin-bottom: 30px; }
+.card { border-radius: var(--radius); padding: var(--pad); display: flex; flex-direction: column; gap: 14px; min-width: 0;
+  transition: box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.card.on { border-color: color-mix(in srgb, var(--accent) 60%, var(--hairline));
+  box-shadow: var(--highlight), 0 0 0 1.5px var(--accent), var(--shadow), 0 12px 40px -18px color-mix(in srgb, var(--accent) 70%, transparent); }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.card-head .t { min-width: 0; flex: 1 1 180px; }
+.card-head p { color: var(--ink-2); font-size: var(--small); margin-top: 3px; }
+.pick[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 14%, var(--control)); color: var(--accent-text); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.pick[aria-pressed="true"]::before { content: "✓"; }
+.status-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.status-list li { display: flex; gap: 10px; align-items: center; }
+.status-list .dot { width: 9px; height: 9px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.field { display: grid; gap: 6px; }
+.field > label, .lbl-strong { font-weight: 600; font-size: var(--small); }
+.input { min-height: 44px; width: 100%; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--field-line); background: var(--field);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.05); transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.input::placeholder { color: var(--ink-3); }
+.input:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent); }
+.input-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.input-row .input { flex: 1 1 200px; min-width: 0; }
+select.input { appearance: none; -webkit-appearance: none; padding-right: 38px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%), linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%; background-size: 5px 5px; background-repeat: no-repeat; background-color: var(--field); }
+.mask { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 16px; letter-spacing: .04em; padding: 10px 14px; border-radius: var(--radius-sm);
+  background: var(--fill); min-height: 44px; display: inline-flex; align-items: center; }
+.kf-result { font-size: var(--small); display: inline-flex; gap: 8px; align-items: center; }
+.kf-result.ok { color: var(--good-text); font-weight: 600; }
+.kf-result.bad { color: var(--danger-text); font-weight: 600; }
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--fill-2); border-top-color: var(--accent); animation: spin 800ms linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.callout { padding: 12px 16px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--ink); font-size: var(--small);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent); }
+details.adv summary { list-style: none; cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; gap: 8px; color: var(--accent-text); font-weight: 600; border-radius: 10px; padding: 0 4px; }
+details.adv summary::-webkit-details-marker { display: none; }
+details.adv summary::before { content: "›"; display: inline-block; font-size: 22px; line-height: 1; transition: transform var(--dur) var(--ease); }
+details.adv[open] summary::before { transform: rotate(90deg); }
+details.adv[open] summary { margin-bottom: 8px; }
+.server-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.server-list li { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--fill); }
+.server-list code { font-size: var(--small); overflow-wrap: anywhere; }
+.link-btn { color: var(--accent-text); text-decoration: none; background: none; border: 0; padding: 0 2px; min-height: 44px; cursor: pointer; font-weight: 600; }
+.link-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
+.link-btn::after { content: " ↗"; }
+
+.box { border-radius: var(--radius); padding: var(--pad); display: grid; gap: 14px; }
+.box .seg { justify-self: start; }
+/* Key field: label on its own line, then key/input, Save and Test flow on one line when there is room. */
+.keyfield.field { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.keyfield > label { flex-basis: 100%; }
+.keyfield .kf-edit { flex: 1 1 300px; }
+.keyfield .kf-view { flex: 0 1 auto; }
+.keyfield .actions { flex: 0 1 auto; }
+.range-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.range-row output { font-family: var(--font-display); font-size: 30px; font-weight: 700; min-width: 4ch; letter-spacing: -0.02em; }
+input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44px; }
+.ticks { display: flex; justify-content: space-between; color: var(--ink-2); font-size: var(--small); }
+
+.perm-list { list-style: none; margin: 0; padding: 0 var(--pad); border-radius: var(--radius); }
+.perm-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px 16px; padding: 16px 0; border-top: 1px solid var(--sep); flex-wrap: wrap; }
+.perm-list li:first-child { border-top: 0; }
+.perm-list .t { flex: 1 1 220px; min-width: 0; }
+.perm-list .t p { color: var(--ink-2); font-size: var(--small); }
+.perm-state { display: inline-flex; align-items: center; gap: 8px; font-size: var(--small); font-weight: 600; color: var(--ink-2); }
+.about dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 0; }
+.about dt { color: var(--ink-2); }
+.about dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* ---------- Toast ---------- */
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; max-width: min(92vw, 520px);
+  background: var(--glass-strong); color: var(--ink); padding: 13px 20px; border-radius: 16px; font-weight: 500;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease); z-index: 10; }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 759px) {
+  .settings { grid-template-columns: 1fr; gap: 0; }
+  .set-nav { display: none; }
+  .set-main > h1 { display: block; }
+}
+@media (max-width: 719px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile { grid-column: span 1; }
+  .tile.fill2 { grid-column: span 2; }
+}
+@media (max-width: 560px) {
+  :root { --gap: 16px; --pad: 20px; --radius: 20px; }
+  .tiles { grid-template-columns: minmax(0, 1fr); }
+  .tile, .tile.fill2 { grid-column: auto; }
+  .recent li { grid-template-columns: minmax(0, 1fr) auto; }
+  .recent li .chip { grid-column: 1 / -1; justify-self: start; }
+  .wordmark { font-size: 23px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand" aria-label="Chiron">
+      <!-- Three linked stars: a small constellation for the centaur who taught. -->
+      <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M7 24 L15 10 L27 15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".55"/><circle cx="7" cy="24" r="3.2" fill="currentColor"/><circle cx="15" cy="10" r="4.4" fill="currentColor"/><circle cx="27" cy="15" r="2.6" fill="currentColor"/></svg>
+      <span class="wordmark" data-i18n="app.name">Chiron</span>
+    </div>
+    <div class="top-right">
+      <button class="btn quiet back" id="back" type="button" hidden><span aria-hidden="true">←</span> <span data-i18n="header.back">Back to Home</span></button>
+      <div class="seg lang" role="group" data-i18n-aria="header.language" aria-label="Language" id="langSwitch">
+        <button type="button" data-lang="en" lang="en" aria-pressed="true" aria-label="English">EN</button>
+        <button type="button" data-lang="hi" lang="hi" aria-pressed="false" aria-label="हिन्दी">हिं</button>
+      </div>
+      <button class="btn icon-btn" id="gear" type="button" data-i18n-aria="header.settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== HOME ==================== -->
+  <main id="home" class="view" tabindex="-1">
+    <section class="today" id="today" data-key="today" aria-labelledby="todayTitle">
+      <div class="eyebrow"><span id="todayEyebrow" data-i18n="home.today.eyebrow">Today</span> <time id="todayDate"></time></div>
+      <div id="todayEmpty">
+        <h1 id="todayTitle" data-i18n="home.today.empty.title">Nothing due today.</h1>
+        <p class="lead" id="todayEmptyBody" data-i18n="home.today.empty.body">Hold fn and ask me anything.</p>
+      </div>
+      <div id="todayPractice" hidden>
+        <h1 id="todayPracticeTitle"></h1>
+        <p class="lead num" id="todayMinutes"></p>
+        <div class="row-actions"><button class="btn primary" id="todayStart" type="button" data-i18n="home.today.start">Start</button></div>
+      </div>
+      <p class="note" id="todayNote" hidden data-i18n="home.openai.note">Lessons, papers and questions work; open-ended Mac tasks need Claude.</p>
+    </section>
+
+    <div class="tiles" id="tiles">
+      <!-- Row of three -->
+      <section class="tile" data-key="words" data-row="3" tabindex="0" aria-labelledby="wordsT" hidden>
+        <h2 id="wordsT"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span data-i18n="home.words.title">Words spoken</span></h2>
+        <div class="big-row"><span class="big num" id="wordsToday">0</span><span class="big-label" data-i18n="home.words.today">today</span></div>
+        <div class="stats">
+          <div class="stat"><b id="wordsWeek">0</b><span data-i18n="home.words.week">This week</span></div>
+          <div class="stat"><b id="wordsAll">0</b><span data-i18n="home.words.all">All time</span></div>
+        </div>
+        <p class="sub num" id="wordsSaved"></p>
+        <p class="sub num" id="wordsLangs" hidden></p>
+      </section>
+      <section class="tile" data-key="skills" data-row="3" tabindex="0" aria-labelledby="skillsT" hidden>
+        <h2 id="skillsT"><span data-i18n="home.skills.title">Skills learned</span></h2>
+        <div class="constellation" id="constellation"></div>
+        <p class="sub num" id="skillsCount"></p>
+      </section>
+      <section class="tile" data-key="weak" data-row="3" tabindex="0" aria-labelledby="weakT" hidden>
+        <h2 id="weakT"><span data-i18n="home.weak.title">Weak spots</span></h2>
+        <ul class="weak-list" id="weakList"></ul>
+      </section>
+      <!-- Row of four -->
+      <section class="tile" data-key="streak" data-row="4" tabindex="0" aria-labelledby="streakT" hidden>
+        <h2 id="streakT"><span data-i18n="home.streak.title">Streak</span></h2>
+        <div class="big-row"><span class="big num" id="streakN">0</span><span class="big-label" data-i18n="home.streak.days">days in a row</span></div>
+      </section>
+      <section class="tile" data-key="guardian" data-row="4" tabindex="0" aria-labelledby="guardT" hidden>
+        <h2 id="guardT"><span data-i18n="home.guardian.title">Guardian</span></h2>
+        <div class="big-row"><span class="big num" id="guardN">0</span><span class="big-label" data-i18n="home.guardian.month">stopped this month</span></div>
+        <p class="sub" id="guardLast"></p>
+      </section>
+      <section class="tile" data-key="papers" data-row="4" tabindex="0" aria-labelledby="papersT" hidden>
+        <h2 id="papersT"><span data-i18n="home.papers.title">Papers</span></h2>
+        <div class="big-row"><span class="big num" id="papersN">0</span><span class="big-label" data-i18n="home.papers.count">papers made</span></div>
+        <div class="spacer"></div>
+        <button class="btn" id="papersOpen" type="button" data-i18n="home.papers.open" hidden>Open last paper</button>
+      </section>
+      <section class="tile" data-key="spend" data-row="4" tabindex="0" aria-labelledby="spendT" hidden>
+        <h2 id="spendT"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/></svg><span data-i18n="home.spend.title">AI spend</span></h2>
+        <div class="big-row"><span class="big num" id="spendN">$0.00</span></div>
+        <div class="spendbar" id="spendBar"></div>
+        <p class="sub num" id="spendOf"></p>
+        <p class="msg-warn" id="spendMsg" role="status" hidden></p>
+        <div class="spacer"></div>
+        <button class="btn quiet" id="spendChange" type="button" data-i18n="home.spend.change">Change limit</button>
+      </section>
+    </div>
+
+    <section class="panel" data-key="recent" id="recentPanel" aria-labelledby="recentT" hidden>
+      <h2 id="recentT" data-i18n="home.recent.title">Recent</h2>
+      <ol class="recent" id="recentList"></ol>
+      <p class="empty" id="recentEmpty" data-i18n="home.recent.empty" hidden>Nothing yet. What you ask and learn will show up here.</p>
+    </section>
+
+    <footer class="dots" data-key="connections" id="dots" hidden>
+      <span class="lbl" data-i18n="footer.label">Connections</span>
+      <button class="dot-btn" type="button" data-dot="brain"><i class="dot" aria-hidden="true"></i><span data-i18n="footer.brain">Brain</span><small></small></button>
+      <button class="dot-btn" type="button" data-dot="jev"><i class="dot" aria-hidden="true"></i><span data-i18n="footer.jev">Jev</span><small></small></button>
+      <button class="dot-btn" type="button" data-dot="speech"><i class="dot" aria-hidden="true"></i><span data-i18n="footer.speech">Speech</span><small></small></button>
+    </footer>
+  </main>
+
+  <!-- ==================== SETTINGS ==================== -->
+  <div id="settings" class="view settings" hidden>
+    <nav class="set-nav" data-i18n-aria="settings.nav.label" aria-label="Settings sections">
+      <h1 data-i18n="settings.title">Settings</h1>
+      <button type="button" data-go="connections" data-i18n="settings.nav.connections">Connections</button>
+      <button type="button" data-go="budget" data-i18n="settings.nav.budget">Budget</button>
+      <button type="button" data-go="voice" data-i18n="settings.nav.voice">Voice and language</button>
+      <button type="button" data-go="permissions" data-i18n="settings.nav.permissions">Permissions</button>
+      <button type="button" data-go="about" data-i18n="settings.nav.about">About</button>
+    </nav>
+    <main class="set-main" id="setMain" tabindex="-1">
+      <h1 data-i18n="settings.title">Settings</h1>
+
+      <section class="set-sec" id="sec-connections" aria-labelledby="connT">
+        <header><h2 id="connT" data-i18n="settings.conn.title">Connections</h2><span class="saved" role="status" aria-live="polite"></span></header>
+
+        <div class="group-title"><h3 data-i18n="settings.conn.brain.title">Brain</h3></div>
+        <p class="help" data-i18n="settings.conn.brain.help">Choose what Chiron thinks with. You only need one.</p>
+        <div class="brain-grid" id="brainGrid">
+          <article class="card" data-brain="claude-code">
+            <div class="card-head"><div class="t"><h3 data-i18n="settings.conn.cc.title">Claude Code</h3><p data-i18n="settings.conn.cc.sub">Uses your Claude plan. Best for doing tasks on your Mac.</p></div>
+              <button class="btn pick" type="button" aria-pressed="false" data-pick="claude-code"><span data-i18n="settings.conn.brain.use">Use this</span></button></div>
+            <ul class="status-list" id="ccStatus" aria-live="polite">
+              <li data-cc="installed"><i class="dot" aria-hidden="true"></i><span></span></li>
+              <li data-cc="signedIn"><i class="dot" aria-hidden="true"></i><span></span></li>
+              <li data-cc="plan"><i class="dot" aria-hidden="true"></i><span></span></li>
+            </ul>
+            <p class="callout" id="ccNote" role="status" hidden data-i18n="settings.conn.cc.setupStarted">A setup window has opened. Follow it, then press Check again.</p>
+            <div class="actions">
+              <button class="btn primary" type="button" id="ccSetup" data-i18n="settings.conn.cc.setup">Set up</button>
+              <button class="btn" type="button" id="ccRecheck" data-i18n="settings.conn.cc.recheck">Check again</button>
+            </div>
+          </article>
+          <article class="card" data-brain="anthropic">
+            <div class="card-head"><div class="t"><h3 data-i18n="settings.conn.anthropic.title">Anthropic API key</h3><p data-i18n="settings.conn.anthropic.sub">Pay only for what you use, straight from Anthropic.</p></div>
+              <button class="btn pick" type="button" aria-pressed="false" data-pick="anthropic"><span data-i18n="settings.conn.brain.use">Use this</span></button></div>
+            <div data-keyfield="anthropic"></div>
+          </article>
+          <article class="card" data-brain="openai">
+            <div class="card-head"><div class="t"><h3 data-i18n="settings.conn.openai.title">OpenAI API key</h3><p data-i18n="settings.conn.openai.sub">Pay only for what you use, from OpenAI.</p></div>
+              <button class="btn pick" type="button" aria-pressed="false" data-pick="openai"><span data-i18n="settings.conn.brain.use">Use this</span></button></div>
+            <div data-keyfield="openai"></div>
+            <p class="callout" data-i18n="settings.conn.openai.note">Lessons, papers and questions work; open-ended Mac tasks need Claude.</p>
+          </article>
+          <article class="card" data-brain="custom">
+            <div class="card-head"><div class="t"><h3 data-i18n="settings.conn.custom.title">Custom server</h3><p data-i18n="settings.conn.custom.sub">A model running on your own computer or network.</p></div>
+              <button class="btn pick" type="button" aria-pressed="false" data-pick="custom"><span data-i18n="settings.conn.brain.use">Use this</span></button></div>
+            <div class="field"><label for="customUrl" data-i18n="settings.conn.custom.address">Address</label>
+              <input class="input" id="customUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="localhost:11434"></div>
+            <div data-keyfield="custom" data-label="settings.key.customLabel"></div>
+            <div class="field"><label for="customModel" data-i18n="settings.conn.custom.model">Model</label>
+              <select class="input" id="customModel"></select></div>
+            <div class="actions"><button class="btn" type="button" id="scan" data-i18n="settings.conn.custom.scan">Find local servers</button><span class="kf-result" id="scanState" role="status" aria-live="polite"></span></div>
+            <ul class="server-list" id="servers" hidden></ul>
+          </article>
+        </div>
+
+        <div class="group-title"><h3 data-i18n="settings.conn.jev.title">Jev</h3></div>
+        <p class="help" data-i18n="settings.conn.jev.help">Jev does the quick yes-or-no checks during lessons, for a tiny fraction of a cent. Get a key from TypeSafe.</p>
+        <div class="card" id="jevCard">
+          <div data-keyfield="jev"></div>
+          <p class="callout" id="jevFallback" hidden data-i18n="settings.conn.jev.fallback">No Jev key yet: Chiron will use Claude for checks, which costs a little more.</p>
+          <details class="adv">
+            <summary data-i18n="settings.conn.jev.advanced">Advanced</summary>
+            <div class="field"><label for="jevBase" data-i18n="settings.conn.jev.baseUrl">Base address</label>
+              <input class="input" id="jevBase" type="url" inputmode="url" autocomplete="off" spellcheck="false">
+              <span class="sub" data-i18n="settings.conn.jev.baseUrlHelp">Leave this as it is unless TypeSafe asked you to change it.</span></div>
+          </details>
+          <div><button class="link-btn" type="button" data-open="https://docs.typesafe.ai" data-i18n="settings.conn.jev.docs">Open TypeSafe guide</button></div>
+        </div>
+      </section>
+
+      <section class="set-sec" id="sec-budget" aria-labelledby="budgetT">
+        <header><h2 id="budgetT" data-i18n="settings.budget.title">Budget</h2><span class="saved" role="status" aria-live="polite"></span></header>
+        <p class="help" data-i18n="settings.budget.help">A monthly limit on AI spend. Chiron tells you when you get close.</p>
+        <div class="box">
+          <label class="lbl-strong" for="cap" data-i18n="settings.budget.cap">Monthly limit</label>
+          <div class="range-row"><input type="range" id="cap" min="1" max="50" step="1" value="5"><output id="capOut" for="cap" class="num">$5</output></div>
+          <div class="ticks num" aria-hidden="true"><span id="capMin">$1</span><span id="capMax">$50</span></div>
+          <div>
+            <div class="lbl-strong" data-i18n="settings.budget.spent">Spent this month</div>
+            <div class="spendbar" id="budgetBar"></div>
+            <p class="sub num" id="budgetSpent"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="set-sec" id="sec-voice" aria-labelledby="voiceT">
+        <header><h2 id="voiceT" data-i18n="settings.voice.title">Voice and language</h2><span class="saved" role="status" aria-live="polite"></span></header>
+        <div class="box">
+          <div><div class="lbl-strong" id="appLangL" data-i18n="settings.voice.lang">App language</div>
+            <p class="sub" data-i18n="settings.voice.langHelp">Changes every label and the language Chiron speaks in.</p></div>
+          <div class="seg lang" role="group" aria-labelledby="appLangL" id="langSetting">
+            <button type="button" data-lang="en" aria-pressed="true"><span data-i18n="settings.voice.en">English</span></button>
+            <button type="button" data-lang="hi" aria-pressed="false"><span data-i18n="settings.voice.hi">Hindi</span></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="set-sec" id="sec-permissions" aria-labelledby="permT">
+        <header><h2 id="permT" data-i18n="settings.perms.title">Permissions</h2><span class="saved" role="status" aria-live="polite"></span></header>
+        <p class="help" data-i18n="settings.perms.help">Chiron needs these to hear you, see the screen and help with clicks. You can change them any time in System Settings.</p>
+        <ul class="perm-list" id="perms">
+          <li data-perm="microphone"><div class="t"><h3 data-i18n="settings.perms.microphone">Microphone</h3><p data-i18n="settings.perms.microphone.why">To hear you when you hold fn.</p></div><span class="perm-state"><i class="dot" aria-hidden="true"></i><span></span></span><button class="btn" type="button" data-i18n="settings.perms.grant">Grant</button></li>
+          <li data-perm="speech"><div class="t"><h3 data-i18n="settings.perms.speech">Speech Recognition</h3><p data-i18n="settings.perms.speech.why">To turn your voice into words.</p></div><span class="perm-state"><i class="dot" aria-hidden="true"></i><span></span></span><button class="btn" type="button" data-i18n="settings.perms.grant">Grant</button></li>
+          <li data-perm="accessibility"><div class="t"><h3 data-i18n="settings.perms.accessibility">Accessibility</h3><p data-i18n="settings.perms.accessibility.why">To click and type for you when you ask.</p></div><span class="perm-state"><i class="dot" aria-hidden="true"></i><span></span></span><button class="btn" type="button" data-i18n="settings.perms.grant">Grant</button></li>
+          <li data-perm="screen"><div class="t"><h3 data-i18n="settings.perms.screen">Screen Recording</h3><p data-i18n="settings.perms.screen.why">To see the screen and point at the right spot.</p></div><span class="perm-state"><i class="dot" aria-hidden="true"></i><span></span></span><button class="btn" type="button" data-i18n="settings.perms.grant">Grant</button></li>
+          <li data-perm="automation"><div class="t"><h3 data-i18n="settings.perms.automation">Automation</h3><p data-i18n="settings.perms.automation.why">To work inside apps like Safari and Notes.</p></div><span class="perm-state"><i class="dot" aria-hidden="true"></i><span></span></span><button class="btn" type="button" data-i18n="settings.perms.grant">Grant</button></li>
+        </ul>
+        <div class="actions" style="margin-top:12px"><button class="btn quiet" type="button" id="permsRecheck" data-i18n="settings.perms.recheck">Check again</button></div>
+      </section>
+
+      <section class="set-sec about" id="sec-about" aria-labelledby="aboutT">
+        <header><h2 id="aboutT" data-i18n="settings.about.title">About</h2></header>
+        <div class="box">
+          <p><b data-i18n="app.name">Chiron</b> · <span data-i18n="app.tagline">A patient tutor for your Mac.</span></p>
+          <dl><dt data-i18n="settings.about.version">Version</dt><dd id="aboutVersion">—</dd><dt data-i18n="settings.about.build">Build</dt><dd id="aboutBuild">—</dd></dl>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* ============================================================
+   Bridge. Swift registers the 'home' handler, answers with
+   bridge.reply(id, result, error) and pushes with bridge.push(event, data).
+   ============================================================ */
+(function () {
+  let seq = 0;
+  const pending = new Map(), listeners = {};
+  window.bridge = {
+    call(method, args) {
+      return new Promise((resolve, reject) => {
+        const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.home;
+        if (!handler) return reject(new Error('no-bridge'));
+        const id = ++seq;
+        pending.set(id, { resolve, reject });
+        // A lost reply must not leave a spinner forever.
+        setTimeout(() => { if (pending.has(id)) { pending.delete(id); reject(new Error('timeout')); } }, 45000);
+        try { handler.postMessage({ id, method, args: args || {} }); }
+        catch (e) { pending.delete(id); reject(e); }
+      });
+    },
+    reply(id, result, error) {
+      const p = pending.get(Number(id)) || pending.get(id);
+      if (!p) return;
+      pending.delete(Number(id)); pending.delete(id);
+      if (error != null && error !== false && error !== '') p.reject(new Error(typeof error === 'string' ? error : (error.message || JSON.stringify(error))));
+      else p.resolve(result);
+    },
+    push(event, data) {
+      (listeners[event] || []).forEach(fn => { try { fn(data); } catch (e) { console.error('push ' + event, e); } });
+    },
+    on(event, fn) { (listeners[event] = listeners[event] || []).push(fn); }
+  };
+})();
+
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const S = { lang: 'en', state: {}, conn: {}, prefs: {}, perms: null, cc: null, info: null, servers: [], view: 'home',
+  settingsWindow: /^#settings/.test(location.hash) || window.name === 'chiron-settings', settingsLoaded: false };
+const LANGS = ['en', 'hi'];
+
+/* ---------------- Strings ---------------- */
+const tables = {};
+const defaults = {};
+function readJSON(url) {
+  // fetch first; WebKit refuses fetch() on file:// so fall back to XHR, which loadFileURL read access allows.
+  const viaXHR = () => new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open('GET', url);
+    x.onload = () => { if (x.status === 200 || (x.status === 0 && x.responseText)) { try { resolve(JSON.parse(x.responseText)); } catch (e) { reject(e); } } else reject(new Error('status ' + x.status)); };
+    x.onerror = () => reject(new Error('xhr'));
+    try { x.send(); } catch (e) { reject(e); }
+  });
+  if (!window.fetch || location.protocol === 'file:') return viaXHR();
+  return fetch(url).then(r => { if (!r.ok) throw new Error('status ' + r.status); return r.json(); }).catch(viaXHR);
+}
+function loadStrings(lang) {
+  if (tables[lang]) return Promise.resolve(tables[lang]);
+  return readJSON('strings/' + lang + '.json')
+    .catch(() => bridge.call('strings.get', { lang }))
+    .then(t => { if (!t || typeof t !== 'object') throw new Error('no strings for ' + lang); tables[lang] = t; return t; });
+}
+function t(key, vars) {
+  let s = (tables[S.lang] && tables[S.lang][key]) || (tables.en && tables.en[key]) || defaults[key] || key;
+  if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+  return s;
+}
+function collectDefaults() {
+  $$('[data-i18n]').forEach(el => { if (!defaults[el.dataset.i18n]) defaults[el.dataset.i18n] = el.textContent.trim(); });
+}
+function applyStrings(lang) {
+  document.documentElement.lang = lang;
+  document.body.classList.toggle('hi', lang === 'hi');
+  $$('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $$('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+  $$('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+  $$('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.title = t('app.name');
+}
+async function setLang(lang, opts) {
+  if (!LANGS.includes(lang)) return;
+  const native = opts && opts.native;
+  S.lang = lang;
+  try { await loadStrings(lang); } catch (e) { console.warn('strings', lang, e.message); }
+  if (S.lang !== lang) return;   // a newer switch won
+  applyStrings(lang);
+  renderAll();
+  if (!native) bridge.call('lang.set', { lang }).then(() => saved($('#sec-voice'))).catch(e => { if (e.message !== 'no-bridge') toast(t('common.error')); });
+}
+
+/* ---------------- Formatting ---------------- */
+const locale = () => (S.lang === 'hi' ? 'hi-IN' : 'en-IN');
+const isNum = v => typeof v === 'number' && isFinite(v);
+function fmtSecs(ms) { return isNum(ms) ? new Intl.NumberFormat(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(ms / 1000) : '—'; }
+function fmtNum(n) { return isNum(n) ? new Intl.NumberFormat(locale()).format(Math.round(n)) : '—'; }
+function fmtUSD(n) {
+  if (!isNum(n)) return '—';
+  const small = n > 0 && n < 0.01;
+  return new Intl.NumberFormat(locale(), small ? { style: 'currency', currency: 'USD', maximumSignificantDigits: 2 }
+    : { style: 'currency', currency: 'USD', minimumFractionDigits: n >= 100 ? 0 : 2, maximumFractionDigits: 2 }).format(n);
+}
+function fmtCap(n) { return isNum(n) ? new Intl.NumberFormat(locale(), { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n) : '—'; }
+function fmtRel(iso) {
+  const at = Date.parse(iso);
+  if (!isFinite(at)) return '';
+  const secs = (at - Date.now()) / 1000, abs = Math.abs(secs);
+  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' });
+  if (abs < 45) return rtf.format(0, 'second');
+  const units = [['minute', 60], ['hour', 3600], ['day', 86400], ['week', 604800], ['month', 2629800], ['year', 31557600]];
+  let unit = units[0];
+  for (const u of units) if (abs >= u[1] * 0.95) unit = u;
+  return rtf.format(Math.round(secs / unit[1]), unit[0]);
+}
+function pick(v) {
+  if (typeof v === 'string') return v;
+  if (v && typeof v === 'object') return v[S.lang] || v.en || v.hi || Object.values(v).find(x => typeof x === 'string') || '';
+  return '';
+}
+function el(tag, attrs, ...kids) {
+  const n = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') n.className = v; else if (k === 'text') n.textContent = v; else if (k.startsWith('on')) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids) if (c != null) n.append(c);
+  return n;
+}
+const obj = v => (v && typeof v === 'object' && !Array.isArray(v)) ? v : null;
+const has = k => Object.prototype.hasOwnProperty.call(S.state, k) && S.state[k] != null;
+
+/* ---------------- Components ---------------- */
+function SpendBar(host, spent, cap) {
+  const ratio = isNum(spent) && isNum(cap) && cap > 0 ? spent / cap : 0;
+  // Reuse the bar so width changes animate; set the width directly so it never depends on a frame callback.
+  let bar = host.querySelector('.bar');
+  if (!bar) { bar = el('div', { class: 'bar', role: 'meter', 'aria-valuemin': '0' }, el('i')); host.textContent = ''; host.append(bar); }
+  bar.className = 'bar' + (ratio >= 1 ? ' over' : ratio >= 0.8 ? ' near' : '');
+  bar.setAttribute('aria-valuemax', isNum(cap) ? String(cap) : '0');
+  bar.setAttribute('aria-valuenow', isNum(spent) ? String(Math.min(spent, cap || spent)) : '0');
+  bar.setAttribute('aria-valuetext', t('settings.budget.spentOf', { spent: fmtUSD(spent), cap: fmtCap(cap) }));
+  bar.firstChild.style.width = Math.max(0, Math.min(1, ratio)) * 100 + '%';
+  return ratio;
+}
+function StatusDot(dot, status) { dot.dataset.s = status; }
+function Constellation(host, skills) {
+  host.textContent = '';
+  const list = (Array.isArray(skills) ? skills : []).filter(s => s && typeof s === 'object');
+  if (!list.length) { host.append(el('p', { class: 'sub', text: t('home.skills.empty') })); return; }
+  const W = 320, H = 150, apps = {};
+  list.forEach(s => { const a = String(s.app || '·'); (apps[a] = apps[a] || []).push(s); });
+  const names = Object.keys(apps), svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', t('home.skills.count', { count: fmtNum(list.length) }));
+  const hash = str => { let h = 2166136261; for (const c of String(str)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967295; };
+  const mk = (tag, a) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in a) n.setAttribute(k, a[k]); return n; };
+  names.forEach((app, i) => {
+    const cx = (W / names.length) * (i + 0.5), cy = 62, stars = apps[app];
+    const pts = stars.map((s, j) => {
+      const ang = hash(s.id || j) * Math.PI * 2, rad = stars.length === 1 ? 0 : 16 + hash((s.id || '') + 'r') * 26;
+      return { x: Math.max(8, Math.min(W - 8, cx + Math.cos(ang) * rad)), y: Math.max(8, Math.min(H - 30, cy + Math.sin(ang) * rad * 0.8)), m: Math.max(0, Math.min(5, Number(s.mastery) || 0)) };
+    });
+    // Lines draw in only when every star of the app is fully mastered.
+    if (pts.length > 1 && pts.every(p => p.m === 5)) for (let j = 1; j < pts.length; j++) svg.append(mk('line', { class: 'link', x1: pts[j - 1].x, y1: pts[j - 1].y, x2: pts[j].x, y2: pts[j].y }));
+    pts.forEach(p => svg.append(mk('circle', { class: 'star', cx: p.x, cy: p.y, r: 3 + p.m * 0.8, opacity: 0.35 + p.m * 0.13 })));
+    const label = mk('text', { x: cx, y: H - 8, 'text-anchor': 'middle' }); label.textContent = app; svg.append(label);
+  });
+  host.append(svg);
+}
+function WeakSpot(item) {
+  const misses = Number(item.misses) || 0;
+  return el('li', null, el('div', null, el('div', { text: pick(item.label) || String(item.concept || '') }), el('div', { class: 'sub num', text: t('home.weak.misses', { count: fmtNum(misses) }) })),
+    el('button', { class: 'btn', type: 'button', text: t('home.weak.practice'), onclick: () => bridge.call('drill.start', { concept: item.concept }).catch(() => toast(t('common.error'))) }));
+}
+
+let toastTimer;
+function toast(msg) {
+  const n = $('#toast'); n.textContent = msg; n.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => n.classList.remove('on'), 3200);
+}
+function saved(section) {
+  const n = section && $('.saved', section); if (!n) return;
+  n.textContent = '✓ ' + t('settings.saved'); n.classList.add('on');
+  clearTimeout(n._t); n._t = setTimeout(() => n.classList.remove('on'), 1800);
+}
+
+/* ---------------- Home rendering ---------------- */
+function renderToday() {
+  const today = obj(S.state.today);
+  const practice = today && today.kind === 'practice' && pick(today.title);
+  $('#todayEmpty').hidden = !!practice;
+  $('#todayPractice').hidden = !practice;
+  $('#todayEyebrow').textContent = t(practice ? 'home.today.practice.eyebrow' : 'home.today.eyebrow');
+  $('#todayDate').textContent = new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+  if (practice) {
+    $('#todayPracticeTitle').textContent = practice;
+    $('#todayMinutes').textContent = isNum(today.minutes) ? t('home.today.minutes', { minutes: fmtNum(today.minutes) }) : '';
+    $('#today').setAttribute('aria-labelledby', 'todayPracticeTitle');
+  } else $('#today').setAttribute('aria-labelledby', 'todayTitle');
+  const brain = obj(obj(S.state.connections) && S.state.connections.brain);
+  $('#todayNote').hidden = !(S.state.openai_only === true || (brain && brain.kind === 'openai'));
+}
+function renderWords() {
+  const w = obj(S.state.words) || {};
+  $('#wordsToday').textContent = fmtNum(w.today);
+  $('#wordsWeek').textContent = fmtNum(w.week);
+  $('#wordsAll').textContent = fmtNum(w.all);
+  $('#wordsSaved').textContent = isNum(w.minutes_saved) && w.minutes_saved > 0 ? t('home.words.saved', { minutes: fmtNum(w.minutes_saved) }) : '';
+  $('#wordsSaved').hidden = !$('#wordsSaved').textContent;
+  const langs = obj(w.langs);
+  const showLangs = langs && isNum(langs.en) && isNum(langs.hi) && langs.hi > 0;
+  $('#wordsLangs').hidden = !showLangs;
+  if (showLangs) $('#wordsLangs').textContent = t('home.words.langs', { en: fmtNum(langs.en), hi: fmtNum(langs.hi) });
+}
+function renderSkills() {
+  const list = Array.isArray(S.state.skills) ? S.state.skills.filter(obj) : [];
+  Constellation($('#constellation'), list);
+  const mastered = list.filter(s => Number(s.mastery) === 5).length;
+  $('#skillsCount').textContent = list.length ? t('home.skills.count', { count: fmtNum(list.length) }) + ' · ' + t('home.skills.mastered', { count: fmtNum(mastered) }) : '';
+}
+function renderWeak() {
+  const ul = $('#weakList'); ul.textContent = '';
+  const list = (Array.isArray(S.state.weak) ? S.state.weak.filter(obj) : []).slice(0, 3);
+  if (!list.length) ul.append(el('li', { class: 'sub', text: t('home.weak.empty') }));
+  list.forEach(w => ul.append(WeakSpot(w)));
+}
+function renderSmall() {
+  $('#streakN').textContent = fmtNum(Number(S.state.streak));
+  const g = obj(S.state.guardian) || {};
+  $('#guardN').textContent = fmtNum(g.month);
+  const last = obj(g.last);
+  $('#guardLast').textContent = last && pick(last.text) ? t('home.guardian.last', { text: pick(last.text) }) : t('home.guardian.clear');
+  const p = obj(S.state.papers) || {};
+  $('#papersN').textContent = fmtNum(p.count);
+  $('#papersOpen').hidden = !(p.last && (p.last.path || typeof p.last === 'string'));
+}
+function renderSpend() {
+  const sp = obj(S.state.spend) || {};
+  const cap = isNum(sp.cap_usd) && sp.cap_usd > 0 ? sp.cap_usd : (isNum(S.prefs.capUsd) ? S.prefs.capUsd : 5);
+  $('#spendN').textContent = fmtUSD(sp.month_usd);
+  const ratio = SpendBar($('#spendBar'), sp.month_usd, cap);
+  $('#spendOf').textContent = t('home.spend.of', { cap: fmtCap(cap) });
+  const msg = $('#spendMsg');
+  msg.hidden = ratio < 0.8;
+  msg.textContent = ratio >= 1 ? t('home.spend.over', { cap: fmtCap(cap) }) : t('home.spend.near');
+  msg.style.color = ratio >= 1 ? '' : 'var(--ink-2)';
+}
+function renderRecent() {
+  const ol = $('#recentList'); ol.textContent = '';
+  const rows = (Array.isArray(S.state.recent) ? S.state.recent : []).filter(r => obj(r) && pick(r.text))
+    .map(r => ({ r, at: Date.parse(r.at) }))
+    .sort((a, b) => (isFinite(b.at) ? b.at : -Infinity) - (isFinite(a.at) ? a.at : -Infinity))
+    .slice(0, 10);
+  $('#recentEmpty').hidden = rows.length > 0;
+  const kinds = ['lesson', 'do', 'practice', 'guardian', 'paper', 'ask'];
+  rows.forEach(({ r }) => {
+    const kind = kinds.includes(r.kind) ? r.kind : 'ask';
+    const when = fmtRel(r.at);
+    ol.append(el('li', null, el('span', { class: 'chip', 'data-kind': kind, text: t('home.recent.kind.' + kind) }),
+      el('span', { text: pick(r.text) }), when ? el('time', { datetime: String(r.at), text: when }) : el('span')));
+  });
+}
+function connStatus(name) {
+  const c = obj(obj(S.state.connections) && S.state.connections[name]);
+  if (!c || c.missing) return 'off';
+  return c.ok === true ? 'ok' : 'warn';
+}
+function renderFooter() {
+  $$('[data-dot]').forEach(b => {
+    const name = b.dataset.dot, s = connStatus(name);
+    StatusDot($('.dot', b), s);
+    const word = t('footer.' + s);
+    $('small', b).textContent = word;
+    b.setAttribute('aria-label', t('footer.open', { label: t('footer.' + name), status: word }));
+  });
+}
+function layoutTiles() {
+  const tiles = $$('#tiles > .tile');
+  tiles.forEach(tile => { tile.hidden = !has(tile.dataset.key); tile.classList.remove('fill2'); });
+  const vis = tiles.filter(x => !x.hidden);
+  const r3 = vis.filter(x => x.dataset.row === '3'), r4 = vis.filter(x => x.dataset.row === '4');
+  // Until most tiles exist, share one row instead of leaving stranded full-width tiles.
+  const rows = r3.length + r4.length <= 3 ? [vis] : [r3, r4];
+  rows.forEach(row => row.forEach(x => x.style.setProperty('--span', String(12 / Math.max(1, row.length)))));
+  if (vis.length % 2 === 1) vis[vis.length - 1].classList.add('fill2');
+  $('#tiles').hidden = vis.length === 0;
+}
+function renderHome() {
+  renderToday();
+  layoutTiles();
+  if (has('words')) renderWords();
+  if (has('skills')) renderSkills();
+  if (has('weak')) renderWeak();
+  if (has('streak') || has('guardian') || has('papers')) renderSmall();
+  if (has('spend')) renderSpend();
+  $('#recentPanel').hidden = !has('recent');
+  if (has('recent')) renderRecent();
+  $('#dots').hidden = !has('connections');
+  if (has('connections')) renderFooter();
+}
+
+/* ---------------- Settings ---------------- */
+const fields = {};
+const RESULT_KINDS = ['rejected', 'offline', 'server', 'nokey', 'missing'];
+// Python sends a `kind` and a ready-to-show `detail` in the user's language; raw transport errors get mapped here.
+function errorText(detail, kind) {
+  if (RESULT_KINDS.includes(kind)) return t('conn.result.' + kind);
+  const d = String(detail || '');
+  if (/reject|invalid|unauthori[sz]ed|401|403|incorrect|bad key/i.test(d)) return t('settings.key.rejected');
+  if (/network|timeout|timed out|reach|offline|connect|resolve|ENOTFOUND/i.test(d)) return t('settings.key.network');
+  return t('settings.key.failed', { detail: d || t('common.error') });
+}
+function KeyField(host) {
+  const name = host.dataset.keyfield, id = 'kf-' + name;
+  host.className = 'field keyfield';
+  host.innerHTML = `
+    <label for="${id}" data-i18n="${host.dataset.label || 'settings.key.label'}"></label>
+    <div class="input-row kf-view" hidden><span class="mask num"></span>
+      <button class="btn" type="button" data-act="replace" data-i18n="settings.key.replace">Replace</button>
+      <button class="btn danger" type="button" data-act="remove" data-i18n="settings.key.remove">Remove</button></div>
+    <div class="input-row kf-edit"><input class="input" id="${id}" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" data-i18n-placeholder="settings.key.placeholder">
+      <button class="btn" type="button" data-act="save" data-i18n="settings.key.save">Save</button>
+      <button class="btn quiet" type="button" data-act="cancel" data-i18n="settings.key.cancel" hidden>Cancel</button></div>
+    <div class="actions"><button class="btn" type="button" data-act="test" data-i18n="settings.key.test">Test</button><span class="kf-result" role="status" aria-live="polite"></span></div>`;
+  const f = fields[name] = { host, name, editing: false, input: $('input', host), result: $('.kf-result', host) };
+  const section = () => host.closest('.set-sec');
+  const setResult = (kind, text, spin) => {
+    f.result.className = 'kf-result' + (kind ? ' ' + kind : '');
+    f.result.textContent = '';
+    if (spin) f.result.append(el('span', { class: 'spinner', 'aria-hidden': 'true' }));
+    if (kind === 'ok') f.result.append(el('span', { 'aria-hidden': 'true', text: '✓' }));
+    f.result.append(el('span', { text }));
+  };
+  f.setResult = setResult;
+  const save = f.save = async value => {
+    try {
+      const r = await bridge.call('conn.save', { name, value });
+      if (r && r.ok === false) throw new Error(r.detail || 'save');
+      S.conn[name] = Object.assign({}, obj(S.conn[name]), { saved: true, last4: (r && r.last4) || value.slice(-4) });
+      f.input.value = ''; f.editing = false; renderKeyField(name); saved(section());
+      return true;
+    } catch (e) { setResult('bad', errorText(e.message)); return false; }
+  };
+  host.addEventListener('click', async e => {
+    const b = e.target.closest('button[data-act]'); if (!b) return;
+    const act = b.dataset.act;
+    if (act === 'replace') { f.editing = true; renderKeyField(name); f.input.focus(); }
+    else if (act === 'cancel') { f.editing = false; f.input.value = ''; renderKeyField(name); }
+    else if (act === 'save') {
+      // Save means "test, then keep it only if it works": a wrong key is never stored.
+      if (!f.input.value.trim()) { setResult('bad', t('settings.key.empty')); f.input.focus(); return; }
+      await testKey(name);
+    } else if (act === 'remove') {
+      // Two presses: a stray click must not delete a key someone set up for a parent.
+      if (!b.classList.contains('confirm')) {
+        b.classList.add('confirm'); b.textContent = t('settings.key.removeConfirm');
+        clearTimeout(b._t); b._t = setTimeout(() => { b.classList.remove('confirm'); b.textContent = t('settings.key.remove'); }, 4000);
+        return;
+      }
+      clearTimeout(b._t); b.classList.remove('confirm'); b.textContent = t('settings.key.remove');
+      try {
+        await bridge.call('conn.clear', { name });
+        S.conn[name] = Object.assign({}, obj(S.conn[name]), { saved: false, last4: null });
+        renderKeyField(name); setResult('', t('settings.key.removed')); saved(section());
+        if (name === 'jev') { patchConnections({ jev: { ok: false, missing: true } }); }
+      } catch (err) { setResult('bad', errorText(err.message)); }
+    } else if (act === 'test') testKey(name);
+  });
+  f.input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('[data-act=save]', host).click(); } if (e.key === 'Escape' && f.editing) $('[data-act=cancel]', host).click(); });
+}
+async function testKey(name) {
+  const f = fields[name], c = obj(S.conn[name]) || {};
+  const typed = (!c.saved || f.editing) ? f.input.value.trim() : '';
+  if (!c.saved && !typed) { f.setResult('bad', t('settings.key.empty')); f.input.focus(); return; }
+  const btns = $$('[data-act=test],[data-act=save]', f.host); btns.forEach(b => { b.disabled = true; });
+  f.setResult('', t('settings.key.testing'), true);
+  try {
+    const r = await bridge.call('conn.test', typed ? { name, value: typed } : { name });
+    if (r && r.ok) {
+      f.setResult('ok', t('settings.key.ok', { s: fmtSecs(Number(r.ms)), cost: fmtUSD(isNum(r.usd) ? r.usd : 0) }));
+      if (typed) await f.save(typed);   // a key that passed is kept; a failing one never is
+      if (name === 'jev') patchConnections({ jev: { ok: true } });
+      else if (S.conn.brain === name) patchConnections({ brain: { kind: name, ok: true } });
+    } else f.setResult('bad', errorText(r && r.detail, r && r.kind));
+  } catch (e) { f.setResult('bad', errorText(e.message)); }
+  btns.forEach(b => { b.disabled = false; });
+}
+function renderKeyField(name) {
+  const f = fields[name]; if (!f) return;
+  const c = obj(S.conn[name]) || {};
+  const savedKey = !!c.saved;
+  $('.kf-view', f.host).hidden = !savedKey || f.editing;
+  $('.kf-edit', f.host).hidden = savedKey && !f.editing;
+  $('[data-act=cancel]', f.host).hidden = !(savedKey && f.editing);
+  $('.mask', f.host).textContent = '•••• ' + (c.last4 ? String(c.last4).slice(-4) : '');
+  $('.mask', f.host).setAttribute('aria-label', t('settings.key.saved') + ' ' + (c.last4 || ''));
+}
+function renderBrain() {
+  const kind = typeof S.conn.brain === 'string' ? S.conn.brain : (obj(obj(S.state.connections) && S.state.connections.brain) || {}).kind;
+  $$('[data-brain]').forEach(card => card.classList.toggle('on', card.dataset.brain === kind));
+  $$('[data-pick]').forEach(b => {
+    const on = b.dataset.pick === kind;
+    b.setAttribute('aria-pressed', String(on));
+    $('span', b).dataset.i18n = on ? 'settings.conn.brain.inUse' : 'settings.conn.brain.use';
+    $('span', b).textContent = t($('span', b).dataset.i18n);
+  });
+  ['anthropic', 'openai', 'custom', 'jev'].forEach(renderKeyField);
+  const jev = obj(S.conn.jev) || {};
+  $('#jevFallback').hidden = !!jev.saved;
+  const base = $('#jevBase');
+  if (document.activeElement !== base) base.value = (S.prefs.jevBaseUrl != null ? S.prefs.jevBaseUrl : jev.base_url) || '';
+  const custom = obj(S.conn.custom) || {};
+  const url = $('#customUrl');
+  if (document.activeElement !== url) url.value = (S.prefs.customUrl != null ? S.prefs.customUrl : custom.url) || '';
+  renderModels();
+}
+function renderModels() {
+  const sel = $('#customModel'), custom = obj(S.conn.custom) || {};
+  const current = (S.prefs.customModel != null ? S.prefs.customModel : custom.model) || '';
+  const url = $('#customUrl').value.trim();
+  const server = S.servers.find(s => s && s.url === url);
+  const models = Array.from(new Set([current].concat(server && Array.isArray(server.models) ? server.models : []).filter(Boolean)));
+  sel.textContent = '';
+  if (!models.length) sel.append(el('option', { value: '', text: t('settings.conn.custom.modelNone') }));
+  models.forEach(m => sel.append(el('option', { value: m, text: m })));
+  sel.value = current || (models[0] || '');
+}
+function renderCC() {
+  const cc = S.cc, items = { installed: $('[data-cc=installed]'), signedIn: $('[data-cc=signedIn]'), plan: $('[data-cc=plan]') };
+  const line = (li, s, text) => { StatusDot($('.dot', li), s); $('span', li).textContent = text; };
+  if (!cc) { Object.values(items).forEach(li => line(li, 'off', t('settings.conn.cc.checking'))); $('#ccSetup').hidden = true; return; }
+  if (cc.error) { Object.values(items).forEach((li, i) => { li.hidden = i > 0; }); line(items.installed, 'warn', t('common.unavailable')); $('#ccSetup').hidden = false; return; }
+  Object.values(items).forEach(li => { li.hidden = false; });
+  line(items.installed, cc.installed ? 'ok' : 'warn', t(cc.installed ? 'settings.conn.cc.installed' : 'settings.conn.cc.notInstalled'));
+  items.signedIn.hidden = !cc.installed;
+  line(items.signedIn, cc.signedIn ? 'ok' : 'warn', t(cc.signedIn ? 'settings.conn.cc.signedIn' : 'settings.conn.cc.signedOut'));
+  items.plan.hidden = !cc.signedIn;
+  line(items.plan, cc.plan ? 'ok' : 'off', cc.plan ? t('settings.conn.cc.plan', { plan: String(cc.plan) }) : t('settings.conn.cc.planUnknown'));
+  $('#ccSetup').hidden = !!(cc.installed && cc.signedIn);
+}
+function renderBudget() {
+  const sp = obj(S.state.spend) || {};
+  const range = $('#cap');
+  const cap = isNum(S.prefs.capUsd) ? S.prefs.capUsd : (isNum(sp.cap_usd) ? sp.cap_usd : 5);
+  if (document.activeElement !== range) range.value = String(Math.max(1, Math.min(50, Math.round(cap))));
+  $('#capOut').textContent = fmtCap(Number(range.value));
+  $('#capMin').textContent = fmtCap(1); $('#capMax').textContent = fmtCap(50);
+  range.setAttribute('aria-valuetext', fmtCap(Number(range.value)));
+  SpendBar($('#budgetBar'), sp.month_usd, Number(range.value));
+  $('#budgetSpent').textContent = t('settings.budget.spentOf', { spent: fmtUSD(isNum(sp.month_usd) ? sp.month_usd : 0), cap: fmtCap(Number(range.value)) });
+}
+function renderPerms() {
+  $$('[data-perm]').forEach(li => {
+    const v = S.perms && S.perms[li.dataset.perm];
+    const s = v === 'granted' ? 'granted' : v === 'denied' ? 'denied' : 'unknown';
+    StatusDot($('.dot', li), s === 'granted' ? 'ok' : s === 'denied' ? 'warn' : 'off');
+    $('.perm-state span', li).textContent = t('settings.perms.' + s);
+    $('button', li).hidden = s === 'granted';
+  });
+}
+function renderAbout() {
+  const i = obj(S.info) || {};
+  $('#aboutVersion').textContent = i.version ? String(i.version) : '—';
+  $('#aboutBuild').textContent = i.build ? String(i.build) : '—';
+}
+function renderLangSwitches() {
+  $$('.seg.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === S.lang)));
+}
+function renderSettings() { renderBrain(); renderCC(); renderBudget(); renderPerms(); renderAbout(); }
+function renderAll() { renderLangSwitches(); renderHome(); renderSettings(); }
+
+async function loadConn() {
+  try { const c = await bridge.call('conn.list'); S.conn = obj(c) || {}; } catch (e) { S.conn = {}; }
+  renderBrain();
+}
+async function loadCC() {
+  S.cc = null; renderCC();
+  try { const r = await bridge.call('claudeCode.status'); S.cc = obj(r) || { error: true }; } catch (e) { S.cc = { error: true }; }
+  renderCC();
+}
+async function loadPerms() {
+  try { S.perms = obj(await bridge.call('perms.get')) || {}; } catch (e) { S.perms = {}; }
+  renderPerms();
+}
+async function loadSettings() {
+  S.settingsLoaded = true;
+  const prefs = bridge.call('prefs.get').then(p => { S.prefs = obj(p) || {}; }).catch(() => {});
+  const info = bridge.call('app.info').then(i => { S.info = i; renderAbout(); }).catch(() => {});
+  await prefs;
+  loadConn(); loadCC(); loadPerms(); renderBudget();
+  await info;
+}
+function patchConnections(part) {
+  const c = obj(S.state.connections) ? S.state.connections : (S.state.connections = {});
+  for (const [k, v] of Object.entries(part || {})) if (obj(v)) c[k] = Object.assign({}, obj(c[k]), v);
+  renderFooter(); $('#dots').hidden = !has('connections');
+}
+async function setPref(k, v, section) {
+  try { const r = await bridge.call('prefs.set', { k, v }); if (r && r.ok === false) throw new Error('save'); S.prefs[k] = v; saved(section); }
+  catch (e) { if (e.message !== 'no-bridge') toast(t('common.error')); }
+}
+
+/* ---------------- Views ---------------- */
+function showView(view, section) {
+  S.view = view;
+  $('#home').hidden = view !== 'home';
+  $('#settings').hidden = view !== 'settings';
+  $('#gear').hidden = view === 'settings';
+  $('#back').hidden = view !== 'settings' || S.settingsWindow;
+  if (view === 'settings') {
+    if (!S.settingsLoaded) loadSettings(); else { loadPerms(); loadConn(); }
+    if (section) { const s = $('#sec-' + section); if (s) requestAnimationFrame(() => s.scrollIntoView({ block: 'start' })); }
+    $('#setMain').focus({ preventScroll: !!section });
+  } else $('#home').focus({ preventScroll: true });
+}
+function openSettings(section) {
+  // Swift opens the separate Settings window and answers {opened:true}; anywhere else, switch in place.
+  if (S.settingsWindow) return showView('settings', section);
+  bridge.call('window.settings', section ? { section } : {}).then(r => { if (!(r && r.opened)) showView('settings', section); })
+    .catch(() => showView('settings', section));
+}
+function route() {
+  // #settings (the app's Settings window) or a frame named chiron-settings (the mock: srcdoc frames can't carry a fragment safely).
+  const m = /^#settings(?:\/(\w+))?/.exec(location.hash);
+  if (m || (window.name === 'chiron-settings' && !location.hash)) showView('settings', m && m[1]); else showView('home');
+}
+
+/* ---------------- Wiring ---------------- */
+function wire() {
+  $$('.seg.lang button').forEach(b => b.addEventListener('click', () => { if (b.dataset.lang !== S.lang) setLang(b.dataset.lang); }));
+  $('#gear').addEventListener('click', () => openSettings());
+  $('#back').addEventListener('click', () => { if (location.hash) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* srcdoc mock */ } } showView('home'); });
+  $$('[data-dot]').forEach(b => b.addEventListener('click', () => openSettings('connections')));
+  $('#spendChange').addEventListener('click', () => openSettings('budget'));
+  $('#todayStart').addEventListener('click', () => { const td = obj(S.state.today) || {}; bridge.call('practice.start', { skill: td.skill }).catch(() => toast(t('common.error'))); });
+  $('#papersOpen').addEventListener('click', () => { const p = obj(S.state.papers) || {}; bridge.call('papers.open', { path: p.last && (p.last.path || p.last) }).catch(() => toast(t('common.error'))); });
+  $$('[data-go]').forEach(b => b.addEventListener('click', () => {
+    const s = $('#sec-' + b.dataset.go);
+    s.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    const h = $('h2', s); h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true });
+  }));
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting) $$('[data-go]').forEach(b => b.setAttribute('aria-current', String('sec-' + b.dataset.go === e.target.id)));
+    }), { rootMargin: '-10% 0px -70% 0px' });
+    $$('.set-sec').forEach(s => io.observe(s));
+  }
+  $$('[data-keyfield]').forEach(KeyField);
+  $$('[data-pick]').forEach(b => b.addEventListener('click', async () => {
+    const kind = b.dataset.pick;
+    if (S.conn.brain === kind) return;
+    try {
+      const r = await bridge.call('brain.choose', { kind });
+      if (r && r.ok === false) throw new Error(r.detail || 'choose');
+      S.conn.brain = kind; patchConnections({ brain: { kind } }); renderBrain(); renderToday(); saved($('#sec-connections'));
+    } catch (e) { toast(t('common.error')); }
+  }));
+  $('#ccSetup').addEventListener('click', async () => {
+    try { await bridge.call('claudeCode.setup'); $('#ccNote').hidden = false; } catch (e) { toast(t('common.error')); }
+  });
+  $('#ccRecheck').addEventListener('click', loadCC);
+  $('#customUrl').addEventListener('change', e => { setPref('customUrl', e.target.value.trim(), $('#sec-connections')); renderModels(); });
+  $('#customModel').addEventListener('change', e => { if (e.target.value) setPref('customModel', e.target.value, $('#sec-connections')); });
+  $('#jevBase').addEventListener('change', e => setPref('jevBaseUrl', e.target.value.trim(), $('#sec-connections')));
+  $('#scan').addEventListener('click', async () => {
+    const btn = $('#scan'), st = $('#scanState'), ul = $('#servers');
+    btn.disabled = true; st.textContent = ''; st.append(el('span', { class: 'spinner', 'aria-hidden': 'true' }), el('span', { text: t('settings.conn.custom.scanning') }));
+    let list = [];
+    try { const r = await bridge.call('local.scan'); list = Array.isArray(r) ? r.filter(s => s && typeof s.url === 'string') : []; } catch (e) { list = []; }
+    S.servers = list; btn.disabled = false; st.textContent = list.length ? '' : t('settings.conn.custom.scanNone');
+    ul.textContent = ''; ul.hidden = !list.length;
+    list.forEach(s => {
+      const models = Array.isArray(s.models) ? s.models : [];
+      ul.append(el('li', null, el('div', null, el('code', { text: s.url }), el('div', { class: 'sub num', text: t('settings.conn.custom.models', { count: fmtNum(models.length) }) })),
+        el('button', { class: 'btn', type: 'button', text: t('settings.conn.custom.useServer'), onclick: async () => {
+          $('#customUrl').value = s.url; await setPref('customUrl', s.url, $('#sec-connections'));
+          if (models[0] && !models.includes(S.prefs.customModel)) await setPref('customModel', models[0], $('#sec-connections'));
+          renderModels();
+        } })));
+    });
+    renderModels();
+  });
+  const cap = $('#cap');
+  cap.addEventListener('input', renderBudget);
+  cap.addEventListener('change', () => {
+    const v = Number(cap.value);
+    if (obj(S.state.spend)) S.state.spend.cap_usd = v;
+    setPref('capUsd', v, $('#sec-budget')).then(() => { renderSpend(); renderBudget(); });
+  });
+  $$('[data-perm] button').forEach(b => b.addEventListener('click', async () => {
+    const id = b.closest('[data-perm]').dataset.perm;
+    try { await bridge.call('perms.grant', { id }); } catch (e) { toast(t('common.error')); }
+    setTimeout(loadPerms, 1200);
+  }));
+  $('#permsRecheck').addEventListener('click', loadPerms);
+  $$('[data-open]').forEach(b => b.addEventListener('click', () => bridge.call('link.open', { url: b.dataset.open }).catch(() => {})));
+  // Coming back from System Settings: refresh what may have changed there.
+  const refresh = () => { if (S.view === 'settings' && document.visibilityState === 'visible') loadPerms(); };
+  document.addEventListener('visibilitychange', refresh);
+  window.addEventListener('focus', refresh);
+  window.addEventListener('hashchange', route);
+
+  bridge.on('state', data => {
+    if (!obj(data)) return;
+    S.state = data;
+    if (LANGS.includes(data.lang) && data.lang !== S.lang) setLang(data.lang, { native: true }); else { renderHome(); renderBudget(); }
+  });
+  bridge.on('lang', data => { const lang = typeof data === 'string' ? data : data && data.lang; if (lang && lang !== S.lang) setLang(lang, { native: true }); });
+  bridge.on('connection', data => {
+    if (!obj(data)) return;
+    patchConnections(data);
+    if (S.settingsLoaded) loadConn();
+  });
+  bridge.on('strings', data => {
+    if (!data || !LANGS.includes(data.lang) || !obj(data.strings)) return;
+    tables[data.lang] = data.strings;
+    if (data.lang === S.lang) { applyStrings(S.lang); renderAll(); }
+  });
+}
+
+async function init() {
+  collectDefaults();
+  wire();
+  route();
+  let st = null;
+  try { st = await bridge.call('state.get'); } catch (e) { /* no native side: render the empty page */ }
+  if (obj(st)) S.state = st;
+  await loadStrings('en').catch(() => {});
+  await setLang(LANGS.includes(S.state.lang) ? S.state.lang : 'en', { native: true });
+}
+window.chiron = { ready: init(), render: data => { S.state = obj(data) || {}; renderAll(); }, setLang, applyStrings, t, get lang() { return S.lang; }, get state() { return S.state; } };
+</script>
+</body>
+</html>

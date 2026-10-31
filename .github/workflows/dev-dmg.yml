@@ -1,0 +1,60 @@
+# Test builds before Release: compiles the Swift on a macOS 26 runner (the first real compile check, since local
+# toolchains can lag) and attaches an unsigned Chiron.app DMG to every push of a phase branch.
+# Release replaces this with a signed, notarized DMG and Sparkle updates.
+name: dev-dmg
+
+on:
+  push:
+    branches: ['phase-*', main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # build.sh stamps the commit into Info.plist
+
+      - name: Use the newest Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          [ -n "$XCODE" ] || { echo "No Xcode 26 on this runner"; ls /Applications; exit 1; }
+          sudo xcode-select -s "$XCODE"
+          swiftc -version
+          xcrun --show-sdk-version
+
+      - name: Typecheck Swift
+        run: |
+          cp Chiron.swift "$RUNNER_TEMP/main.swift"
+          swiftc -typecheck -module-name Chiron -target arm64-apple-macos26.0 "$RUNNER_TEMP/main.swift" app/*.swift
+
+      - name: Build Chiron.app
+        run: ./build.sh --package "$RUNNER_TEMP/dist"
+
+      - name: Make the DMG
+        run: |
+          STAGE="$RUNNER_TEMP/dmg"; mkdir -p "$STAGE"
+          cp -R "$RUNNER_TEMP/dist/Chiron.app" "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          cat > "$STAGE/READ ME FIRST.txt" <<'TXT'
+          Chiron test build (unsigned). Needs macOS 26 and Python 3.
+
+          1. Drag Chiron into Applications.
+          2. The first time, right-click Chiron > Open, then Open again
+             (or System Settings > Privacy & Security > Open Anyway).
+          3. Unsigned builds may ask for Microphone, Accessibility and
+             Screen Recording again after each new build.
+          TXT
+          NAME="Chiron-${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}.dmg"
+          hdiutil create -volname Chiron -srcfolder "$STAGE" -ov -format UDZO "$RUNNER_TEMP/$NAME"
+          echo "DMG=$RUNNER_TEMP/$NAME" >> "$GITHUB_ENV"
+          echo "DMG_NAME=$NAME" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.DMG_NAME }}
+          path: ${{ env.DMG }}
+          retention-days: 30
