@@ -76,6 +76,16 @@ def skeleton(word):
     return re.sub(r'(.)\1+', r'\1', word[0] + re.sub('[aeiou]', '', word[1:])) if word else ''
 
 
+# Names Apple's hi-IN engine reliably mangles, heard from real use. Repaired before routing or planning, never in dictation.
+MISHEARD = ((re.compile(r'\b(?:lo[,\s]+tu|blue[,\s]+tooth|blu[,\s]*tooth|lu[,\s]+tooth|bloo[,\s]*tooth)\b', re.I), 'Bluetooth'),
+            (re.compile(r'\b(?:why[,\s]+fi|vai[,\s]+fai|wi[,\s]+fi|wai[,\s]+fai)\b', re.I), 'Wi-Fi'))
+
+
+def repair(text):
+    for pattern, name in MISHEARD: text = pattern.sub(name, str(text))
+    return text
+
+
 def clean(text):
     """Lower case, no punctuation, one space, Devanagari digits as 0-9."""
     text = unicodedata.normalize('NFC', str(text)).lower().translate({0x0966 + d: str(d) for d in range(10)})

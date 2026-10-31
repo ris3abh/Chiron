@@ -60,7 +60,11 @@ cat > "$APP/Contents/Info.plist" <<P
 </dict></plist>
 P
 mv "$STAGE/Chiron" "$APP/Contents/MacOS/Chiron"
+# ChironKeys: compiled once per version of its source and kept, so macOS still recognises it after a rebuild of the app.
+KEYS_SUM=$(shasum -a 256 keys/ChironKeys.swift | cut -c1-16)
+KEYS_KEPT="$HOME/Library/Application Support/Chiron/ChironKeys-$KEYS_SUM"
 if [ -n "$PACKAGE" ]; then
+  swiftc -O -target "$(uname -m)-apple-macos26.0" keys/ChironKeys.swift -o "$APP/Contents/MacOS/ChironKeys"
   codesign -s - --force --deep "$APP"
   rm -rf "$PACKAGE/Chiron.app"; mv "$APP" "$PACKAGE/Chiron.app"
   echo "Packaged $PACKAGE/Chiron.app"
@@ -78,6 +82,13 @@ if [ -z "$ID" ]; then
   rm -rf "$K"
   ID=$(security find-identity -p codesigning | awk '/Chiron Local Signing/{print $2; exit}')
 fi
+if [ ! -x "$KEYS_KEPT" ]; then
+  mkdir -p "$(dirname "$KEYS_KEPT")"
+  swiftc -O -target "$(uname -m)-apple-macos26.0" keys/ChironKeys.swift -o "$STAGE/ChironKeys"
+  codesign -s "${ID:--}" --force --identifier com.chiron.keys "$STAGE/ChironKeys"
+  mv "$STAGE/ChironKeys" "$KEYS_KEPT"
+fi
+cp -p "$KEYS_KEPT" "$APP/Contents/MacOS/ChironKeys"
 codesign -s "${ID:--}" --force "$APP"
 # register with macOS, or System Settings can't list it for permissions
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP"

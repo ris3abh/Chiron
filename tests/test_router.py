@@ -11,7 +11,7 @@ A = jev.Answer
 CASES = [
     # (ask, mode, source): the order is the point
     ('Open YouTube for me', 'do', None), ('YouTube khol ke batao', 'do', None), ('YouTube chalu karna', 'do', None), ('यूट्यूब खोल के बताओ', 'do', None),
-    ('play bhajan', 'do', 'words'), ('भजन चलाओ', 'do', 'words'), ('send this to Asha', 'do', 'words'), ('close Notes', 'do', 'words'), ('search the weather', 'do', 'words'), ('just book the tickets', 'do', 'words'),
+    ('play bhajan', 'do', 'jev'), ('भजन चलाओ', 'do', 'jev'), ('send this to Asha', 'do', 'jev'), ('close Notes', 'do', 'jev'), ('search the weather', 'do', 'jev'), ('just book the tickets', 'do', 'words'),
     ('teach me to print a word document', 'teach', 'card'), ('how do I play a video on YouTube', 'teach', 'card'), ('YouTube पर वीडियो चलाना सिखाओ', 'teach', 'card'),
     ('teach me how to make a new folder on the desktop', 'teach', 'words'), ('naya folder kaise banate hain', 'teach', 'words'), ('नया फ़ोल्डर बनाना सिखाओ', 'teach', 'words'),
     ('how to attach a file in mail', 'teach', 'words'), ('show me how to zoom in', 'teach', 'words'), ('sikhao mujhe email bhejna', 'teach', 'words'), ('kaise karte hain screenshot', 'teach', 'words'),
@@ -37,8 +37,27 @@ class RouterTest(unittest.TestCase):
             if source: self.assertEqual(r['source'], source, ask)
 
     def test_a_card_or_an_instruction_never_spends_a_request(self):
-        for ask in ('Open YouTube for me', 'YouTube chalu karna', 'teach me to print a word document', 'play bhajan', 'what is a PDF', 'mera wifi kyun nahi chal raha'):
+        for ask in ('Open YouTube for me', 'teach me to print a word document', 'what is a PDF', 'mera wifi kyun nahi chal raha'):
             router.route(ask, judge=lambda *a, **k: self.fail(f'{ask} reached Jev'))
+
+    def test_the_real_mishearing_routes_to_a_lesson(self):
+        # 2026-10-31: heard for "Bluetooth chalu karna dikhao"; "dikhao" alone looked like "show" and went to the main model for 111 s.
+        for said in ('Mujhe, Lo, Tu, Chalu, Karna, Dikhao', 'Bluetooth chalu karna dikhao', 'mujhe bluetooth chalu kar ke dikhao', 'ब्लूटूथ चालू करना दिखाओ'):
+            r = router.route(said, judge=lambda *a, **k: self.fail(f'{said} needs no request'))
+            self.assertEqual(r['mode'], 'teach', said)
+
+    def test_youtube_chalu_karna_is_done_even_through_jev(self):
+        self.assertEqual(router.route('YouTube chalu karna', judge=fake)['mode'], 'do', 'fast() opens it first; here it still is not a question')
+
+    def test_an_instruction_asks_jev_but_is_never_a_question(self):
+        calls = []
+        r = router.route('play bhajan', judge=lambda s, q, purpose='': calls.append(s) or fake(s, q))
+        self.assertEqual((len(calls), r['mode']), (1, 'do'))
+        self.assertIn('play bhajan', calls[0], 'sent as said, not normalised')
+
+    def test_jev_can_turn_an_instruction_into_a_lesson(self):
+        answers = {'route_mode': A('choice', 'teach', 0.9, False, 'jev'), 'route_risky': A('noul', False, 0.9, False, 'jev')}
+        self.assertEqual(router.route('show me the bluetooth switch', judge=lambda *a, **k: answers)['mode'], 'teach')
 
     def test_one_request_with_both_questions(self):
         calls = []

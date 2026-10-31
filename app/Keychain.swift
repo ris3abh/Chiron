@@ -1,37 +1,35 @@
 // Keys live only in the login Keychain (service com.chiron.app), never in settings.json.
 // chiron.py reads one with `Chiron --secret get <name>`, so Python never touches the Keychain API itself.
 import Foundation
-import Security
 
 enum Keychain {
     static let service = "com.chiron.app"
     static let names = ["anthropic", "openai", "jev", "custom", "google"]
 
-    static func query(_ name: String) -> [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: name]
+    // keys/ChironKeys does the reading and writing: it stays the same across builds, so macOS asks for permission once, not after every build.
+    @discardableResult static func helper(_ args: [String], input: String? = nil) -> (status: Int32, out: String)? {
+        let path = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath().deletingLastPathComponent().appendingPathComponent("ChironKeys")
+        guard FileManager.default.isExecutableFile(atPath: path.path) else { return nil }
+        let p = Process(), out = Pipe(), inp = Pipe()
+        p.executableURL = path; p.arguments = args; p.standardOutput = out; p.standardInput = inp; p.standardError = FileHandle.nullDevice
+        do { try p.run() } catch { return nil }
+        if let input { inp.fileHandleForWriting.write(Data(input.utf8)) }
+        try? inp.fileHandleForWriting.close()
+        let data = out.fileHandleForReading.readDataToEndOfFile(); p.waitUntilExit()
+        return (p.terminationStatus, String(decoding: data, as: UTF8.self))
     }
     static func get(_ name: String) -> String? {
-        guard names.contains(name) else { return nil }
-        var q = query(name); q[kSecReturnData as String] = true; q[kSecMatchLimit as String] = kSecMatchLimitOne
-        var out: CFTypeRef?
-        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let data = out as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        guard names.contains(name), let r = helper(["get", name]), r.status == 0 else { return nil }
+        return r.out.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     @discardableResult static func set(_ name: String, _ value: String) -> Bool {
         let value = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard names.contains(name), !value.isEmpty, let data = value.data(using: .utf8) else { return false }
-        let found = SecItemUpdate(query(name) as CFDictionary, [kSecValueData as String: data] as CFDictionary)
-        if found == errSecSuccess { return true }
-        guard found == errSecItemNotFound else { return false }
-        var q = query(name); q[kSecValueData as String] = data
-        q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly   // never synced to iCloud or restored to another Mac
-        q[kSecAttrLabel as String] = "Chiron: \(name)"
-        return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
+        guard names.contains(name), !value.isEmpty else { return false }
+        return helper(["set", name], input: value)?.status == 0
     }
     @discardableResult static func delete(_ name: String) -> Bool {
         guard names.contains(name) else { return false }
-        let s = SecItemDelete(query(name) as CFDictionary)
-        return s == errSecSuccess || s == errSecItemNotFound
+        return helper(["delete", name])?.status == 0
     }
     // Settings shows "•••• last4", never the key.
     static func has(_ name: String) -> Bool { masked(name)["saved"] as? Bool == true }

@@ -64,6 +64,13 @@ Live Jev checks: 10 of 10 right on the tuned questions: money, booking and delet
 - **`tests/evals/harness.py --dry` could not run here:** it stops at the host guard, so the plan's eval is covered by `test_lessons` instead.
 - `tests/lesson_preview.swift` was not built.
 
+## Fixes after first real use
+- **Lessons crashed at planning:** `window_summary()` is a dict; the planner and step check expected text. Fixed, and any planner failure now falls through to the normal answer.
+- **The bar hung on its last line** when a worker died. It now clears with a plain message.
+- **"Bluetooth chalu karna dikhao" bypassed Jev:** "dikhao" read as a plain "show". A verb in its -na form with dikhao or batao is now "show me how", instructions go to Jev as they were said, and an instruction is never a question.
+- **Misheard names:** `normalize.repair()` fixes "Lo Tu" (Bluetooth) and Wi-Fi forms before routing and planning.
+- **Keychain password prompts:** with no Apple Team ID, permission is tied to the exact binary, so every build asked again. `keys/ChironKeys` is now the only program touching the Keychain, and `build.sh` reuses one signed copy. A real Apple Developer ID would remove this workaround.
+
 ## Known gaps and risks
 - **Never seen working:** the lesson runner, its callout, wrong-click hints, voice commands, Show me, and "Shall I do this step?". All compile; none has run.
 - **Test 1 is unproven.** The Return fix and the Allow card are in, but no real message has been tried.

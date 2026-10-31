@@ -75,6 +75,11 @@ def app_binary():
     return os.environ.get('CHIRON_APP') or os.path.join(HOME, 'Applications/Chiron.app/Contents/MacOS/Chiron')
 
 
+def keys_binary():
+    """ChironKeys, beside the app: the one program holding Keychain permission (keys/ChironKeys.swift says why)."""
+    return os.path.join(os.path.dirname(app_binary()), 'ChironKeys')
+
+
 SECRETS = ('anthropic', 'openai', 'jev', 'custom', 'google')
 
 
@@ -84,10 +89,11 @@ def secret(name):
     if name not in SECRETS: return ''
     override = os.environ.get('CHIRON_SECRET_' + name.upper())
     if override is not None: return override.strip()
-    if not os.path.exists(app_binary()): return ''   # not built yet (tests, CI): there is no Keychain helper to ask
+    helper = keys_binary()
+    if not os.path.exists(helper): return ''   # not built yet (tests, CI): there is no Keychain helper to ask
     try:
         # macOS re-checks a freshly built app on its first run (8 s measured): a short limit here reads as "no key" and silently loses Jev.
-        r = subprocess.run([app_binary(), '--secret', 'get', name], capture_output=True, text=True, timeout=15)
+        r = subprocess.run([helper, 'get', name], capture_output=True, text=True, timeout=15)
     except (OSError, subprocess.TimeoutExpired):
         return ''
     return r.stdout.strip() if r.returncode == 0 else ''

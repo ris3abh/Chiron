@@ -1758,7 +1758,7 @@ def routed_ask(task):
         usd = 0.0
         if not card:
             say('·', i18n.t('lesson.planning'))
-            try: card, usd = lessons.plan(task, window_summary(os.environ.get('CHIRON_FRONT', '')))
+            try: card, usd = lessons.plan(normalize.repair(task), window_summary(os.environ.get('CHIRON_FRONT', '')))
             except Exception as e:   # whatever went wrong, a lesson that can't be planned must never take the ask down with it
                 print(f'lesson plan failed: {e!r}', file=sys.stderr)
                 return None   # the main ask answers instead

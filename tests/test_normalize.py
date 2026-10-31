@@ -59,6 +59,12 @@ class NormalizeTests(unittest.TestCase):
         self.assertEqual(normalize.roman('खर्च'), 'kharch')
         self.assertEqual(normalize.roman('ख़र्च'), 'kharch')
 
+    def test_names_the_hindi_engine_mangles_are_repaired(self):
+        self.assertEqual(normalize.repair('Mujhe, Lo, Tu, Chalu, Karna'), 'Mujhe, Bluetooth, Chalu, Karna')
+        self.assertEqual(normalize.repair('blue tooth on karo'), 'Bluetooth on karo')
+        self.assertEqual(normalize.repair('wai fai kholo'), 'Wi-Fi kholo')
+        self.assertEqual(normalize.repair('lo tumhara kaam'), 'lo tumhara kaam', 'only the whole mishearing')
+
     def test_digits_and_noise(self):
         self.assertEqual(normalize.clean('  Open   NOTES!! ३ '), 'open notes 3')
         self.assertEqual(normalize.command(''), '')

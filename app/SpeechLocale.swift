@@ -108,7 +108,7 @@ enum SpeechLocale {
         "Safari": ["सफ़ारी"], "Mail": ["मेल"], "Notes": ["नोट्स"], "Photos": ["फ़ोटो"], "Calendar": ["कैलेंडर"], "Messages": ["मैसेज"], "Music": ["म्यूज़िक"],
         "System Settings": ["Settings", "सेटिंग्स"], "FaceTime": ["फ़ेसटाइम"], "Maps": ["मैप्स"], "Finder": ["फ़ाइंडर"], "zoom.us": ["Zoom", "ज़ूम"], "Reminders": ["रिमाइंडर"],
     ]
-    static let hindiWeb = ["YouTube", "यूट्यूब", "youtube kholo", "Google", "गूगल", "Gmail", "जीमेल"]
+    static let hindiWeb = ["YouTube", "यूट्यूब", "youtube kholo", "Google", "गूगल", "Gmail", "जीमेल", "Bluetooth", "ब्लूटूथ", "Bluetooth chalu karna", "Wi-Fi", "वाई-फ़ाई", "Settings", "सेटिंग्स"]
     static func hints(_ apps: [String], words: [String], lang: String) -> [String] {
         var seen = Set<String>()
         let known = lang == "hi" ? hindiWeb + spellings.flatMap { name, forms in apps.contains(name) ? [name] + forms : [] } : []
