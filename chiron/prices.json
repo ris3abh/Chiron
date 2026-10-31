@@ -12,5 +12,7 @@
   "gpt-5": {"input": 1.25, "output": 10.0, "cache_read": 0.125},
   "gpt-4.1-mini": {"input": 0.4, "output": 1.6, "cache_read": 0.1},
   "gpt-4o-mini": {"input": 0.15, "output": 0.6, "cache_read": 0.075},
-  "jev": {"input": 0.042, "output": 0.0}
+  "jev": {"input": 0.042, "output": 0.0},
+  "chirp3-hd": {"per_char": 0.00003, "_source": "Google pricing, $30 per million characters"},
+  "wavenet": {"per_char": 0.000016, "_source": "not confirmed against Google's page; check before relying on it"}
 }

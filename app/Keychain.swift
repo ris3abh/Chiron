@@ -5,7 +5,7 @@ import Security
 
 enum Keychain {
     static let service = "com.chiron.app"
-    static let names = ["anthropic", "openai", "jev", "custom"]
+    static let names = ["anthropic", "openai", "jev", "custom", "google"]
 
     static func query(_ name: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: name]
@@ -34,6 +34,7 @@ enum Keychain {
         return s == errSecSuccess || s == errSecItemNotFound
     }
     // Settings shows "•••• last4", never the key.
+    static func has(_ name: String) -> Bool { masked(name)["saved"] as? Bool == true }
     static func masked(_ name: String) -> [String: Any] {
         guard let v = get(name), !v.isEmpty else { return ["saved": false] }
         return ["saved": true, "last4": String(v.suffix(4))]

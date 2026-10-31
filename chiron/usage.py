@@ -37,9 +37,10 @@ def cost(model, input_tokens=0, output_tokens=0, cache_read=0, cache_write=0):
     return round(usd, 7)
 
 
-def record(engine, model, input_tokens=0, output_tokens=0, usd=0.0, purpose='', ms=0, ok=True):
+def record(engine, model, input_tokens=0, output_tokens=0, usd=0.0, purpose='', ms=0, ok=True, chars=0):
     row = {'at': time.strftime('%Y-%m-%dT%H:%M:%S%z'), 'engine': engine, 'model': model, 'input_tokens': int(input_tokens or 0),
            'output_tokens': int(output_tokens or 0), 'usd': round(float(usd or 0), 7), 'purpose': purpose, 'ms': int(ms or 0), 'ok': bool(ok)}
+    if chars: row['chars'] = int(chars)
     try: paths.append_jsonl(paths.USAGE, row)
     except OSError: pass   # a full disk must not fail the ask that already happened
     return row

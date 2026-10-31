@@ -32,7 +32,7 @@
 </style>
 <div class="bar" role="toolbar" aria-label="Mock controls">
   <span class="group" id="fx"><b>Fixture</b><button data-fx="empty">empty</button><button data-fx="typical">typical</button><button data-fx="errors">errors</button></span>
-  <span class="group" id="vw"><b>View</b><button data-v="home">home</button><button data-v="settings">settings</button><button data-v="settings/voice">settings/voice</button></span>
+  <span class="group" id="vw"><b>View</b><button data-v="home">home</button><button data-v="conversations">conversations</button><button data-v="settings">settings</button><button data-v="settings/voice">settings/voice</button></span>
   <span class="group" id="wd"><b>Width</b><button data-w="1280">1280</button><button data-w="880">880</button><button data-w="560">560</button></span>
   <span class="group" id="th"><b>Theme</b><button data-t="">auto</button><button data-t="light">light</button><button data-t="dark">dark</button></span>
   <span class="group"><b>Window</b><button id="nativeBtn" title="Simulate the app window: html.native, vibrancy, traffic lights">native</button></span>
@@ -94,9 +94,9 @@
       "activity": "auto",
       "connections": {"brain": {"kind": "claude-code", "ok": true}, "jev": {"ok": true}, "speech": {"engine": "apple", "ok": true}}
     },
-    "conn": {"anthropic": {"saved": true, "last4": "ab12", "_value": "sk-ant-api03-fixture-ab12"}, "openai": {"saved": false}, "jev": {"saved": true, "last4": "9f3c", "base_url": "https://api.typesafe.ai/v1", "_value": "ts-fixture-9f3c"}, "custom": {"saved": false, "url": "http://localhost:11434", "model": "qwen3:8b"}, "brain": "claude-code"},
+    "conn": {"anthropic": {"saved": true, "last4": "ab12", "_value": "sk-ant-api03-fixture-ab12"}, "openai": {"saved": false}, "jev": {"saved": true, "last4": "9f3c", "base_url": "https://api.typesafe.ai/v1", "_value": "ts-fixture-9f3c"}, "google": {"saved": true, "last4": "7c1d", "_value": "g-fixture-7c1d"}, "custom": {"saved": false, "url": "http://localhost:11434", "model": "qwen3:8b"}, "brain": "claude-code"},
     "prefs": {"lang": "en", "capUsd": 5},
-    "claudeCode": {"installed": true, "signedIn": true, "plan": "Claude Pro"},
+    "claudeCode": {"installed": true, "signedIn": true, "plan": "max"},
     "perms": {"microphone": "granted", "speech": "granted", "accessibility": "granted", "screen": "denied", "automation": "unknown"},
     "speech": {"en": {"state": "ready"}, "hi": {"state": "downloading", "progress": 0.42}},
     "voices": {"en": [{"id": "com.apple.voice.premium.en-IN.Isha", "name": "Isha"}, {"id": "com.apple.voice.compact.en-IN.Rishi", "name": "Rishi"}], "hi": [{"id": "com.apple.voice.compact.hi-IN.Lekha", "name": "Lekha"}]},
@@ -150,7 +150,7 @@ const BARE = q.get('chrome') === '0';
 if (q.has('fixture') && FIXTURES[q.get('fixture')]) ui.fx = q.get('fixture');
 if (['en', 'hi'].includes(q.get('lang'))) ui.lang = q.get('lang');
 if (q.has('theme')) ui.theme = ['light', 'dark'].includes(q.get('theme')) ? q.get('theme') : '';
-if (q.has('view')) ui.view = /^(home|settings(\/\w+)?)$/.test(q.get('view')) ? q.get('view') : 'home';
+if (q.has('view')) ui.view = /^(home|conversations|settings(\/\w+)?)$/.test(q.get('view')) ? q.get('view') : 'home';
 if (q.has('width')) ui.w = SIZES[q.get('width')] ? q.get('width') : ui.w;
 if (q.has('native')) ui.native = q.get('native') === '1';
 if (!SIZES[ui.w]) ui.w = '1280';
@@ -207,6 +207,12 @@ async function handle(method, args) {
     case 'voices.preview': note('would speak in', args.lang); return { ok: true };
     case 'globe.fix': note('would open Keyboard Settings'); return { ok: true };
     case 'bar.reset': note('would reset the bar'); return { ok: true };
+    case 'conversations.list': await wait(120); return { items: clone(db.conversations || []) };
+    case 'conversations.delete': await wait(100); db.conversations = (db.conversations || []).filter(c => c.id !== args.id); return { ok: true };
+    case 'conversations.clear': await wait(100); db.conversations = []; return { ok: true };
+    case 'ask.again': note('would ask', args.text); return { ok: true };
+    case 'clipboard.copy': note('would copy'); return { ok: true };
+    case 'tts.preview': await wait(400); note('would speak in', args.lang, args.voice); return { ok: true };
     case 'dictionary.list': await wait(80); return clone(db.dictionary || { words: [], fixes: {} });
     case 'dictionary.add': {
       await wait(150); const w = String(args.word || '').trim();
@@ -226,6 +232,19 @@ window.mockHome = function (msg) {
     e => { note('✗', msg.method, e.message); frame.contentWindow.bridge.reply(msg.id, null, e.message); });
 };
 
+// Stamps are local "YYYY-MM-DD HH:MM:SS", as log.jsonl writes them; built here so Today and Yesterday stay true.
+function conversations(fx) {
+  if (fx === 'empty') return [];
+  if (fx === 'errors') return [null, 'garbage', { id: 'x', at: 'not a date', title: 'Row with a broken time', outcome: 'mystery', usd: 'free', turns: [{ q: 'Row with a broken time', a: null, steps: 'nope' }] }];
+  const stamp = h => { const d = new Date(Date.now() - h * 36e5), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:00`; };
+  const one = (id, h, q, a, outcome, usd, steps) => ({ id, at: stamp(h), title: q, outcome, usd, turns: [{ q, a, steps: steps || [], usd, outcome }] });
+  return [one('a', 0.1, "What's the weather like in Paris?", 'Paris is about 14 degrees and cloudy today.', 'question', 0.0031),
+    one('b', 0.3, 'YouTube Khol Ke Batao?', 'Opened YouTube.', 'did', 0, ['Opening youtube.com']),
+    one('c', 3, 'Show me how to make the text bigger', 'Press ⌘ and + together. Now you try it.', 'taught', 0.0062, ['Pointing at the View menu']),
+    one('d', 26, 'Sent the photo to Asha on WhatsApp', 'Sent it to Asha.', 'did', 0.0089, ['Clicking “Asha”', 'Clicking “Send”']),
+    one('e', 72, 'What does this pop-up mean?', 'It is asking if Chrome may send you notifications.', 'question', 0.0024),
+    one('f', 300, 'Printed the electricity bill', 'Printed.', 'did', 0.0051, ['Clicking “Print”'])];
+}
 // "activity": "auto" → a believable, repeatable 16 weeks ending today with a 5-day streak.
 function activity() {
   const out = {}, d = new Date(); let seed = 7;
@@ -240,6 +259,7 @@ function activity() {
 async function load() {
   db = times(clone(FIXTURES[ui.fx]));
   if (db.state && db.state.activity === 'auto') db.state.activity = activity();
+  db.conversations = conversations(ui.fx);
   if (db.state && typeof db.state === 'object') db.state.lang = ui.lang;
   db.prefs.lang = ui.lang;
   if (!page) page = await (await fetch('../ui/home.html', { cache: 'no-store' })).text();
@@ -255,7 +275,8 @@ async function load() {
   const [w, h] = SIZES[ui.w];
   frame.style.width = (BARE ? Math.min(w, innerWidth) : w) + 'px'; frame.style.height = (BARE ? innerHeight : h) + 'px';
   windowChrome();
-  frame.onload = () => { theme(); if (BARE) fitHeight(); };
+  frame.onload = () => { theme(); if (BARE) fitHeight();
+    if (q.get('open')) setTimeout(() => frame.contentDocument.querySelector(`[data-toggle="${q.get('open')}"]`)?.click(), 900); };
   frame.srcdoc = page.replace('<head>', inject);
   paint();
 }

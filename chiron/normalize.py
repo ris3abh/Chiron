@@ -32,6 +32,7 @@ VERBS = {
     'send': ('bhej do', 'bhejo', 'send karo', 'send kar do', 'send'),
     'type': ('likh do', 'likho', 'type karo', 'type kar do', 'type'),
 }
+GO_ON = re.compile(r'yes|yes please|go on|continue|carry on|haan|ha|haan ji|aage bolo|aage batao|bolte raho|हाँ|हां|हाँ जी|आगे बोलो|आगे बताओ')
 PHRASES = {'phir se bolo': 'say that again', 'fir se bolo': 'say that again', 'dobara bolo': 'say that again', 'wapas bolo': 'say that again',
            'repeat that': 'say that again', 'say it again': 'say that again', 'say that again': 'say that again'}
 ALL_VERBS = sorted(((form, verb) for verb, forms in VERBS.items() for form in forms), key=lambda v: -len(v[0]))

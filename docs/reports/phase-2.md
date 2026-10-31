@@ -106,3 +106,33 @@ macOS voices Lekha and Rishi spoke 10 asks each into `--speech-eval`. This is a 
 
 ### Tests
 - `python3 -m unittest discover -s tests -v`: **623 tests, 0 failures, 114 skipped.** Two assertions that the box follows the pointer went with that feature.
+
+---
+
+## Addendum: Connections, Conversations, cloud voice
+
+### Built
+- **Settings → Connections:** flat rows, one amber radio, status in green or grey. Only the chosen AI model opens. Keys save on paste or blur, after the same test as the Test button, so a wrong key is never stored. Claude Code shows "Installed · Signed in · Max plan" from a real tier (`tier` in `claude_plan()`).
+- **Conversations tab** (`chiron/conversations.py`, `#conversations` in `ui/home.html`): grouped, searchable, opens a full thread with Copy and Ask again; Delete and Clear all take two presses. Home shows the last 5 with See all.
+- **Cloud voice** (`chiron/tts.py`, `chiron.py --speak`): Chirp 3 HD, then WaveNet, then Apple. Spoken version with numbers as words in English and Hindi, sentence-by-sentence playback, a stop at about 120 words with "Shall I go on?", a cache by text, voice and speed, characters and cost in `usage.jsonl`. New Keychain account `google`.
+
+### Decisions
+- **No `history.jsonl` exists.** Conversations reads `log.jsonl` and `chats.json`. A conversation is a run of asks under 5 minutes apart.
+- **Delete keeps the cost row.** `log.jsonl` is also the spend ledger, so deleting removes the words only; the month's spend does not drop.
+- **Not true streaming:** Google's streaming is gRPC and this app has no gRPC client, so it sends one REST request per sentence. The first sentence still plays while the rest are fetched.
+- **`[pause]`:** paragraph breaks are a timed gap between sentences, since each sentence is its own request.
+- **Row marks are plain icons,** not the companies' logos.
+- **`frontend-design` skill:** not available in this session.
+- **A sidebar with two views** goes back on the earlier one-page review; `docs/BUILD_PLAN.md` still says one page.
+
+### Cost
+- Chirp 3 HD is $30 per million characters. A full 120-word spoken answer is about 600 characters, so about **$0.018**, more than most asks cost in the model ($0.003 to $0.009 here). At the $5 cap that is about 275 full spoken answers a month, before any free tier, and it shares the cap with asks.
+- `wavenet` in `prices.json` ($16 per million) could not be confirmed: Google's pricing page would not load.
+
+### Compiled but unverified
+- **The cloud voice has never spoken:** no Google key yet, so every test uses recorded responses. Voice names follow Google's documented pattern and are unconfirmed for hi-IN and en-IN.
+- Stopping on fn or Esc is wired through `shush()` and SIGTERM but untested live.
+- Conversations was checked with the mock and real `log.jsonl` data through Python, not clicked in the real app.
+
+### Tests
+- `python3 -m unittest discover -s tests -v`: **640 tests, 0 failures, 114 skipped.** New: `test_tts`, `test_conversations`.

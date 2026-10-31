@@ -13,7 +13,7 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
     func detach(_ web: WKWebView?) { if let web { pages[ObjectIdentifier(web)] = nil } }
 
     // Prefs the page may write. Anything else (paused, safe, hotkeys) keeps its own native path.
-    static let writable: Set<String> = ["lang", "cap", "brain", "apiBase", "apiModel", "jevBase", "openaiModel", "theme", "talkKey", "speak", "speakRate", "voice.en", "voice.hi"]
+    static let writable: Set<String> = ["lang", "cap", "brain", "apiBase", "apiModel", "jevBase", "openaiModel", "theme", "talkKey", "speak", "speakRate", "voice.en", "voice.hi", "ttsVoice.en", "ttsVoice.hi"]
     // The page's names for prefs whose stored key predates it (apiBase/apiModel).
     static let aliases = ["capUsd": "cap", "customUrl": "apiBase", "customModel": "apiModel", "jevBaseUrl": "jevBase"]
     // Changing these must not reuse a Claude worker started with the old brain or key.
@@ -76,7 +76,7 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
             handle("prefs.set", ["k": "brain", "v": args["kind"] ?? ""], reply)
         case "conn.list":
             var out: [String: Any] = [:]
-            for name in ["anthropic", "openai", "jev", "custom"] { out[name] = Keychain.masked(name) }
+            for name in ["anthropic", "openai", "jev", "custom", "google"] { out[name] = Keychain.masked(name) }
             var jev = out["jev"] as? [String: Any] ?? [:]; jev["base_url"] = Prefs.str("jevBase"); out["jev"] = jev
             var custom = out["custom"] as? [String: Any] ?? [:]; custom["url"] = Prefs.str("apiBase"); custom["model"] = Prefs.str("apiModel"); out["custom"] = custom
             out["brain"] = Prefs.str("brain").isEmpty ? "claude-code" : Prefs.str("brain")
@@ -99,7 +99,7 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
             Onboarding.plan { c in
                 let need = c["need"] as? String ?? ""
                 reply(["installed": need != "install", "signedIn": need != "install" && need != "login",
-                       "plan": need == "upgrade" ? "free" : (c["ok"] as? Bool == true ? "ok" : ""), "ok": c["ok"] as? Bool ?? false,
+                       "plan": c["tier"] as? String ?? "", "ok": c["ok"] as? Bool ?? false,
                        "text": c["text"] as? String ?? ""], nil)
             }
         case "claudeCode.setup":
@@ -134,6 +134,18 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
         case "ask.start":   // Home's Ask button: the same box and listening as the shortcut or the menu's Ask
             app.clickTalk = true; app.start(); if !app.engine.isRunning { app.clickTalk = false }
             reply(["ok": true], nil)
+        case "conversations.list":
+            HomeBridge.python(["--home-do", method], args) { reply($0 ?? [:], nil) }
+        case "conversations.delete":
+            HomeBridge.python(["--home-do", method], args) { reply($0 ?? ["ok": false], nil) }
+        case "conversations.clear":
+            HomeBridge.python(["--home-do", method], args) { reply($0 ?? ["ok": false], nil) }
+        case "ask.again":
+            guard let text = args["text"] as? String, !text.isEmpty, !app.busy, !app.engine.isRunning else { return reply(["ok": false], nil) }
+            app.typed(text, keep: true); reply(["ok": true], nil)
+        case "clipboard.copy":
+            guard let text = args["text"] as? String else { return reply(["ok": false], nil) }
+            NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string); reply(["ok": true], nil)
         case "speech.status":
             reply(SpeechLocale.status, nil)
         case "speech.test":
@@ -154,6 +166,10 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
             let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/say")
             p.arguments = readAloudArguments(line, pick: { chosen.isEmpty ? usableReadAloudVoice($0) : chosen }, rate: sayRate(rate)) {}
             try? p.run(); app.voice = p
+            reply(["ok": true], nil)
+        case "tts.preview":
+            let lang = ["en", "hi"].contains(args["lang"] as? String ?? "") ? args["lang"] as! String : "en"
+            app.speakCloud(Strings.table(lang)["voice.preview"] ?? "", lang: lang, voice: args["voice"] as? String)
             reply(["ok": true], nil)
         case "globe.fix":
             Chiron.settings.handle(["do": "globeKey"]); reply(["ok": true], nil)

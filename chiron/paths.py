@@ -75,7 +75,7 @@ def app_binary():
     return os.environ.get('CHIRON_APP') or os.path.join(HOME, 'Applications/Chiron.app/Contents/MacOS/Chiron')
 
 
-SECRETS = ('anthropic', 'openai', 'jev', 'custom')
+SECRETS = ('anthropic', 'openai', 'jev', 'custom', 'google')
 
 
 def secret(name):

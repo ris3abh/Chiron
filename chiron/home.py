@@ -7,7 +7,7 @@ import pwd
 import time
 from datetime import datetime, timedelta
 
-from chiron import i18n, jev, paths, providers, usage
+from chiron import conversations, i18n, jev, paths, providers, tts, usage
 
 RECENT = 10
 ACTIVITY_DAYS = 112   # 16 weeks: the Insights heatmap
@@ -150,7 +150,7 @@ def remember(name, result):
 
 
 ERRORS = {'rejected': 'conn.result.rejected', 'offline': 'conn.result.offline', 'server': 'conn.result.server',
-          'nokey': 'conn.result.nokey', 'missing': 'conn.result.missing', 'retry': 'conn.result.offline'}
+          'nokey': 'conn.result.nokey', 'missing': 'conn.result.missing', 'retry': 'conn.result.offline', 'voice': 'conn.result.voice'}
 
 
 def test(name, value=None):
@@ -167,12 +167,17 @@ def test(name, value=None):
             if value is not None: p.key = value
             reply = p.ask('Reply with the single word OK.', 'Test', max_tokens=5, purpose='test', timeout=20)
             result = {'ok': True, 'detail': i18n.t('conn.result.ok'), 'ms': reply.ms, 'usd': reply.usd}
+        elif name == 'google':
+            key = value if value is not None else paths.secret('google')
+            if not key: raise jev.JevError('nokey')
+            r = tts.test(key)
+            result = {'ok': True, 'detail': i18n.t('conn.result.ok'), 'ms': r['ms'], 'usd': r['usd']}
         elif name == 'claude-code':
             reply = providers.ClaudeCodeProvider().ask('Reply with the single word OK.', 'Test', max_tokens=5, purpose='test', timeout=60)
             result = {'ok': True, 'detail': i18n.t('conn.result.ok'), 'ms': reply.ms, 'usd': reply.usd}
         else:
             return {'ok': False, 'detail': i18n.t('conn.result.server'), 'ms': 0, 'usd': 0.0}
-    except (providers.ProviderError, jev.JevError) as e:
+    except (providers.ProviderError, jev.JevError, tts.TTSError) as e:
         result = {'ok': False, 'detail': i18n.t(ERRORS.get(e.kind, 'conn.result.server')), 'ms': int((time.monotonic() - started) * 1000), 'usd': 0.0,
                   'kind': e.kind}
     if value is None or result['ok']: remember(name, result)
@@ -184,6 +189,9 @@ def do(method, args):
     args = args if isinstance(args, dict) else {}
     if method == 'state.get': return state()
     if method == 'conn.test': return test(str(args.get('name', '')), args.get('value'))
+    if method == 'conversations.list': return {'items': conversations.listing()}
+    if method == 'conversations.delete': return conversations.delete(str(args.get('id', '')))
+    if method == 'conversations.clear': return conversations.clear()
     if method == 'usage.month': return {'month_usd': usage.month_total(), 'cap_usd': usage.cap(), 'by_engine': usage.by_engine()}
     raise KeyError(method)
 

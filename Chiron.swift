@@ -1743,7 +1743,10 @@ final class App: NSObject, WKScriptMessageHandler {
         if Prefs.bool("autoCopy") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(a, forType: .string) }
         if Prefs.bool("speak") && aloud {
             let arguments = readAloudArguments(spoken(a), rate: sayRate()) { voiceQualityTip() }
-            shush(); let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/say"); p.arguments = arguments
+            shush()
+            // A Google key: the cloud voice, with Apple's arguments for its fallback. No key: Apple's voice, no helper process.
+            if Keychain.has("google") { return speakCloud(a, lang: Strings.lang, voice: nil, fallback: Array(arguments.prefix { $0 != "--" })) }
+            let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/say"); p.arguments = arguments
             voiceBar.state("speaking")
             p.terminationHandler = { [weak self] _ in DispatchQueue.main.async {
                 guard let self, self.voice === p else { return }; self.voice = nil; voiceBar.idle(); voiceBar.answerEnded(); self.hide(after: 2)

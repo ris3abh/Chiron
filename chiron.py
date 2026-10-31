@@ -1774,6 +1774,11 @@ def fast(text):
     text = normalize.command(text.strip(), pref('dictateWords', []))   # "कैलकुलेटर खोलो" and "calculator kholo" are "open calculator" from here on
     if text == 'say that again':
         return None if os.environ.get('CHIRON_LIVE') == '1' else last_spoken()
+    if normalize.GO_ON.fullmatch(normalize.clean(text)) and os.environ.get('CHIRON_LIVE') != '1':   # "Shall I go on?" "Yes."
+        from chiron import tts
+        rest = tts.pending_rest()
+        if rest:
+            tts.clear_rest(); return rest['text']
     named = named_shortcut(text)
     if named and pref('learn', True):
         if os.environ.get('CHIRON_LIVE') == '1': return None
@@ -2939,11 +2944,11 @@ def claude_plan():
     if not s.get('loggedIn'):
         return {'ok': False, 'need': 'login', 'text': 'Sign in to Claude to start.'}
     if s.get('authMethod') != 'claude.ai':
-        return {'ok': True, 'need': '', 'text': 'Using your Anthropic API key (billed per use).'}
+        return {'ok': True, 'need': '', 'text': 'Using your Anthropic API key (billed per use).', 'tier': 'api'}
     sub = (s.get('subscriptionType') or '').lower()
     if sub in ('', 'free'):
-        return {'ok': False, 'need': 'upgrade', 'text': 'Chiron needs a paid Claude plan (Pro or Max).'}
-    return {'ok': True, 'need': '', 'text': f'Using your Claude {sub.title()} plan.'}
+        return {'ok': False, 'need': 'upgrade', 'text': 'Chiron needs a paid Claude plan (Pro or Max).', 'tier': 'free'}
+    return {'ok': True, 'need': '', 'text': f'Using your Claude {sub.title()} plan.', 'tier': sub}
 
 
 def stop_claude(p):
@@ -4589,6 +4594,9 @@ def main():
         except ValueError: request = {}
         try: return print(json.dumps(home.do(args[1], request), ensure_ascii=False))
         except KeyError: print(json.dumps({'error': 'unknown method ' + args[1]})); return sys.exit(2)
+    if args[:1] == ['--speak']:   # a reply read aloud with the cloud voice; Swift starts it and ends it on the talk key or Esc
+        from chiron import tts
+        return tts.main(args[1:])
     if args[:1] == ['--speech-eval']:   # accuracy per language and engine over tests/audio (see its README)
         from chiron import speech_eval
         return print(speech_eval.report(args[1] if len(args) > 1 else None))

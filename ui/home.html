@@ -263,6 +263,55 @@ h1.greet { margin-bottom: 26px; }
 .switch:checked { background: var(--good); }
 .switch:checked::after { transform: translateX(20px); }
 
+/* ---------- Conversations ---------- */
+.conv-search { margin-bottom: 24px; }
+.rows > li.conv-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto auto auto; gap: 6px 14px; align-items: center; padding: 8px 8px 8px 20px; border-top: 1px solid var(--line); cursor: pointer; }
+.conv-open { all: unset; cursor: pointer; font-weight: 500; overflow-wrap: anywhere; min-height: 44px; display: flex; align-items: center; }
+.conv-open:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.conv-row time, .conv-row .usd { color: var(--ink-3); font-size: var(--small); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip[data-kind="did"] { color: var(--good-text); background: color-mix(in srgb, var(--good) 14%, transparent); }
+.chip[data-kind="taught"] { color: var(--accent-text); background: var(--accent-soft); }
+.conv-head { margin: 10px 0 4px; }
+#convTurns { margin-top: 24px; display: grid; gap: 28px; }
+.turn-q { font-weight: 600; font-size: 19px; overflow-wrap: anywhere; }
+.turn-a { color: var(--ink); margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.turn-steps { margin-top: 10px; color: var(--ink-2); font-size: var(--small); display: grid; gap: 2px; padding-left: 14px; border-left: 2px solid var(--line-2); }
+.see-all { margin-top: 10px; }
+.rows > li.conv-row:hover { background: var(--hover); }
+@container (max-width: 620px) { .rows > li.conv-row { grid-template-columns: minmax(0, 1fr) auto auto; padding-left: 16px; } .conv-row time, .conv-open { grid-column: 1 / -1; } }
+
+/* ---------- Connections: flat rows, one amber radio, status in green or grey ---------- */
+.conn-group + .conn-group { margin-top: 24px; }
+.conn-group > h3 { margin-bottom: 10px; }
+.conn-list { border-top: 1px solid var(--line); }
+.conn-item { border-bottom: 1px solid var(--line); }
+.conn-row { width: 100%; min-height: 64px; display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 4px; border: 0; background: transparent; cursor: pointer; text-align: left; transition: background var(--dur) var(--ease); }
+.conn-row:not(:has(.radio)) { grid-template-columns: auto minmax(0, 1fr) auto; }
+.conn-row:hover { background: var(--hover); }
+.conn-row .t { min-width: 0; } .conn-row .t b { display: block; font-weight: 600; } .conn-row .t small { display: block; color: var(--ink-2); font-size: var(--small); }
+.radio { width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--ink-3); flex: none; }
+[aria-checked="true"] > .radio { box-shadow: inset 0 0 0 6px var(--accent); }
+.logo { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--card-2); color: var(--ink-2); flex: none; }
+.logo svg.i { width: 20px; height: 20px; }
+.status { font-size: var(--tiny); font-weight: 650; padding: 3px 10px; border-radius: 99px; background: var(--card-2); color: var(--ink-2); white-space: nowrap; }
+.status[data-on="1"] { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good-text); }
+.conn-body { padding: 4px 4px 20px; display: grid; gap: 14px; }
+.conn-row:has(.radio) + .conn-body { padding-left: 36px; }
+.quiet-line { color: var(--ink-2); }
+.kf-view { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 44px; color: var(--ink-3); }
+.kf-view .mask { background: none; padding: 0; min-height: 0; color: var(--ink); }
+.text-btn { min-height: 44px; padding: 0 2px; border: 0; background: none; color: var(--ink-2); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-2); }
+.text-btn:hover { color: var(--ink); }
+.text-btn.confirm { color: var(--danger-text); }
+.kf-result:empty { display: none; }
+.keyfield .kf-result { flex-basis: 100%; }
+.voice-pick { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 1.2fr) auto; gap: 10px; align-items: center; }
+#sec-connections .voice-pick select.input { min-width: 0; width: 100%; }
+#sec-connections .btn.quiet, #sec-connections .link-btn, #sec-connections details.adv summary { color: var(--ink-2); }
+#sec-connections .btn.quiet { padding-inline: 12px; }
+#sec-connections .card { all: unset; }
+.set-main.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent); }
+
 /* ---------- Dictionary (Settings → Voice) ---------- */
 .add-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .add-row { margin-bottom: 14px; }
@@ -384,6 +433,8 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
 }
 /* Below 760 px the sidebar keeps only its icons. */
 @media (max-width: 759px) {
+  .voice-pick { grid-template-columns: minmax(0, 1fr) auto; } .voice-pick label { grid-column: 1 / -1; }
+  .conn-row:has(.radio) + .conn-body { padding-left: 4px; }
   :root { --side: 76px; }
   nav.side { padding: 0 8px 12px 12px; align-items: stretch; }
   .nav-btn { justify-content: center; padding: 10px; }
@@ -421,6 +472,8 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
       </div>
       <button class="nav-btn" type="button" data-view="home" aria-current="page">
         <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-5v-6h-5v6h-5a1 1 0 0 1-1-1z"/></svg><span class="label" data-i18n="nav.home">Home</span></button>
+      <button class="nav-btn" type="button" data-view="conversations">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8 8 0 0 1-11.7 7.1L3.5 20l1.4-5.1a8 8 0 1 1 15.6-3.4z"/></svg><span class="label" data-i18n="nav.conversations">Conversations</span></button>
       <div class="grow"></div>
       <div class="side-card" id="sideTip">
         <b data-i18n="side.tip.title">Dictate anywhere</b>
@@ -488,6 +541,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
               <h2 id="recentT" class="sr" data-i18n="home.activity.title">Activity</h2>
               <div id="recentList"></div>
               <p class="empty" id="recentEmpty" data-i18n="home.recent.empty" hidden>Nothing yet. What you ask and learn will show up here.</p>
+              <button class="text-btn see-all" type="button" id="seeAll" data-i18n="home.seeAll">See all</button>
             </section>
           </div>
 
@@ -517,6 +571,27 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
             </section>
           </aside>
         </div>
+      </main>
+
+      <!-- ==================== CONVERSATIONS ==================== -->
+      <main id="conversations" class="view" tabindex="-1" hidden>
+        <div id="convList">
+          <div class="page-head"><h1 data-i18n="conv.title">Conversations</h1>
+            <button class="btn" type="button" id="convClear" data-i18n="conv.clear" hidden>Clear all</button></div>
+          <label class="sr" for="convSearch" data-i18n="conv.search">Search your conversations</label>
+          <input class="input conv-search" id="convSearch" type="search" autocomplete="off" spellcheck="false" data-i18n-placeholder="conv.search">
+          <div id="convGroups"></div>
+          <p class="empty" id="convEmpty" hidden></p>
+        </div>
+        <article id="convThread" hidden>
+          <button class="text-btn" type="button" id="convBack" data-i18n="conv.back">Back to conversations</button>
+          <div class="page-head conv-head"><h1 id="convTitle"></h1>
+            <div class="actions"><button class="btn" type="button" id="convCopy" data-i18n="conv.copy">Copy</button>
+              <button class="btn primary" type="button" id="convAgain" data-i18n="conv.again">Ask again</button>
+              <button class="btn danger" type="button" id="convDelete" data-i18n="conv.delete">Delete</button></div></div>
+          <p class="sub num" id="convMeta"></p>
+          <div id="convTurns"></div>
+        </article>
       </main>
 
     </div>
@@ -607,58 +682,53 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
 
       <section class="set-sec" id="sec-connections" aria-labelledby="connT" hidden>
         <header><h2 id="connT" data-i18n="settings.conn.title">Connections</h2><span class="saved" role="status" aria-live="polite"></span></header>
-        <div class="group-title"><h3 data-i18n="settings.conn.brain.title">Brain</h3></div>
-        <p class="help" data-i18n="settings.conn.brain.help">Choose what Chiron thinks with. You only need one.</p>
-        <div class="brain-grid" id="brainGrid">
-          <article class="card" data-brain="claude-code">
-            <div class="card-head"><div class="t"><h3 data-i18n="settings.conn.cc.title">Claude Code</h3><p data-i18n="settings.conn.cc.sub">Uses your Claude plan. Best for doing tasks on your Mac.</p></div>
-              <button class="btn pick" type="button" aria-pressed="false" data-pick="claude-code"><span data-i18n="settings.conn.brain.use">Use this</span></button></div>
-            <ul class="status-list" id="ccStatus" aria-live="polite">
-              <li data-cc="installed"><i class="dot" aria-hidden="true"></i><span></span></li>
-              <li data-cc="signedIn"><i class="dot" aria-hidden="true"></i><span></span></li>
-              <li data-cc="plan"><i class="dot" aria-hidden="true"></i><span></span></li>
-            </ul>
-            <p class="callout" id="ccNote" role="status" hidden data-i18n="settings.conn.cc.setupStarted">A setup window has opened. Follow it, then press Check again.</p>
-            <div class="actions">
-              <button class="btn primary" type="button" id="ccSetup" data-i18n="settings.conn.cc.setup">Set up</button>
-              <button class="btn" type="button" id="ccRecheck" data-i18n="settings.conn.cc.recheck">Check again</button>
-            </div>
-          </article>
-          <article class="card" data-brain="anthropic">
-            <div class="card-head"><div class="t"><h3 data-i18n="settings.conn.anthropic.title">Anthropic API key</h3><p data-i18n="settings.conn.anthropic.sub">Pay only for what you use, straight from Anthropic.</p></div>
-              <button class="btn pick" type="button" aria-pressed="false" data-pick="anthropic"><span data-i18n="settings.conn.brain.use">Use this</span></button></div>
-            <div data-keyfield="anthropic"></div>
-          </article>
-          <article class="card" data-brain="openai">
-            <div class="card-head"><div class="t"><h3 data-i18n="settings.conn.openai.title">OpenAI API key</h3><p data-i18n="settings.conn.openai.sub">Pay only for what you use, from OpenAI.</p></div>
-              <button class="btn pick" type="button" aria-pressed="false" data-pick="openai"><span data-i18n="settings.conn.brain.use">Use this</span></button></div>
-            <div data-keyfield="openai"></div>
-            <p class="callout" data-i18n="settings.conn.openai.note">Lessons, papers and questions work; open-ended Mac tasks need Claude.</p>
-          </article>
-          <article class="card" data-brain="custom">
-            <div class="card-head"><div class="t"><h3 data-i18n="settings.conn.custom.title">Custom server</h3><p data-i18n="settings.conn.custom.sub">A model running on your own computer or network.</p></div>
-              <button class="btn pick" type="button" aria-pressed="false" data-pick="custom"><span data-i18n="settings.conn.brain.use">Use this</span></button></div>
-            <div class="field"><label for="customUrl" data-i18n="settings.conn.custom.address">Address</label>
-              <input class="input" id="customUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="localhost:11434"></div>
-            <div data-keyfield="custom" data-label="settings.key.customLabel"></div>
-            <div class="field"><label for="customModel" data-i18n="settings.conn.custom.model">Model</label>
-              <select class="input" id="customModel"></select></div>
-            <div class="actions"><button class="btn" type="button" id="scan" data-i18n="settings.conn.custom.scan">Find local servers</button><span class="kf-result" id="scanState" role="status" aria-live="polite"></span></div>
-            <ul class="server-list" id="servers" hidden></ul>
-          </article>
+        <div class="conn-group">
+          <h3 id="brainT" data-i18n="settings.conn.brain.title">AI model</h3>
+          <div class="conn-list" role="radiogroup" aria-labelledby="brainT" id="brainGrid">
+          <div class="conn-item" data-brain="claude-code"><button class="conn-row" type="button" role="radio" aria-checked="false" data-pick="claude-code"><span class="radio" aria-hidden="true"></span><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M4 6.5 9 12l-5 5.5M12 18h8"/></svg></span><span class="t"><b data-i18n="settings.conn.cc.title"></b><small data-i18n="settings.conn.cc.sub"></small></span><span class="status" data-chip></span></button>
+            <div class="conn-body" hidden>
+              <p class="quiet-line" id="ccLine" role="status" aria-live="polite"></p>
+              <p class="sub" id="ccNote" role="status" hidden data-i18n="settings.conn.cc.setupStarted"></p>
+              <div class="actions" id="ccActions"><button class="btn" type="button" id="ccSetup" data-i18n="settings.conn.cc.setup"></button><button class="btn quiet" type="button" id="ccRecheck" data-i18n="settings.conn.cc.recheck"></button></div></div></div>
+          <div class="conn-item" data-brain="anthropic"><button class="conn-row" type="button" role="radio" aria-checked="false" data-pick="anthropic"><span class="radio" aria-hidden="true"></span><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9"/></svg></span><span class="t"><b data-i18n="settings.conn.anthropic.title"></b><small data-i18n="settings.conn.anthropic.sub"></small></span><span class="status" data-chip></span></button>
+            <div class="conn-body" hidden><div data-keyfield="anthropic"></div></div></div>
+          <div class="conn-item" data-brain="openai"><button class="conn-row" type="button" role="radio" aria-checked="false" data-pick="openai"><span class="radio" aria-hidden="true"></span><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/></svg></span><span class="t"><b data-i18n="settings.conn.openai.title"></b><small data-i18n="settings.conn.openai.sub"></small></span><span class="status" data-chip></span></button>
+            <div class="conn-body" hidden><div data-keyfield="openai"></div><p class="sub" data-i18n="settings.conn.openai.note"></p></div></div>
+          <div class="conn-item" data-brain="custom"><button class="conn-row" type="button" role="radio" aria-checked="false" data-pick="custom"><span class="radio" aria-hidden="true"></span><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="6" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/></svg></span><span class="t"><b data-i18n="settings.conn.custom.title"></b><small data-i18n="settings.conn.custom.sub"></small></span><span class="status" data-chip></span></button>
+            <div class="conn-body" hidden>
+              <div class="field"><label for="customUrl" data-i18n="settings.conn.custom.address"></label>
+                <input class="input" id="customUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="localhost:11434"></div>
+              <div data-keyfield="custom" data-label="settings.key.customLabel"></div>
+              <div class="field"><label for="customModel" data-i18n="settings.conn.custom.model"></label><select class="input" id="customModel"></select></div>
+              <div class="actions"><button class="btn" type="button" id="scan" data-i18n="settings.conn.custom.scan"></button><span class="kf-result" id="scanState" role="status" aria-live="polite"></span></div>
+              <ul class="server-list" id="servers" hidden></ul></div></div>
+          </div>
         </div>
-        <div class="group-title"><h3 data-i18n="settings.conn.jev.title">Jev</h3></div>
-        <p class="help" data-i18n="settings.conn.jev.help">Jev does the quick yes-or-no checks during lessons, for a tiny fraction of a cent. Get a key from TypeSafe.</p>
-        <div class="card" id="jevCard">
-          <div data-keyfield="jev"></div>
-          <p class="callout" id="jevFallback" hidden data-i18n="settings.conn.jev.fallback">No Jev key yet: Chiron will use Claude for checks, which costs a little more.</p>
-          <details class="adv">
-            <summary data-i18n="settings.conn.jev.advanced">Advanced</summary>
-            <div class="field"><label for="jevBase" data-i18n="settings.conn.jev.baseUrl">Base address</label>
-              <input class="input" id="jevBase" type="url" inputmode="url" autocomplete="off" spellcheck="false">
-              <span class="sub" data-i18n="settings.conn.jev.baseUrlHelp">Leave this as it is unless TypeSafe asked you to change it.</span></div>
-          </details>
-          <div><button class="link-btn" type="button" data-open="https://docs.typesafe.ai" data-i18n="settings.conn.jev.docs">Open TypeSafe guide</button></div>
+        <div class="conn-group">
+          <h3 data-i18n="settings.conn.checks">Quick checks</h3>
+          <div class="conn-list">
+          <div class="conn-item" data-conn="jev"><button class="conn-row" type="button" aria-expanded="false" data-toggle="jev"><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></svg></span><span class="t"><b data-i18n="settings.conn.jev.title"></b><small data-i18n="settings.conn.jev.help"></small></span><span class="status" data-chip></span></button>
+            <div class="conn-body" hidden>
+              <div data-keyfield="jev"></div>
+              <p class="sub" id="jevFallback" hidden data-i18n="settings.conn.jev.fallback"></p>
+              <details class="adv"><summary data-i18n="settings.conn.jev.advanced"></summary>
+                <div class="field"><label for="jevBase" data-i18n="settings.conn.jev.baseUrl"></label>
+                  <input class="input" id="jevBase" type="url" inputmode="url" autocomplete="off" spellcheck="false">
+                  <span class="sub" data-i18n="settings.conn.jev.baseUrlHelp"></span></div></details>
+              <div><button class="link-btn" type="button" data-open="https://docs.typesafe.ai" data-i18n="settings.conn.jev.docs"></button></div></div></div>
+          </div>
+        </div>
+        <div class="conn-group">
+          <h3 data-i18n="voice.conn.title">Voice (speaking)</h3>
+          <div class="conn-list">
+          <div class="conn-item" data-conn="voice"><button class="conn-row" type="button" aria-expanded="false" data-toggle="voice"><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5zM15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></span><span class="t"><b data-i18n="voice.conn.name"></b><small data-i18n="voice.conn.sub"></small></span><span class="status" data-chip></span></button>
+            <div class="conn-body" hidden>
+              <div data-keyfield="google" data-label="voice.conn.key"></div>
+              <p class="sub" data-i18n="voice.conn.help"></p>
+              <div class="voice-pick"><label for="tts-en" data-i18n="voice.speak.en"></label><select class="input" id="tts-en"></select><button class="btn" type="button" data-ttspreview="en" data-i18n="voice.speak.preview"></button></div>
+              <div class="voice-pick"><label for="tts-hi" data-i18n="voice.speak.hi"></label><select class="input" id="tts-hi"></select><button class="btn" type="button" data-ttspreview="hi" data-i18n="voice.speak.preview"></button></div>
+              <span class="kf-result" id="ttsResult" role="status" aria-live="polite"></span></div></div>
+          </div>
         </div>
       </section>
 
@@ -744,7 +814,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
 const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 const S = { lang: 'en', state: {}, conn: {}, prefs: {}, perms: null, cc: null, info: null, servers: [], view: '', section: 'general',
-  dict: { words: [], fixes: {} }, speech: {}, voices: {}, settingsOpen: false, settingsLoaded: false, returnFocus: null };
+  dict: { words: [], fixes: {} }, speech: {}, voices: {}, convos: [], convOpen: null, settingsOpen: false, settingsLoaded: false, returnFocus: null };
 const LANGS = ['en', 'hi'];
 
 /* ---------------- Strings ---------------- */
@@ -982,7 +1052,7 @@ function dayLabel(key) {
   const [yy, mm, dd] = key.split('-').map(Number);
   return new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(yy, mm - 1, dd));
 }
-// Asks (last 10) and dictations (last 10) together, newest first, one list per day.
+// The last five asks and dictations together, newest first, one list per day.
 function renderRecent() {
   const host = $('#recentList'); host.textContent = '';
   const kinds = ['lesson', 'do', 'practice', 'guardian', 'paper', 'ask'];
@@ -991,7 +1061,9 @@ function renderRecent() {
     .sort((a, b) => (isFinite(b.at) ? b.at : -Infinity) - (isFinite(a.at) ? a.at : -Infinity)).slice(0, 10);
   const said = (Array.isArray(S.state.dictations) ? S.state.dictations : []).filter(d => obj(d) && typeof d.text === 'string' && d.text.trim())
     .slice(0, 10).map(d => ({ at: Date.parse(d.at), raw: d.at, text: d.text, kind: 'dictation', app: typeof d.app === 'string' ? d.app : '' }));
-  const rows = asks.concat(said).sort((a, b) => (isFinite(b.at) ? b.at : -Infinity) - (isFinite(a.at) ? a.at : -Infinity));
+  const all = asks.concat(said).sort((a, b) => (isFinite(b.at) ? b.at : -Infinity) - (isFinite(a.at) ? a.at : -Infinity));
+  const rows = all.slice(0, 5);   // the rest live in Conversations
+  $('#seeAll').hidden = !all.length;
   $('#recentEmpty').hidden = rows.length > 0;
   const time = new Intl.DateTimeFormat(locale(), { hour: 'numeric', minute: '2-digit' });
   let group = null, list = null;
@@ -1072,6 +1144,76 @@ function renderHome() {
   if (has('connections')) renderFooter();
   $('#heatCard').hidden = !has('activity');
   if (has('activity')) renderHeat();
+}
+
+/* ---------------- Conversations ---------------- */
+function convBucket(at) {
+  const d = new Date(String(at).replace(' ', 'T')); if (!isFinite(d)) return 'older';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days = Math.floor((today - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+  return days <= 0 ? 'today' : days === 1 ? 'yesterday' : days < 7 ? 'week' : 'older';
+}
+function convTime(at, bucket) {
+  const d = new Date(String(at).replace(' ', 'T')); if (!isFinite(d)) return '';
+  return new Intl.DateTimeFormat(locale(), bucket === 'today' || bucket === 'yesterday' ? { hour: 'numeric', minute: '2-digit' } : { day: 'numeric', month: 'short' }).format(d);
+}
+const convCost = usd => (isNum(usd) && usd > 0 ? fmtUSD(usd) : t('conv.free'));
+function twoPress(btn, word, confirmWord, run) {
+  if (!btn.classList.contains('confirm')) {
+    btn.classList.add('confirm'); btn.textContent = t(confirmWord);
+    clearTimeout(btn._t); btn._t = setTimeout(() => { btn.classList.remove('confirm'); btn.textContent = t(word); }, 4000);
+    return;
+  }
+  clearTimeout(btn._t); btn.classList.remove('confirm'); btn.textContent = t(word); run();
+}
+async function deleteConv(id) {
+  try { const r = await bridge.call('conversations.delete', { id }); if (r && r.ok === false) throw new Error('delete'); }
+  catch (e) { return toast(t('common.error')); }
+  S.convOpen = null; loadConvos();
+}
+function renderConvos() {
+  const list = (Array.isArray(S.convos) ? S.convos : []).filter(c => obj(c) && Array.isArray(c.turns));
+  const q = $('#convSearch').value.trim().toLowerCase();
+  const shown = !q ? list : list.filter(c => c.turns.some(x => (String(x.q) + ' ' + String(x.a)).toLowerCase().includes(q)));
+  const host = $('#convGroups'); host.textContent = '';
+  $('#convClear').hidden = !list.length;
+  $('#convEmpty').hidden = shown.length > 0;
+  $('#convEmpty').textContent = t(q ? 'conv.noMatch' : 'conv.empty');
+  ['today', 'yesterday', 'week', 'older'].forEach(bucket => {
+    const items = shown.filter(c => convBucket(c.at) === bucket);
+    if (!items.length) return;
+    const ol = el('ol', { class: 'rows' });
+    items.forEach(c => {
+      const open = e => { e.stopPropagation(); S.convOpen = c.id; renderThread(); };
+      const del = el('button', { class: 'text-btn', type: 'button', text: t('conv.delete'), 'aria-label': t('conv.deleteOne', { title: String(c.title) }) });
+      del.addEventListener('click', e => { e.stopPropagation(); twoPress(del, 'conv.delete', 'conv.deleteConfirm', () => deleteConv(c.id)); });
+      const kind = ['did', 'taught', 'question'].includes(c.outcome) ? c.outcome : 'question';
+      const li = el('li', { class: 'conv-row' }, el('time', { text: convTime(c.at, bucket) }), el('button', { class: 'conv-open', type: 'button', text: String(c.title), onclick: open }),
+        el('span', { class: 'chip', 'data-kind': kind, text: t('conv.outcome.' + kind) }), el('span', { class: 'usd', text: convCost(c.usd) }), del);
+      li.addEventListener('click', open); ol.append(li);
+    });
+    host.append(el('section', { class: 'day' }, el('h3', { class: 'eyebrow', text: t('conv.when.' + bucket) }), ol));
+  });
+  renderThread();
+}
+function renderThread() {
+  const c = (Array.isArray(S.convos) ? S.convos : []).find(x => obj(x) && x.id === S.convOpen);
+  $('#convList').hidden = !!c; $('#convThread').hidden = !c;
+  if (!c) return;
+  const kind = ['did', 'taught', 'question'].includes(c.outcome) ? c.outcome : 'question';
+  $('#convTitle').textContent = String(c.title);
+  $('#convMeta').textContent = [convTime(c.at, 'older'), t('conv.outcome.' + kind), convCost(c.usd)].filter(Boolean).join(' · ');
+  const host = $('#convTurns'); host.textContent = '';
+  c.turns.forEach(x => {
+    const steps = Array.isArray(x.steps) ? x.steps : [];
+    host.append(el('section', null, el('p', { class: 'turn-q', text: String(x.q) }),
+      steps.length ? el('div', { class: 'turn-steps' }, ...steps.map(s => el('div', { text: String(s) }))) : null,
+      el('p', { class: 'turn-a', text: String(x.a || '') })));
+  });
+}
+async function loadConvos() {
+  try { const r = obj(await bridge.call('conversations.list')); if (r) S.convos = r.items; } catch (e) { S.convos = []; }
+  renderConvos();
 }
 
 /* ---------------- Voice ---------------- */
@@ -1186,14 +1328,14 @@ function KeyField(host) {
   host.className = 'field keyfield';
   host.innerHTML = `
     <label for="${id}" data-i18n="${host.dataset.label || 'settings.key.label'}"></label>
-    <div class="input-row kf-view" hidden><span class="mask num"></span>
-      <button class="btn" type="button" data-act="replace" data-i18n="settings.key.replace">Replace</button>
-      <button class="btn danger" type="button" data-act="remove" data-i18n="settings.key.remove">Remove</button></div>
+    <div class="kf-view" hidden><span class="mask num"></span><span aria-hidden="true">·</span>
+      <button class="text-btn" type="button" data-act="replace" data-i18n="settings.key.replace">Replace</button><span aria-hidden="true">·</span>
+      <button class="text-btn" type="button" data-act="remove" data-i18n="settings.key.remove">Remove</button></div>
     <div class="input-row kf-edit"><input class="input" id="${id}" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" data-i18n-placeholder="settings.key.placeholder">
-      <button class="btn" type="button" data-act="save" data-i18n="settings.key.save">Save</button>
+      <button class="btn" type="button" data-act="test" data-i18n="settings.key.test">Test</button>
       <button class="btn quiet" type="button" data-act="cancel" data-i18n="settings.key.cancel" hidden>Cancel</button></div>
-    <div class="actions"><button class="btn" type="button" data-act="test" data-i18n="settings.key.test">Test</button><span class="kf-result" role="status" aria-live="polite"></span></div>`;
-  const f = fields[name] = { host, name, editing: false, input: $('input', host), result: $('.kf-result', host) };
+    <span class="kf-result" role="status" aria-live="polite"></span>`;
+  const f = fields[name] = { host, name, editing: false, tried: '', input: $('input', host), result: $('.kf-result', host) };
   const section = () => host.closest('.set-sec');
   const setResult = (kind, text, spin) => {
     f.result.className = 'kf-result' + (kind ? ' ' + kind : '');
@@ -1208,20 +1350,20 @@ function KeyField(host) {
       const r = await bridge.call('conn.save', { name, value });
       if (r && r.ok === false) throw new Error(r.detail || 'save');
       S.conn[name] = Object.assign({}, obj(S.conn[name]), { saved: true, last4: (r && r.last4) || value.slice(-4) });
-      f.input.value = ''; f.editing = false; renderKeyField(name); saved(section());
+      f.input.value = ''; f.tried = ''; f.editing = false; renderKeyField(name); renderChips(); saved(section());
       return true;
     } catch (e) { setResult('bad', errorText(e.message)); return false; }
   };
+  // Pasting or leaving the field saves, through the same test as the button: a wrong key is never stored.
+  const auto = () => { const v = f.input.value.trim(); if (v && v !== f.tried && !f.busy) { f.tried = v; testKey(name); } };
+  f.input.addEventListener('paste', () => setTimeout(auto, 0));
+  f.input.addEventListener('blur', auto);
   host.addEventListener('click', async e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const act = b.dataset.act;
     if (act === 'replace') { f.editing = true; renderKeyField(name); f.input.focus(); }
-    else if (act === 'cancel') { f.editing = false; f.input.value = ''; renderKeyField(name); }
-    else if (act === 'save') {
-      // Save means "test, then keep it only if it works": a wrong key is never stored.
-      if (!f.input.value.trim()) { setResult('bad', t('settings.key.empty')); f.input.focus(); return; }
-      await testKey(name);
-    } else if (act === 'remove') {
+    else if (act === 'cancel') { f.editing = false; f.input.value = ''; f.tried = ''; setResult('', ''); renderKeyField(name); }
+    else if (act === 'remove') {
       // Two presses: a stray click must not delete a key someone set up for a parent.
       if (!b.classList.contains('confirm')) {
         b.classList.add('confirm'); b.textContent = t('settings.key.removeConfirm');
@@ -1232,18 +1374,18 @@ function KeyField(host) {
       try {
         await bridge.call('conn.clear', { name });
         S.conn[name] = Object.assign({}, obj(S.conn[name]), { saved: false, last4: null });
-        renderKeyField(name); setResult('', t('settings.key.removed')); saved(section());
+        renderKeyField(name); renderChips(); setResult('', t('settings.key.removed')); saved(section());
         if (name === 'jev') { patchConnections({ jev: { ok: false, missing: true } }); }
       } catch (err) { setResult('bad', errorText(err.message)); }
-    } else if (act === 'test') testKey(name);
+    } else if (act === 'test') { f.tried = f.input.value.trim(); testKey(name); }
   });
-  f.input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('[data-act=save]', host).click(); } if (e.key === 'Escape' && f.editing) $('[data-act=cancel]', host).click(); });
+  f.input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); auto(); } if (e.key === 'Escape' && f.editing) { e.stopPropagation(); $('[data-act=cancel]', host).click(); } });
 }
 async function testKey(name) {
   const f = fields[name], c = obj(S.conn[name]) || {};
-  const typed = (!c.saved || f.editing) ? f.input.value.trim() : '';
+  const typed = f.input.value.trim();
   if (!c.saved && !typed) { f.setResult('bad', t('settings.key.empty')); f.input.focus(); return; }
-  const btns = $$('[data-act=test],[data-act=save]', f.host); btns.forEach(b => { b.disabled = true; });
+  const btns = $$('[data-act=test]', f.host); btns.forEach(b => { b.disabled = true; }); f.busy = true;
   f.setResult('', t('settings.key.testing'), true);
   try {
     const r = await bridge.call('conn.test', typed ? { name, value: typed } : { name });
@@ -1254,7 +1396,7 @@ async function testKey(name) {
       else if (S.conn.brain === name) patchConnections({ brain: { kind: name, ok: true } });
     } else f.setResult('bad', errorText(r && r.detail, r && r.kind));
   } catch (e) { f.setResult('bad', errorText(e.message)); }
-  btns.forEach(b => { b.disabled = false; });
+  btns.forEach(b => { b.disabled = false; }); f.busy = false;
 }
 function renderKeyField(name) {
   const f = fields[name]; if (!f) return;
@@ -1268,14 +1410,14 @@ function renderKeyField(name) {
 }
 function renderBrain() {
   const kind = typeof S.conn.brain === 'string' ? S.conn.brain : (obj(obj(S.state.connections) && S.state.connections.brain) || {}).kind;
-  $$('[data-brain]').forEach(card => card.classList.toggle('on', card.dataset.brain === kind));
-  $$('[data-pick]').forEach(b => {
-    const on = b.dataset.pick === kind;
-    b.setAttribute('aria-pressed', String(on));
-    $('span', b).dataset.i18n = on ? 'settings.conn.brain.inUse' : 'settings.conn.brain.use';
-    $('span', b).textContent = t($('span', b).dataset.i18n);
+  $$('[data-brain]').forEach(item => {
+    const on = item.dataset.brain === kind;
+    item.classList.toggle('on', on);
+    $('.conn-body', item).hidden = !on;   // only the chosen row shows its fields
+    $('[data-pick]', item).setAttribute('aria-checked', String(on));
   });
-  ['anthropic', 'openai', 'custom', 'jev'].forEach(renderKeyField);
+  ['anthropic', 'openai', 'custom', 'jev', 'google'].forEach(renderKeyField);
+  renderChips();
   const jev = obj(S.conn.jev) || {};
   $('#jevFallback').hidden = !!jev.saved;
   const base = $('#jevBase');
@@ -1296,18 +1438,47 @@ function renderModels() {
   models.forEach(m => sel.append(el('option', { value: m, text: m })));
   sel.value = current || (models[0] || '');
 }
+// "Max plan", never a raw value like "ok" or "max".
+function planWords(plan) {
+  const p = String(plan || '').toLowerCase();
+  const known = ['max', 'pro', 'team', 'enterprise', 'free', 'api'].find(k => p.includes(k));
+  return !p ? '' : t('settings.conn.cc.plan.' + (known || 'active'));
+}
 function renderCC() {
-  const cc = S.cc, items = { installed: $('[data-cc=installed]'), signedIn: $('[data-cc=signedIn]'), plan: $('[data-cc=plan]') };
-  const line = (li, s, text) => { StatusDot($('.dot', li), s); $('span', li).textContent = text; };
-  if (!cc) { Object.values(items).forEach(li => line(li, 'off', t('settings.conn.cc.checking'))); $('#ccSetup').hidden = true; return; }
-  if (cc.error) { Object.values(items).forEach((li, i) => { li.hidden = i > 0; }); line(items.installed, 'warn', t('common.unavailable')); $('#ccSetup').hidden = false; return; }
-  Object.values(items).forEach(li => { li.hidden = false; });
-  line(items.installed, cc.installed ? 'ok' : 'warn', t(cc.installed ? 'settings.conn.cc.installed' : 'settings.conn.cc.notInstalled'));
-  items.signedIn.hidden = !cc.installed;
-  line(items.signedIn, cc.signedIn ? 'ok' : 'warn', t(cc.signedIn ? 'settings.conn.cc.signedIn' : 'settings.conn.cc.signedOut'));
-  items.plan.hidden = !cc.signedIn;
-  line(items.plan, cc.plan ? 'ok' : 'off', cc.plan ? t('settings.conn.cc.plan', { plan: String(cc.plan) }) : t('settings.conn.cc.planUnknown'));
-  $('#ccSetup').hidden = !!(cc.installed && cc.signedIn);
+  const cc = S.cc, line = $('#ccLine');
+  if (!cc) { line.textContent = t('settings.conn.cc.checking'); $('#ccActions').hidden = true; return; }
+  const ready = !cc.error && cc.installed && cc.signedIn;
+  line.textContent = cc.error ? t('common.unavailable') : [t(cc.installed ? 'settings.conn.cc.installed' : 'settings.conn.cc.notInstalled'),
+    cc.installed ? t(cc.signedIn ? 'settings.conn.cc.signedIn' : 'settings.conn.cc.signedOut') : '', cc.signedIn ? planWords(cc.plan) : ''].filter(Boolean).join(' · ');
+  $('#ccActions').hidden = !!ready;   // "Set up" only when something is missing
+  renderChips();
+}
+// Green for what is in use, grey for everything else. The only amber on this view is the chosen radio.
+function chip(host, word, on) { host.textContent = t(word); host.dataset.on = on ? '1' : ''; }
+function renderChips() {
+  const kind = typeof S.conn.brain === 'string' ? S.conn.brain : (obj(obj(S.state.connections) && S.state.connections.brain) || {}).kind;
+  const ready = { 'claude-code': !!(S.cc && S.cc.installed && S.cc.signedIn), anthropic: !!(obj(S.conn.anthropic) || {}).saved, openai: !!(obj(S.conn.openai) || {}).saved,
+    custom: !!(S.prefs.customUrl || (obj(S.conn.custom) || {}).url) };
+  $$('[data-brain]').forEach(item => {
+    const k = item.dataset.brain;
+    chip($('[data-chip]', item), k === kind && ready[k] ? 'settings.conn.active' : ready[k] ? 'settings.conn.ready' : 'settings.conn.notSet', k === kind && ready[k]);
+  });
+  const on = name => !!(obj(S.conn[name]) || {}).saved;
+  chip($('[data-conn=jev] [data-chip]'), on('jev') ? 'settings.conn.active' : 'settings.conn.notSet', on('jev'));
+  chip($('[data-conn=voice] [data-chip]'), on('google') ? 'settings.conn.active' : 'voice.conn.onMac', on('google'));
+}
+const TTS_VOICES = ['Kore', 'Aoede', 'Leda', 'Zephyr', 'Puck', 'Charon', 'Fenrir', 'Orus'];   // Chirp 3 HD names; one speaks both languages
+function renderTts() {
+  VOICE_LANGS.forEach(lang => {
+    const sel = $('#tts-' + lang), current = typeof S.prefs['ttsVoice.' + lang] === 'string' && S.prefs['ttsVoice.' + lang] || 'Kore';
+    if (!sel.options.length) TTS_VOICES.forEach(v => sel.append(el('option', { value: v, text: v })));
+    sel.value = current;
+    $(`[data-ttspreview=${lang}]`).disabled = !(obj(S.conn.google) || {}).saved;
+  });
+}
+function paintFade() {
+  const m = $('#setMain');
+  m.classList.toggle('more', m.scrollHeight - m.scrollTop - m.clientHeight > 8);   // a fade only while there is more below
 }
 function renderBudget() {
   const sp = obj(S.state.spend) || {};
@@ -1342,12 +1513,12 @@ function renderShortcuts() {
   rich($('#askHow'), t('settings.general.askHow'), talkKeys());
   rich($('#dictateHow'), t('settings.general.dictateHow'), talkKeys());
 }
-function renderSettings() { renderBrain(); renderCC(); renderBudget(); renderPerms(); renderAbout(); renderShortcuts(); renderVoice(); }
-function renderAll() { renderLangSwitches(); renderHome(); renderSettings(); renderDict(); paintTheme(); }
+function renderSettings() { renderBrain(); renderCC(); renderTts(); renderBudget(); renderPerms(); renderAbout(); renderShortcuts(); renderVoice(); }
+function renderAll() { renderLangSwitches(); renderHome(); renderSettings(); renderDict(); renderConvos(); paintTheme(); }
 
 async function loadConn() {
   try { const c = await bridge.call('conn.list'); S.conn = obj(c) || {}; } catch (e) { S.conn = {}; }
-  renderBrain();
+  renderBrain(); renderTts();
 }
 async function loadCC() {
   S.cc = null; renderCC();
@@ -1395,13 +1566,14 @@ function setTheme(theme) {
 }
 
 /* ---------------- Views ---------------- */
-const VIEWS = ['home'];   // one page: Home, with Settings as a sheet over it
+const VIEWS = ['home', 'conversations'];   // one page with two views, and Settings as a sheet over them
 function showView(view) {
   if (!VIEWS.includes(view)) view = 'home';
   S.view = view;
   VIEWS.forEach(v => { $('#' + v).hidden = v !== view; });
   $$('[data-view]').forEach(b => { if (b.dataset.view === view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   $('#panel').scrollTop = 0;
+  if (view === 'conversations') { S.convOpen = null; loadConvos(); }
 }
 function goView(view) {
   showView(view);
@@ -1414,7 +1586,7 @@ function showSection(section) {
   S.section = section;
   SECTIONS.forEach(s => { $('#sec-' + s).hidden = s !== section; });
   $$('[data-go]').forEach(b => b.setAttribute('aria-current', String(b.dataset.go === section)));
-  $('#setMain').scrollTop = 0;
+  $('#setMain').scrollTop = 0; paintFade();
   if (section === 'voice') { loadDict(); loadVoice(); }
 }
 function openSettings(section) {
@@ -1466,6 +1638,17 @@ function wire() {
   $('#todayStart').addEventListener('click', () => { const td = obj(S.state.today) || {}; bridge.call('practice.start', { skill: td.skill }).catch(() => toast(t('common.error'))); });
   $('#papersOpen').addEventListener('click', () => { const p = obj(S.state.papers) || {}; bridge.call('papers.open', { path: p.last && (p.last.path || p.last) }).catch(() => toast(t('common.error'))); });
   $('#dictForm').addEventListener('submit', addWord);
+  $('#seeAll').addEventListener('click', () => goView('conversations'));
+  $('#convSearch').addEventListener('input', renderConvos);
+  $('#convBack').addEventListener('click', () => { S.convOpen = null; renderThread(); });
+  const opened = () => (S.convos || []).find(c => obj(c) && c.id === S.convOpen);
+  $('#convCopy').addEventListener('click', () => { const c = opened(); if (c) bridge.call('clipboard.copy', { text: c.turns.map(x => x.q + '\n\n' + x.a).join('\n\n') }).then(() => toast(t('conv.copied'))).catch(() => toast(t('common.error'))); });
+  $('#convAgain').addEventListener('click', () => { const c = opened(); if (c) bridge.call('ask.again', { text: c.turns[0].q }).then(r => { if (r && r.ok === false) toast(t('conv.busy')); }).catch(() => toast(t('common.error'))); });
+  $('#convDelete').addEventListener('click', e => twoPress(e.currentTarget, 'conv.delete', 'conv.deleteConfirm', () => deleteConv(S.convOpen)));
+  $('#convClear').addEventListener('click', e => twoPress(e.currentTarget, 'conv.clear', 'conv.clearConfirm', async () => {
+    try { await bridge.call('conversations.clear'); } catch (err) { return toast(t('common.error')); }
+    loadConvos();
+  }));
   $$('[data-testvoice]').forEach(b => b.addEventListener('click', () => testVoice(b.dataset.testvoice, b)));
   $$('[data-talk]').forEach(b => b.addEventListener('click', async () => {
     S.prefs.talkKey = b.dataset.talk; renderTalk();
@@ -1487,13 +1670,28 @@ function wire() {
     try {
       const r = await bridge.call('brain.choose', { kind });
       if (r && r.ok === false) throw new Error(r.detail || 'choose');
-      S.conn.brain = kind; patchConnections({ brain: { kind } }); renderBrain(); renderToday(); saved($('#sec-connections'));
+      S.conn.brain = kind; patchConnections({ brain: { kind } }); renderBrain(); renderToday(); saved($('#sec-connections')); paintFade();
     } catch (e) { toast(t('common.error')); }
   }));
   $('#ccSetup').addEventListener('click', async () => {
     try { await bridge.call('claudeCode.setup'); $('#ccNote').hidden = false; } catch (e) { toast(t('common.error')); }
   });
   $('#ccRecheck').addEventListener('click', loadCC);
+  $$('[data-toggle]').forEach(b => b.addEventListener('click', () => {
+    const body = $('.conn-body', b.closest('.conn-item')); body.hidden = !body.hidden;
+    b.setAttribute('aria-expanded', String(!body.hidden)); paintFade();
+  }));
+  VOICE_LANGS.forEach(lang => $('#tts-' + lang).addEventListener('change', e => setPref('ttsVoice.' + lang, e.target.value, $('#sec-connections'))));
+  $$('[data-ttspreview]').forEach(b => b.addEventListener('click', async () => {
+    const out = $('#ttsResult'), lang = b.dataset.ttspreview;
+    out.className = 'kf-result'; out.textContent = '';
+    try {
+      const r = obj(await bridge.call('tts.preview', { lang, voice: $('#tts-' + lang).value })) || {};
+      if (r.ok === false) { out.className = 'kf-result bad'; out.textContent = errorText(r.detail, r.kind); }
+    } catch (e) { out.className = 'kf-result bad'; out.textContent = t('common.error'); }
+  }));
+  $('#setMain').addEventListener('scroll', paintFade, { passive: true });
+  new ResizeObserver(paintFade).observe($('#setMain'));
   $('#customUrl').addEventListener('change', e => { setPref('customUrl', e.target.value.trim(), $('#sec-connections')); renderModels(); });
   $('#customModel').addEventListener('change', e => { if (e.target.value) setPref('customModel', e.target.value, $('#sec-connections')); });
   $('#jevBase').addEventListener('change', e => setPref('jevBaseUrl', e.target.value.trim(), $('#sec-connections')));

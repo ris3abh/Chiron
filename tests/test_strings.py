@@ -12,7 +12,7 @@ ALLOWED_LATIN = {
     'Chiron', 'Claude', 'Code', 'Anthropic', 'OpenAI', 'Jev', 'TypeSafe', 'API', 'AI', 'fn', 'URL', 'Keychain', 'macOS', 'Mac',
     'YouTube', 'WhatsApp', 'Ollama', 'LM', 'Studio', 'OK',
     # On-screen names are copied exactly as the Mac shows them (System Settings labels, app names).
-    'Apple', 'Keyboard', 'Press', 'key', 'to', 'Do', 'Nothing', 'Control', 'Option', 'Accessibility', 'Automation', 'Notes', 'Safari', 'Microphone', 'Screen', 'Recording', 'Speech', 'Recognition', 'System', 'Settings',
+    'Max', 'Pro', 'Team', 'Enterprise', 'Free', 'Google', 'Cloud', 'Apple', 'Keyboard', 'Press', 'key', 'to', 'Do', 'Nothing', 'Control', 'Option', 'Accessibility', 'Automation', 'Notes', 'Safari', 'Microphone', 'Screen', 'Recording', 'Speech', 'Recognition', 'System', 'Settings',
 }
 PLACEHOLDER = re.compile(r'\{(\w+)\}')
 

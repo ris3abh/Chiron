@@ -194,6 +194,21 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
 let voiceBar = VoiceBar()
 
 extension App {
+    // chiron.py --speak: voice stays the one running reader, so the talk key's and Esc's shush() stop it like `say`.
+    func speakCloud(_ words: String, lang: String, voice speaker: String?, fallback: [String] = []) {
+        shush()
+        let chosen = speaker ?? Prefs.str("ttsVoice." + lang), speed = Prefs.num("speakRate") > 0 ? Prefs.num("speakRate") : 0.85
+        let say = String(decoding: (try? JSONSerialization.data(withJSONObject: fallback.isEmpty ? sayRate() : fallback)) ?? Data("[]".utf8), as: UTF8.self)
+        let p = py(["--speak", lang, chosen, String(speed)], ["CHIRON_SAY_ARGS": say]), input = Pipe()
+        p.standardInput = input
+        p.terminationHandler = { [weak self] p in DispatchQueue.main.async {
+            guard let self, self.voice === p else { return }; self.voice = nil; voiceBar.idle(); voiceBar.answerEnded(); self.hide(after: 2)
+        } }
+        do { try p.run() } catch { return }
+        voice = p; voiceBar.state("speaking")
+        input.fileHandleForWriting.write(Data(words.utf8)); try? input.fileHandleForWriting.close()
+    }
+
     func cardClosed() { pinned = false; if !busy { gone() } }
     func closeOpenCard() { if voiceBar.cardOpen { voiceBar.closeCard(); cardClosed() } }
 

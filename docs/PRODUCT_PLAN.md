@@ -378,6 +378,7 @@ Everything Chiron learns stays in `~/.config/chiron/` on the Mac with owner-only
 - **Stored locally:** skill cards, memory and style note, history with costs (no audio, no screenshots), the Guardian block list, Home's counters.
 - **Sent to Claude:** the ask, window text or a downscaled screenshot, and at most 15 relevant memory lines (the base app's `relevant_rules()`).
 - **Sent to Jev:** text only, plus the questions.
+- **Sent to Google (only with a Google Cloud key):** the words of spoken replies, as text. What the person says stays on the Mac.
 - **Safety:** The base app's Safe mode sandbox stays on; `rm`, `sudo`, disk tools and shutdown stay blocked, plus settings changes, app installs, payments and remote-access apps; send, delete, move, print and upload ask first by voice; "Chiron, stop" pauses everything.
 - **No telemetry:** The base app's PostHog calls and failure reports are removed.
 - **Your data, your call:** Settings exports or deletes everything.

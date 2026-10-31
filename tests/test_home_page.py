@@ -18,7 +18,8 @@ STRINGS = ROOT / 'ui' / 'strings'
 PHASE1_METHODS = ['state.get', 'lang.set', 'prefs.get', 'prefs.set', 'conn.list', 'conn.save', 'conn.clear', 'conn.test',
                   'brain.choose', 'claudeCode.status', 'claudeCode.setup', 'local.scan', 'perms.get', 'perms.grant', 'app.info',
                   'dictionary.list', 'dictionary.add', 'dictionary.remove', 'ask.start', 'speech.status', 'speech.test', 'voices.list',
-                  'voices.preview', 'globe.fix', 'bar.reset']
+                  'voices.preview', 'globe.fix', 'bar.reset', 'tts.preview', 'conversations.list', 'conversations.delete', 'conversations.clear',
+                  'ask.again', 'clipboard.copy']
 # Called by the page but answered only once their phase builds them (Practice, Papers).
 LATER_METHODS = {'practice.start', 'drill.start', 'papers.open'}
 CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
@@ -162,7 +163,7 @@ class HomePageStaticTests(unittest.TestCase):
         self.assertNotIn('text-overflow: ellipsis', self.html, 'text wraps, never truncates')
 
     def test_one_page_and_settings_sheet(self):
-        self.assertEqual(re.findall(r'<main id="(\w+)" class="view"', self.html), ['home'], 'one page: Home only')
+        self.assertEqual(re.findall(r'<main id="(\w+)" class="view"', self.html), ['home', 'conversations'], 'one page, two views')
         self.assertIn('role="dialog" aria-modal="true"', self.html)
         self.assertIn('id="dictList"', self.html.split('id="sec-voice"')[1].split('</section>')[0], 'the dictionary lives in Settings → Voice')
         for section in ('general', 'voice', 'connections', 'budget', 'permissions', 'about'):
@@ -235,11 +236,9 @@ class HomePageWebKitTests(unittest.TestCase):
 
     def test_typical_fixture(self):
         r = self.page('typical', self.SNAPSHOT)['result']
-        self.assertEqual(len(r['recent']), 10, 'Recent shows the last 10 asks only')
-        self.assertEqual(len(r['said']), 3, 'dictations join the same list')
+        self.assertEqual(len(r['recent']) + len(r['said']), 5, 'Home keeps the last 5; Conversations has the rest')
         self.assertTrue(r['greet'].startswith('Hey Rishabh, hold'))
         self.assertEqual(r['recent'][0], "What's the weather like in Paris?", 'newest first')
-        self.assertNotIn('This eleventh item must not appear', r['recent'])
         self.assertEqual(r['wordsToday'], '1,284')
         self.assertEqual(r['dots'], ['ok', 'ok', 'ok'])
         self.assertEqual(r['spendMsg'], '')
@@ -314,8 +313,8 @@ class HomePageWebKitTests(unittest.TestCase):
             await tick(400);
             return {settings: !document.querySelector('#settings').hidden, general: !document.querySelector('#sec-general').hidden,
               mask: document.querySelector('[data-keyfield=anthropic] .mask').textContent,
-              brain: document.querySelector('[data-pick="claude-code"]').getAttribute('aria-pressed'),
-              cc: document.querySelector('#ccStatus').textContent.replace(/\\s+/g, ' ').trim(),
+              brain: document.querySelector('[data-pick="claude-code"]').getAttribute('aria-checked'),
+              cc: document.querySelector('#ccLine').textContent,
               perms: [...document.querySelectorAll('[data-perm]')].map(li => [li.dataset.perm, li.querySelector('button').hidden]),
               version: document.querySelector('#aboutVersion').textContent, cap: document.querySelector('#cap').value,
               scrollW: document.documentElement.scrollWidth, innerW: innerWidth};''', fragment='settings')
@@ -323,7 +322,7 @@ class HomePageWebKitTests(unittest.TestCase):
         self.assertTrue(r['settings'] and r['general'], '#settings opens the sheet at General')
         self.assertEqual(r['mask'], '•••• ab12')
         self.assertEqual(r['brain'], 'true')
-        self.assertEqual(r['cc'], 'Installed Signed in Plan: Claude Pro')
+        self.assertEqual(r['cc'], 'Installed · Signed in · Max plan')
         self.assertEqual(dict(r['perms']), {'microphone': True, 'speech': True, 'accessibility': True, 'screen': False, 'automation': False})
         self.assertEqual(r['version'], '0.1.0')
         self.assertEqual(r['cap'], '5')
@@ -334,7 +333,7 @@ class HomePageWebKitTests(unittest.TestCase):
             document.querySelector('#gear').click();
             await tick(200);
             document.querySelector('#kf-anthropic').value = 'sk-wrong';
-            document.querySelector('[data-keyfield=anthropic] [data-act=save]').click();
+            document.querySelector('#kf-anthropic').dispatchEvent(new Event('blur'));
             await tick(200);
             return document.querySelector('[data-keyfield=anthropic] .kf-result').textContent;''')
         self.assertEqual(out['result'], self.en['conn.result.rejected'])
