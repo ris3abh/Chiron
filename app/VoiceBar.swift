@@ -30,7 +30,7 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     let panel = BarPanel(contentRect: NSRect(x: 0, y: 0, width: VoiceBar.width, height: VoiceBar.height), styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: false)
     let web: WKWebView
     var loaded = false, pending: [(String, [Any])] = [], settle: DispatchWorkItem?
-    var handle: BarHandle?, cardKind = "", cardClose: DispatchWorkItem?, lastStep = ""
+    var handle: BarHandle?, cardKind = "", cardClose: DispatchWorkItem?, lastStep = "", shown = "idle"
     var cardOpen: Bool { !cardKind.isEmpty }
 
     override init() {
@@ -145,10 +145,10 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
 
     // ---- States ----
     func state(_ name: String, _ text: String = "", done: String = "", settleAfter: Double? = nil) {
-        settle?.cancel(); settle = nil
+        settle?.cancel(); settle = nil; shown = name
         call("state", [name, text, done])
         guard let settleAfter else { return }
-        let idle = DispatchWorkItem { [weak self] in self?.call("state", ["idle", ""]) }
+        let idle = DispatchWorkItem { [weak self] in self?.shown = "idle"; self?.call("state", ["idle", ""]) }
         settle = idle; DispatchQueue.main.asyncAfter(deadline: .now() + settleAfter, execute: idle)
     }
     func idle() { state("idle") }
@@ -177,6 +177,9 @@ final class VoiceBar: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
             else if tag == "…" { if VoiceBar.long(words, 90) { card("answer", ["text": words]) } }
             else if tag == "▸" { state("thinking", words, done: lastStep); lastStep = words }   // what it just did, above what it is doing
             else if tag == "·" { state("thinking", words, done: lastStep) }
+        case "finished":   // the worker is gone: still "thinking" means it ended with no answer, and the pill must not hang on its last words
+            lastStep = ""
+            if shown == "thinking", Lesson.current == nil { state("message", L("common.error"), settleAfter: 6) }
         case "pick": card("pick", arg as? [String: Any] ?? [:])
         case "ask":
             let a = arg as? [Any] ?? []

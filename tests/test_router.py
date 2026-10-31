@@ -16,7 +16,7 @@ CASES = [
     ('teach me how to make a new folder on the desktop', 'teach', 'words'), ('naya folder kaise banate hain', 'teach', 'words'), ('नया फ़ोल्डर बनाना सिखाओ', 'teach', 'words'),
     ('how to attach a file in mail', 'teach', 'words'), ('show me how to zoom in', 'teach', 'words'), ('sikhao mujhe email bhejna', 'teach', 'words'), ('kaise karte hain screenshot', 'teach', 'words'),
     ('play a video on youtube', 'teach', 'card'), ('just play a video on youtube', 'do', 'card'), ('play bhajan on youtube', 'teach', 'card'), ('यूट्यूब पर भजन लगाओ', 'teach', 'card'), ('join the call', 'teach', 'card'),
-    ('what is a PDF', 'question', 'words'), ('पीडीएफ क्या होता है', 'question', 'words'), ('what time is it in London', 'question', 'words'), ('mera wifi kyun nahi chal raha', 'question', 'words'), ('tell me a joke', 'question', 'jev'),
+    ('Mujhe settings, Mein, Bluetooth, Chalu Karna Shikhao', 'teach', 'words'), ('what is a PDF', 'question', 'words'), ('पीडीएफ क्या होता है', 'question', 'words'), ('what time is it in London', 'question', 'words'), ('mera wifi kyun nahi chal raha', 'question', 'words'), ('tell me a joke', 'question', 'jev'),
 ]
 
 
@@ -30,7 +30,7 @@ class RouterTest(unittest.TestCase):
         p = patch.dict(os.environ, {'CHIRON_DIR': root.name}); p.start(); self.addCleanup(p.stop)
 
     def test_thirty_asks(self):
-        self.assertEqual(len(CASES), 30)
+        self.assertEqual(len(CASES), 31)
         for ask, mode, source in CASES:
             r = router.route(ask, judge=fake)
             self.assertEqual(r['mode'], mode, ask)

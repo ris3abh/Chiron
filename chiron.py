@@ -1750,15 +1750,18 @@ def routed_ask(task):
     from chiron import lessons, providers, router
     if not pref('draw', True): return None
     try: route = router.route(task)
-    except (OSError, ValueError, KeyError): return None
+    except Exception as e:
+        print(f'routing failed: {e!r}', file=sys.stderr)
+        return None
     card = route['card']
     if route['mode'] == 'teach':
         usd = 0.0
         if not card:
             say('·', i18n.t('lesson.planning'))
-            try: card, usd = lessons.plan(task, window_summary(os.environ.get('CHIRON_FRONT', '')) or '')
-            except (ValueError, OSError, RuntimeError, providers.ProviderError):
-                return None   # couldn't plan it: the main ask answers instead
+            try: card, usd = lessons.plan(task, window_summary(os.environ.get('CHIRON_FRONT', '')))
+            except Exception as e:   # whatever went wrong, a lesson that can't be planned must never take the ask down with it
+                print(f'lesson plan failed: {e!r}', file=sys.stderr)
+                return None   # the main ask answers instead
         lesson = {'card': card, 'slots': route['slots'], 'usd': usd, 'id': TURN.get('id', ''), 'lang': i18n.lang()}
         return i18n.pick(card['title']), 'taught', usd, lesson
     if route['mode'] == 'do' and card:
@@ -1792,8 +1795,9 @@ def lesson_tool(args):
     step = data.get('step') or {}
     if args == ['check']:
         target = (step.get('target') or {}).get('app', '')
-        try: return print(json.dumps(lessons.check(step, window_summary('' if target == 'Dock' else target) or '')))
-        except (OSError, ValueError, RuntimeError, jev.JevError, providers.ProviderError):
+        try: return print(json.dumps(lessons.check(step, window_summary('' if target == 'Dock' else target))))
+        except Exception as e:   # an unreadable check is "unsure", never a stuck lesson
+            print(f'step check failed: {e!r}', file=sys.stderr)
             return print(json.dumps({'result': 'unsure', 'fault': '', 'confidence': 0, 'engine': ''}))
     if args == ['hint']:
         return print(json.dumps({'text': lessons.hint(step, data.get('fault'))}, ensure_ascii=False))

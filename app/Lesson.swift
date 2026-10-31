@@ -138,9 +138,15 @@ final class Lesson {
     // ---- The screen ----
     // Where a target is, by the Accessibility tree of its app. Quartz points, as the drawing uses.
     static func locate(_ target: [String: Any]) -> CGRect? {
-        guard let name = target["app"] as? String, let label = (target["label"] as? String)?.lowercased(), !label.isEmpty,
-              let a = NSWorkspace.shared.runningApplications.first(where: { $0.localizedName == name || (name == "Dock" && $0.bundleIdentifier == "com.apple.dock") }) else { return nil }
-        let role = target["role"] as? String ?? ""
+        guard let name = target["app"] as? String, let label = (target["label"] as? String)?.lowercased(), !label.isEmpty else { return nil }
+        let named = NSWorkspace.shared.runningApplications.first { $0.localizedName == name || (name == "Dock" && $0.bundleIdentifier == "com.apple.dock") }
+        // Then the front app: the Apple and app menus belong to whichever app is in front, whatever a plan calls it.
+        for a in [named, NSWorkspace.shared.frontmostApplication].compactMap({ $0 }) {
+            if let frame = find(label, role: target["role"] as? String ?? "", in: a) { return frame }
+        }
+        return nil
+    }
+    static func find(_ label: String, role: String, in a: NSRunningApplication) -> CGRect? {
         var queue = [AXUIElementCreateApplication(a.processIdentifier)], looked = 0
         var best: (CGRect, Int)?
         while !queue.isEmpty, looked < 4000 {

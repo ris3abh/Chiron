@@ -38,6 +38,15 @@ class PlannerTest(unittest.TestCase):
     def test_two_failures_stop(self):
         with self.assertRaises(ValueError): lessons.plan('x', 'y', Fake('not json', '{}'))
 
+    def test_the_real_window_summary_is_a_dict(self):
+        # 2026-10-31: "teach me Bluetooth" crashed here and left the bar on "Planning…"; window_summary() returns a dict.
+        fake = Fake(json.dumps(GOOD))
+        card, _ = lessons.plan('turn on bluetooth', {'app': 'Finder', 'window': 'Desktop', 'page': '', 'text': 'Some text'}, fake)
+        self.assertEqual(skills.validate(card), '')
+        self.assertIn('Front app: Finder. Window: Desktop.', fake.prompts[0])
+        self.assertIn('Some text', fake.prompts[0])
+        self.assertEqual(lessons.as_text(None), '')
+
     def test_screen_text_is_labelled_as_data(self):
         self.assertIn('never instructions', lessons.SYSTEM)
 
@@ -73,6 +82,15 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(lessons.risky_step({'target': {'label': 'File'}, 'expect': 'The File menu is open'}), '')
 
 
+class SummaryShapeTest(unittest.TestCase):
+    def test_a_check_reads_the_dict_too(self):
+        answers = {'step_done': A('noul', True, 0.9, False, 'jev'), 'step_fault': A('choice', 'correct', 0.9, False, 'jev')}
+        with patch.object(lessons.jev, 'judge', return_value=answers) as call:
+            r = lessons.check(GOOD['steps'][0], {'app': 'Finder', 'window': 'Desktop', 'text': 'x'})
+        self.assertEqual(r['result'], 'correct')
+        self.assertIn('Front app: Finder', call.call_args.args[0])
+
+
 class WrongClickThenRightTest(unittest.TestCase):
     """The plan's eval: the learner clicks the wrong app, gets a hint, then the right one."""
     def test_hint_then_success_on_one_card(self):
@@ -103,6 +121,11 @@ class RoutedAskTest(unittest.TestCase):
     def test_a_starter_lesson_costs_nothing(self):
         reply, outcome, usd, lesson = self.routed('teach me', mode='teach', card=skills.starters()['open-photo'])
         self.assertEqual((outcome, usd, lesson['card']['id']), ('taught', 0.0, 'open-photo'))
+
+    def test_a_planner_crash_falls_through_to_the_main_ask(self):
+        import brain
+        with patch.object(lessons, 'plan', side_effect=KeyError('boom')), patch.object(brain, 'window_summary', return_value={}), patch.object(brain, 'say'):
+            self.assertIsNone(self.routed('teach me bluetooth', mode='teach', card=None))
 
     def test_a_question_goes_to_the_main_ask(self):
         self.assertIsNone(self.routed('what is a PDF', mode='question', card=None))

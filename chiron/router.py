@@ -5,7 +5,7 @@ import re
 
 from chiron import jev, normalize, paths, providers, skills
 
-TEACH = re.compile(r"\b(teach me|teach|show me how|how do i|how can i|how to|sikhao|sikha do|sikhaiye|batao kaise|kaise kare|kaise karte|kaise karna|kaise banate|kaise banaye)\b|सिखाओ|सिखा दो|सिखाइए|कैसे", re.I)
+TEACH = re.compile(r"\b(teach me|teach|show me how|how do i|how can i|how to|sikhao|shikhao|sikha do|shikha do|sikhaiye|shikhaiye|sikhana|shikhana|batao kaise|kaise kare|kaise karte|kaise karna|kaise banate|kaise banaye)\b|सिखाओ|सिखा दो|सिखाइए|कैसे", re.I)
 DO = re.compile(r"\b(just do it|just|do it for me|for me|for you|on your own|kar do|kar dijiye|khud kar|tum kar|aap kar)\b|कर दो|कर दीजिए|खुद कर", re.I)
 QUESTION = re.compile(r"^(what|why|who|when|where|which)\b|\b(kya|kyun|kyon|kaun|kab|kahan|hota hai)\b|क्या|क्यों|कौन|कब|कहाँ", re.I)
 ACTION = ('open ', 'close ', 'play ', 'show ', 'search ', 'send ', 'type ')
