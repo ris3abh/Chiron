@@ -11,7 +11,7 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
     func detach(_ web: WKWebView?) { if let web { pages[ObjectIdentifier(web)] = nil } }
 
     // Prefs the page may write. Anything else (paused, safe, hotkeys) keeps its own native path.
-    static let writable: Set<String> = ["lang", "cap", "brain", "apiBase", "apiModel", "jevBase", "openaiModel"]
+    static let writable: Set<String> = ["lang", "cap", "brain", "apiBase", "apiModel", "jevBase", "openaiModel", "theme"]
     // The page's names for prefs whose stored key predates it (apiBase/apiModel).
     static let aliases = ["capUsd": "cap", "customUrl": "apiBase", "customModel": "apiModel", "jevBaseUrl": "jevBase"]
     // Changing these must not reuse a Claude worker started with the old brain or key.
@@ -49,14 +49,19 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
             var out: [String: Any] = Dictionary(uniqueKeysWithValues: HomeBridge.writable.map { ($0, Prefs.d[$0] ?? NSNull()) })
             for (page, stored) in HomeBridge.aliases { out[page] = Prefs.d[stored] ?? NSNull() }
             if out["capUsd"] is NSNull { out["capUsd"] = 5 }
+            // Read-only: the page shows the real shortcuts in its greeting and Settings.
+            out["hotkeyLabel"] = Prefs.str("hotkeyLabel")
+            out["dictateHotkeyLabel"] = Prefs.bool("dictateHotkeyOff") ? "" : Prefs.str("dictateHotkeyLabel")
             reply(out, nil)
         case "prefs.set":
             guard let asked = args["k"] as? String, let v = args["v"] else { return reply(["ok": false], nil) }
             let k = HomeBridge.aliases[asked] ?? asked
             guard HomeBridge.writable.contains(k) else { return reply(["ok": false], nil) }
             if k == "brain", !["claude-code", "anthropic", "openai", "custom"].contains(v as? String ?? "") { return reply(["ok": false], nil) }
+            if k == "theme", !["system", "light", "dark"].contains(v as? String ?? "") { return reply(["ok": false], nil) }
             if k == "cap", let n = (v as? NSNumber)?.doubleValue { Prefs.set(k, min(50, max(1, n))) } else { Prefs.set(k, v) }
             if HomeBridge.restartsWorker.contains(k) { app.unwarm() }
+            if k == "theme" { home.applyTheme() }
             reply(["ok": true], nil)
         case "brain.choose":
             handle("prefs.set", ["k": "brain", "v": args["kind"] ?? ""], reply)
@@ -107,8 +112,19 @@ final class HomeBridge: NSObject, WKScriptMessageHandler {
             guard let id = args["id"] as? String, let native = ids[id] else { return reply(["ok": false], nil) }
             onboarding.grant(native)
             reply(["ok": true], nil)
-        case "window.settings":
+        case "window.settings":   // older callers; Settings is a sheet inside the page now
             home.openSettings(); reply(["opened": true], nil)
+        case "dictionary.list":   // the words dictation must spell right, and the heard forms Chiron learned for them
+            reply(["words": DictationData.words, "fixes": DictationData.fixes], nil)
+        case "dictionary.add":
+            guard let word = args["word"] as? String else { return reply(["ok": false], nil) }
+            reply(["ok": DictationData.word(word)], nil)
+        case "dictionary.remove":
+            guard let word = args["word"] as? String else { return reply(["ok": false], nil) }
+            reply(["ok": DictationData.forget(word)], nil)
+        case "ask.start":   // Home's Ask button: the same box and listening as the shortcut or the menu's Ask
+            app.clickTalk = true; app.start(); if !app.engine.isRunning { app.clickTalk = false }
+            reply(["ok": true], nil)
         case "link.open":   // the page never navigates itself; only web links leave, in the default browser
             guard let s = args["url"] as? String, let url = URL(string: s), url.scheme == "https" else { return reply(["ok": false], nil) }
             NSWorkspace.shared.open(url); reply(["ok": true], nil)

@@ -88,6 +88,36 @@ class HomeStateTest(unittest.TestCase):
         self.assertFalse(r['ok'])
         self.assertEqual(r['kind'], 'nokey')
 
+    def test_name_prefers_what_the_user_said_then_the_mac_account(self):
+        self.write('me.json', json.dumps({'version': 2, 'facts': [
+            {'category': 'basics', 'kind': 'name', 'value': 'Asha Verma', 'source': 'contacts'},
+            {'category': 'basics', 'kind': 'name', 'value': 'Ashu', 'source': 'you'}]}))
+        self.assertEqual(home.state()['name'], 'Ashu')
+        self.write('me.json', json.dumps({'name': 'Legacy Name'}))
+        self.assertEqual(home.name(), 'Legacy')
+        self.write('me.json', '[]')
+        with patch('pwd.getpwuid', return_value=type('P', (), {'pw_gecos': 'Rishabh Sharma,,,'})()):
+            self.assertEqual(home.name(), 'Rishabh')
+
+    def test_dictations_and_activity(self):
+        now = time.time()
+        self.write('dictation.json', json.dumps({'history': [
+            {'id': '1', 'timestamp': now - 60, 'app': 'Notes', 'text': '  hello   there  '},
+            {'id': '2', 'timestamp': now - 86400, 'app': 'Mail', 'text': 'yesterday'},
+            {'id': '3', 'timestamp': now - 86400 * 200, 'app': 'Mail', 'text': 'too old for the heatmap'},
+            {'id': '4', 'timestamp': 'bad', 'text': 'skipped'}, 'garbage']}))
+        stamp = lambda secs: time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now - secs))
+        rows = [{'id': 'a', 'at': stamp(30), 'task': 'ask', 'reply': 'ok'}, {'id': 'a', 'at': stamp(30), 'task': 'ask', 'reply': 'ok'},
+                {'id': 'b', 'at': stamp(20), 'task': 'running', 'status': 'running'}]
+        self.write('log.jsonl', '\n'.join(map(json.dumps, rows)) + '\n')
+        s = home.state()
+        self.assertEqual([d['text'] for d in s['dictations']], ['hello there', 'yesterday', 'too old for the heatmap'])
+        self.assertEqual(s['dictations'][0]['app'], 'Notes')
+        today, yesterday = time.strftime('%Y-%m-%d'), time.strftime('%Y-%m-%d', time.localtime(now - 86400))
+        self.assertEqual(s['activity'].get(today), 2, 'one dictation + one ask (the repeated row is one turn)')
+        self.assertEqual(s['activity'].get(yesterday), 1)
+        self.assertEqual(len(s['activity']), 2, 'nothing older than 16 weeks')
+
     def test_unknown_method_raises(self):
         with self.assertRaises(KeyError):
             home.do('nope', {})

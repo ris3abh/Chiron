@@ -17,7 +17,9 @@ MOCK = ROOT / 'tests' / 'home.html'
 STRINGS = ROOT / 'ui' / 'strings'
 PHASE1_METHODS = ['state.get', 'lang.set', 'prefs.get', 'prefs.set', 'conn.list', 'conn.save', 'conn.clear', 'conn.test',
                   'brain.choose', 'claudeCode.status', 'claudeCode.setup', 'local.scan', 'perms.get', 'perms.grant', 'app.info',
-                  'window.settings']
+                  'dictionary.list', 'dictionary.add', 'dictionary.remove', 'ask.start']
+# Called by the page but answered only once their phase builds them (Practice, Papers).
+LATER_METHODS = {'practice.start', 'drill.start', 'papers.open'}
 CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
 
 HARNESS = r'''import Cocoa
@@ -149,13 +151,28 @@ class HomePageStaticTests(unittest.TestCase):
         self.assertEqual(sorted(fixtures()), ['empty', 'errors', 'typical'])
 
     def test_design_tokens_present(self):
-        for token in ('--accent: #007AFF', '--accent: #0A84FF', '--body: 17px', '--big-number: 44px', '--radius: 22px',
-                      'backdrop-filter: var(--blur)', '-webkit-backdrop-filter', 'blur(30px) saturate(180%)', '-apple-system',
+        # The sidebar design (2026-10-30): flat surfaces, the logo's gold accent, serif display numbers.
+        for token in ('--accent: #F5B53F', '--body: 17px', '--big-number: 40px', '--side: 248px', 'ui-serif', '-apple-system',
                       'prefers-reduced-motion', 'prefers-reduced-transparency: reduce', 'prefers-contrast: more',
                       'prefers-color-scheme: dark', ':root[data-theme="dark"]', 'html.native', 'tabular-nums',
-                      'min-height: 44px', ':focus-visible'):
+                      'min-height: 44px', ':focus-visible', 'container-type: inline-size'):
             self.assertIn(token, self.html)
         self.assertNotIn('text-overflow: ellipsis', self.html, 'text wraps, never truncates')
+
+    def test_views_and_settings_sheet(self):
+        for view in ('home', 'insights', 'dictionary'):
+            self.assertRegex(self.html, rf'<main id="{view}" class="view"')
+            self.assertIn(f'data-view="{view}"', self.html)
+        self.assertIn('role="dialog" aria-modal="true"', self.html)
+        for section in ('general', 'connections', 'budget', 'permissions', 'about'):
+            self.assertIn(f'data-go="{section}"', self.html)
+            self.assertIn(f'id="sec-{section}"', self.html)
+
+    def test_every_bridge_call_is_answered_natively(self):
+        swift = (ROOT / 'app' / 'HomeBridge.swift').read_text(encoding='utf-8')
+        called = set(re.findall(r"bridge\.call\('([\w.]+)'", self.html))
+        for method in called - LATER_METHODS:
+            self.assertIn(f'case "{method}"', swift, f'HomeBridge does not answer {method}')
 
     def test_no_framework(self):
         self.assertNotRegex(self.html, r'\b(React|Vue|angular|jQuery)\b')
@@ -194,7 +211,9 @@ class HomePageWebKitTests(unittest.TestCase):
         const hiddenTiles = [...document.querySelectorAll('#tiles > .tile')].filter(t => t.hidden).map(t => t.dataset.key);
         return {lang: document.documentElement.lang, vis, hiddenTiles,
           today: document.querySelector('#todayTitle').textContent, todayEmptyShown: !document.querySelector('#todayEmpty').hidden,
-          recent: [...document.querySelectorAll('#recentList li')].map(li => li.children[1].textContent),
+          recent: [...document.querySelectorAll('#recentList li:not([data-kind=dictation])')].map(li => li.children[1].textContent),
+          said: [...document.querySelectorAll('#recentList li[data-kind=dictation]')].map(li => li.children[1].textContent),
+          greet: document.querySelector('#greet').textContent,
           recentEmpty: !document.querySelector('#recentEmpty').hidden,
           spendMsg: document.querySelector('#spendMsg').hidden ? '' : document.querySelector('#spendMsg').textContent,
           dots: [...document.querySelectorAll('[data-dot] .dot')].map(d => d.dataset.s),
@@ -209,12 +228,15 @@ class HomePageWebKitTests(unittest.TestCase):
         self.assertTrue(r['todayEmptyShown'])
         self.assertEqual(r['today'], 'Nothing due today.')
         self.assertTrue(r['recentEmpty'])
+        self.assertEqual(r['greet'], 'Hold ⌃⌥Space and ask me anything', 'no name, no "Hey"')
         self.assertEqual(r['dots'], ['warn', 'off', 'ok'])
         self.assertLessEqual(r['scrollW'], r['innerW'])
 
     def test_typical_fixture(self):
         r = self.page('typical', self.SNAPSHOT)['result']
-        self.assertEqual(len(r['recent']), 10, 'Recent shows the last 10 only')
+        self.assertEqual(len(r['recent']), 10, 'Recent shows the last 10 asks only')
+        self.assertEqual(len(r['said']), 3, 'dictations join the same list')
+        self.assertTrue(r['greet'].startswith('Hey Rishabh, hold'))
         self.assertEqual(r['recent'][0], "What's the weather like in Paris?", 'newest first')
         self.assertNotIn('This eleventh item must not appear', r['recent'])
         self.assertEqual(r['wordsToday'], '1,284')
@@ -227,6 +249,8 @@ class HomePageWebKitTests(unittest.TestCase):
         self.assertEqual(r['wordsToday'], '—')
         self.assertIn('$5', r['spendMsg'])
         self.assertEqual(len(r['recent']), 4, 'null, string and text-less rows are skipped')
+        self.assertEqual(r['said'], [], 'a non-list dictations value shows nothing')
+        self.assertFalse(r['greet'].startswith('Hey'), 'a non-string name is ignored')
         self.assertFalse(r['openaiNote'], 'an Anthropic brain needs no OpenAI-only note')
         self.assertEqual(r['dots'], ['warn', 'warn', 'off'])
 
@@ -239,15 +263,15 @@ class HomePageWebKitTests(unittest.TestCase):
             const labels = [...document.querySelectorAll('[data-i18n]')].map(e => [e.dataset.i18n, e.textContent]);
             const hi = {lang: document.documentElement.lang, today: document.querySelector('#todayTitle').textContent, labels,
               placeholder: document.querySelector('#kf-openai').placeholder, gear: document.querySelector('#gear').getAttribute('aria-label'),
-              recent0: document.querySelector('#recentList li').children[1].textContent, marker: window.__marker};
+              recent0: document.querySelector('#recentList li:not([data-kind=dictation])').children[1].textContent, marker: window.__marker};
             bridge.push('lang', {lang: 'en'});
             await tick(150);
             return {before, hi, back: document.querySelector('#todayTitle').textContent, langAfter: document.documentElement.lang};''')
         r, posts = out['result'], out['posts']
-        self.assertEqual(r['before'], self.en['home.today.empty.title'])
+        self.assertEqual(r['before'], self.en['home.hero.title'].replace('*', ''))
         self.assertEqual(r['hi']['lang'], 'hi')
         self.assertEqual(r['hi']['marker'], 1, 'the page did not reload')
-        self.assertEqual(r['hi']['today'], self.hi['home.today.empty.title'])
+        self.assertEqual(r['hi']['today'], self.hi['home.hero.title'].replace('*', ''))
         self.assertEqual(r['hi']['placeholder'], self.hi['settings.key.placeholder'])
         self.assertEqual(r['hi']['gear'], self.hi['header.settings'])
         self.assertEqual(r['hi']['recent0'], 'पेरिस में मौसम कैसा है?', 'bilingual state fields follow the language')
@@ -256,7 +280,7 @@ class HomePageWebKitTests(unittest.TestCase):
             if key not in dynamic:
                 self.assertEqual(text, self.hi[key], key)
         self.assertIn({'lang': 'hi'}, [p.get('args') for p in posts if p.get('method') == 'lang.set'])
-        self.assertEqual(r['back'], self.en['home.today.empty.title'])
+        self.assertEqual(r['back'], self.en['home.hero.title'].replace('*', ''))
         self.assertEqual(r['langAfter'], 'en')
         self.assertEqual([p for p in posts if p.get('method') == 'lang.set' and p['args'] == {'lang': 'en'}], [],
                          'a native lang push is not echoed back')
@@ -285,8 +309,7 @@ class HomePageWebKitTests(unittest.TestCase):
     def test_settings_fragment_and_sections(self):
         out = self.page('typical', '''
             await tick(400);
-            return {settings: !document.querySelector('#settings').hidden, home: document.querySelector('#home').hidden,
-              back: document.querySelector('#back').hidden,
+            return {settings: !document.querySelector('#settings').hidden, general: !document.querySelector('#sec-general').hidden,
               mask: document.querySelector('[data-keyfield=anthropic] .mask').textContent,
               brain: document.querySelector('[data-pick="claude-code"]').getAttribute('aria-pressed'),
               cc: document.querySelector('#ccStatus').textContent.replace(/\\s+/g, ' ').trim(),
@@ -294,8 +317,7 @@ class HomePageWebKitTests(unittest.TestCase):
               version: document.querySelector('#aboutVersion').textContent, cap: document.querySelector('#cap').value,
               scrollW: document.documentElement.scrollWidth, innerW: innerWidth};''', fragment='settings')
         r = out['result']
-        self.assertTrue(r['settings'] and r['home'])
-        self.assertTrue(r['back'], 'the Settings window has no Back to Home')
+        self.assertTrue(r['settings'] and r['general'], '#settings opens the sheet at General')
         self.assertEqual(r['mask'], '•••• ab12')
         self.assertEqual(r['brain'], 'true')
         self.assertEqual(r['cc'], 'Installed Signed in Plan: Claude Pro')

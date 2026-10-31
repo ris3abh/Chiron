@@ -3671,12 +3671,32 @@ final class MenuBar: NSObject, NSMenuDelegate {
     let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     override init() {
         super.init()
-        item.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Chiron")
+        item.button?.image = MenuBar.mark()
         let m = NSMenu(); m.delegate = self; item.menu = m
         item.isVisible = Prefs.bool("menuIcon")
         paint()
     }
     func paint() { item.button?.appearsDisabled = Prefs.bool("paused") }
+    // Chiron's mark (docs/icon.svg: a C holding a star) as a template image, so the menu bar tints it.
+    static func mark() -> NSImage {
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { r in
+            let s = r.width / 100, p = { (x: CGFloat, y: CGFloat) in NSPoint(x: x * s, y: y * s) }
+            let arc = NSBezierPath()   // the SVG arc from (60.5, 33.5) to (60.5, 78.5), radius 28, the long way round
+            arc.appendArc(withCenter: p(43.83, 56), radius: 28 * s, startAngle: -53.5, endAngle: 53.5, clockwise: true)
+            arc.lineWidth = 11 * s; arc.lineCapStyle = .round
+            NSColor.black.setStroke(); arc.stroke()
+            let star = NSBezierPath()
+            star.move(to: p(77, 11))
+            star.curve(to: p(91, 25), controlPoint1: p(78.6, 21.5), controlPoint2: p(80.5, 23.4))
+            star.curve(to: p(77, 39), controlPoint1: p(80.5, 26.6), controlPoint2: p(78.6, 28.5))
+            star.curve(to: p(63, 25), controlPoint1: p(75.4, 28.5), controlPoint2: p(73.5, 26.6))
+            star.curve(to: p(77, 11), controlPoint1: p(73.5, 23.4), controlPoint2: p(75.4, 21.5))
+            star.close(); NSColor.black.setFill(); star.fill()
+            return true
+        }
+        image.isTemplate = true; image.accessibilityDescription = "Chiron"
+        return image
+    }
     func menuNeedsUpdate(_ m: NSMenu) {
         m.removeAllItems()
         let keys = Prefs.str("hotkeyLabel")

@@ -2,6 +2,10 @@
 
 Written 2026-10-30 for whoever picks this up next, most likely Claude Code on a Mac running macOS 27. Read `CLAUDE.md` for how to work here, then this file, then `docs/reports/phase-1.md` for the detail.
 
+## Update, 2026-10-30
+
+Phase 1 now compiles and runs on macOS 27.2 (Command Line Tools 27.2), the full suite is green (598 tests, 0 failures), and Home was redesigned as a sidebar app with a new logo. Details: the addendum at the end of `docs/reports/phase-1.md`. Phase 1 is accepted; **next is Phase 2** (Voice Bar and speech). Steps 1–5 below are done except the hands-on test list, which needs real keys and permissions.
+
 ## In one paragraph
 
 Phase 1 (Foundation and Home) is built and committed on `main`, but **the app has never been compiled or run.** It was written on a macOS 15.3 Mac whose Swift toolchain is broken (even hello-world fails), and Chiron needs the macOS 26+ SDK. Everything that could be checked there was: the Python brain, the Home/Settings page (rendered in Chrome against the mock), and every test that doesn't compile Swift. The next job is to **compile it, fix what breaks, run it, and walk the Phase 1 test list**, then start Phase 2.
@@ -14,6 +18,7 @@ Phase 1 (Foundation and Home) is built and committed on `main`, but **the app ha
 | Brain | `chiron.py` (CLI entry, the ask loop) + `chiron/` (`providers`, `jev`, `usage`, `home`, `i18n`, `paths`, `llm`, `prices.json`) |
 | The one page | `ui/home.html` (Home + Settings), `ui/strings/{en,hi}.json`, `ui/strings/hi.review.json`, `ui/fonts/` |
 | Mock bridge | `tests/home.html` (`?fixture=empty|typical|errors&lang=en|hi&theme=light|dark&view=home|settings&width=…&native=1&chrome=0`) |
+| Logo | `docs/icon.svg` → `scripts/make-icon.sh` → `ui/AppIcon.icns`, `docs/icon.png` |
 | Box (old overlay, kept until Phase 2) | `ui/ui.html`; setup: `ui/onboarding.html` |
 | Plans | `docs/BUILD_PLAN.md`, `docs/PRODUCT_PLAN.md` |
 | Reports | `docs/reports/phase-1.md`, `docs/reports/phase-1-baseline.md` |

@@ -6,6 +6,10 @@ import tempfile
 config = tempfile.TemporaryDirectory(prefix='chiron-test-config-')
 os.environ['CHIRON_DIR'] = config.name
 atexit.register(config.cleanup)
+# Keys in tests come only from CHIRON_SECRET_<NAME>. Without these, paths.secret() would ask an installed Chiron.app,
+# so the suite would read the user's real Keychain once the app is built on this Mac. A test that needs a key sets its own.
+for _name in ('anthropic', 'openai', 'jev', 'sarvam', 'custom'):
+    os.environ.setdefault('CHIRON_SECRET_' + _name.upper(), '')
 
 # The brain is chiron.py, but the package chiron/ beside it owns the name `chiron`, so tests load the script as `brain`.
 import importlib.util as _util, sys as _sys

@@ -6,5 +6,17 @@
   "menu.hint.toggle": {
     "_review": true,
     "note": "Two-part hint; check it reads naturally in the menu bar."
+  },
+  "home.hero.title": {
+    "_review": true,
+    "note": "The starred words show in italics; check \"एक-एक कदम करके\" reads naturally as the main promise."
+  },
+  "dict.hero.title": {
+    "_review": true,
+    "note": "Wordplay on \"your way\"; the starred word is italic. Check it sounds natural, not literal."
+  },
+  "nav.insights": {
+    "_review": true,
+    "note": "\"आँकड़े\" (figures) for Insights; \"जानकारी\" is the other option."
   }
 }

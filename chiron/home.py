@@ -2,12 +2,63 @@
 
 Built only from local files, so opening Home costs nothing. A key a phase has not built yet is left out
 and the page hides its tile."""
+import os
+import pwd
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from chiron import i18n, jev, paths, providers, usage
 
 RECENT = 10
+ACTIVITY_DAYS = 112   # 16 weeks: the Insights heatmap
+
+
+def name():
+    """First name for the greeting: what the user told Chiron (me.json), else the Mac account's full name."""
+    me = paths.read_json('me.json', {})
+    me = me if isinstance(me, dict) else {}
+    found = me.get('name') if isinstance(me.get('name'), str) else ''
+    facts = [f for f in me.get('facts', []) if isinstance(f, dict)] if isinstance(me.get('facts'), list) else []
+    for source in ('you', 'contacts', 'mail', 'learned'):   # same priority as the native profileName()
+        hit = next((f.get('value') for f in facts if f.get('category') == 'basics' and str(f.get('kind', '')).lower() == 'name'
+                    and f.get('source') == source and isinstance(f.get('value'), str)), None)
+        if hit: found = hit; break
+    if not found:
+        try: found = pwd.getpwuid(os.getuid()).pw_gecos.split(',')[0]
+        except (KeyError, OSError): found = ''
+    return (found.split() or [''])[0][:40]
+
+
+def history():
+    d = paths.read_json(paths.DICTATION, {})
+    rows = d.get('history') if isinstance(d, dict) and isinstance(d.get('history'), list) else []
+    return [h for h in rows if isinstance(h, dict) and isinstance(h.get('timestamp'), (int, float)) and isinstance(h.get('text'), str)]
+
+
+def dictations():
+    """The latest dictations, newest first, for Home's activity list. Empty when the user turned history off."""
+    out = []
+    for h in sorted(history(), key=lambda h: h['timestamp'], reverse=True)[:RECENT]:
+        text = ' '.join(h['text'].split())[:280]
+        if text: out.append({'at': datetime.fromtimestamp(h['timestamp']).astimezone().isoformat(timespec='seconds'),
+                             'text': text, 'app': str(h.get('app') or '')[:60]})
+    return out
+
+
+def activity():
+    """Asks plus dictations per local day, for the Insights heatmap and streak."""
+    start = (datetime.now() - timedelta(days=ACTIVITY_DAYS - 1)).strftime('%Y-%m-%d')
+    days, seen = {}, set()
+    for row in paths.read_jsonl(paths.LOG):
+        if not row.get('task') or 'reply' not in row: continue
+        key = row.get('id') or f"{row.get('at')}|{row.get('task')}"
+        day = str(row.get('at', ''))[:10]
+        if key in seen or day < start or len(day) != 10: continue
+        seen.add(key); days[day] = days.get(day, 0) + 1
+    for h in history():
+        day = datetime.fromtimestamp(h['timestamp']).strftime('%Y-%m-%d')
+        if day >= start: days[day] = days.get(day, 0) + 1
+    return days
 
 
 def words():
@@ -59,10 +110,13 @@ def state():
     code = i18n.lang()
     return {
         'lang': code,
+        'name': name(),
         'today': {'kind': 'none'},   # Practice fills this from Phase 4
         'words': words(),
         'spend': {'month_usd': usage.month_total(), 'cap_usd': usage.cap(), 'by_engine': usage.by_engine(), 'over': usage.over_cap()},
         'recent': recent(),
+        'dictations': dictations(),
+        'activity': activity(),
         'connections': connections(),
         'openai_only': providers.brain() == 'openai',
     }

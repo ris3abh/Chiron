@@ -25,6 +25,7 @@ class KeyMigrationNativeTests(unittest.TestCase):
         prefs = chiron[chiron.index('enum Prefs'):chiron.index('func applySharing(')]
         swift = f"""import Cocoa
 let controlKey = 1, optionKey = 2
+{prefs}
 enum Keychain {{
     static var store: [String: String] = [:]
     @discardableResult static func set(_ name: String, _ value: String) -> Bool {{

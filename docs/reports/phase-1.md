@@ -149,3 +149,41 @@ Native tests that skip here:
 ## Ready for Phase 2?
 
 - **Not yet.** Phase 2 builds on these windows, the bridge and the speech path, so `./build.sh` should succeed and steps 1–15 should pass on macOS 26 first. The Python side and the page are ready.
+
+---
+
+## Addendum, 2026-10-30: compiled on macOS 27, then redesigned
+
+### Compiled and run
+- Mac: macOS 27.2 (arm64), Command Line Tools for Xcode 27.2, Swift 6.4.2, SDK 27.2. (The macOS 15 Mac's toolchain was the only blocker.)
+- `swiftc -typecheck …` passes with **no errors and no Swift changes**; 4 harmless warnings (unused results, one deprecation).
+- `./build.sh --package /tmp/chiron-pkg` builds and links; `./build.sh` installs `~/Applications/Chiron.app`, signs it with "Chiron Local Signing", adds the LaunchAgent and starts it. Home opened with real data (asks, spend, activity).
+
+### Test fixes (harness bugs, not app bugs)
+- `test_key_migration_native`: sliced `Prefs` out of `Chiron.swift` but never put it in the generated program.
+- `test_prefs_native.test_settings_are_private_and_usage_counts_final_rows`: needed an `L()` stub, and still expected the agents cost Phase 1 removed; now expects `Today: $0.01`.
+- `tests/__init__.py`: every `CHIRON_SECRET_<NAME>` defaults to empty. Once the app is installed, `paths.secret()` would otherwise ask the real app and read the user's Keychain from the test suite (this made `test_chiron.BrainTests.test_custom_server_replaces_claude_sign_in_and_models` fail only on a Mac with Chiron installed).
+
+### Redesign (asked for by Rishabh: "like Wispr Flow", a new logo)
+- **Logo:** a C holding a gold guiding star. Source `docs/icon.svg`; `scripts/make-icon.sh` renders `ui/AppIcon.icns` and `docs/icon.png` (needs Chrome). The menu bar icon draws the same mark as a template image (`MenuBar.mark()`).
+- **Page (`ui/home.html`):** a sidebar (Home, Insights, Dictionary, Settings) and one rounded panel; flat surfaces, the gold accent, serif display type; light/dark with a toggle (pref `theme`: system/light/dark). This replaces the glass design of 2026-10-28.
+  - Home: greeting with the real ask shortcut as a keycap, hero card with **Ask Chiron** (`ask.start`), stats column (words, spend, connections), asks and dictations in one list grouped by day.
+  - Insights: the seven tiles (same keys and rules) and a 16-week activity heatmap with streak.
+  - Dictionary: the dictation word list is back on screen: add, remove (two presses), heard forms shown.
+  - Settings: a sheet inside the window (General, Connections, Budget, Permissions, About). The separate Settings window is gone; the menu's Settings… opens the sheet (`bridge.push('settings')`).
+- **Bridge:** `dictionary.list/add/remove`, `ask.start`; `prefs.get` also returns the shortcut labels; `theme` is writable and sets the window's appearance.
+- **Brain (`chiron/home.py`):** state gains `name` (me.json, else the Mac account's first name), `dictations` (last 10) and `activity` (asks + dictations per day, 16 weeks). Tests in `test_home_state`.
+- **Window (`app/HomeWindow.swift`):** one 1180×780 window (min 760×560, saved as `ChironMain`); a transparent `DragStrip` over the page's title strip moves it.
+- 63 new strings in `en.json`/`hi.json`; three Hindi lines added to `hi.review.json`.
+
+### Automated tests now
+- `python3 -m unittest discover -s tests -v`: **598 tests, 0 failures, 0 errors, 113 skipped** (host guard on).
+- By name against `phase-1-baseline.md`: of the 104 baseline failures/errors, 4 pass, 46 left with their features, 54 now compile but their binaries skip under the host guard.
+- **Still unrun on a real screen:** the 106 host-guarded native tests and the WebKit half of `test_home_page` need `CHIRON_ALLOW_HOST_UI=1` (they open windows) or the VM.
+
+### Unverified natively
+- The drag strip (moving and double-click zoom) and the menu bar mark were compiled but not looked at; the theme switching the traffic lights likewise.
+- Steps 2–15 of "Test it now" still need real keys and permissions; Settings now lives in the sheet, not a separate window.
+
+### Ready for Phase 2?
+- **Yes**, per Rishabh on 2026-10-30. Carry the unverified items above into Phase 2's first run.

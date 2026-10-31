@@ -32,7 +32,8 @@
 </style>
 <div class="bar" role="toolbar" aria-label="Mock controls">
   <span class="group" id="fx"><b>Fixture</b><button data-fx="empty">empty</button><button data-fx="typical">typical</button><button data-fx="errors">errors</button></span>
-  <span class="group" id="wd"><b>Width</b><button data-w="1280">1280</button><button data-w="880">880</button><button data-w="560">560</button><button data-w="settings" title="Settings window: 560×680 with #settings">Settings window</button></span>
+  <span class="group" id="vw"><b>View</b><button data-v="home">home</button><button data-v="insights">insights</button><button data-v="dictionary">dictionary</button><button data-v="settings">settings</button></span>
+  <span class="group" id="wd"><b>Width</b><button data-w="1280">1280</button><button data-w="880">880</button><button data-w="560">560</button></span>
   <span class="group" id="th"><b>Theme</b><button data-t="">auto</button><button data-t="light">light</button><button data-t="dark">dark</button></span>
   <span class="group"><b>Window</b><button id="nativeBtn" title="Simulate the app window: html.native, vibrancy, traffic lights">native</button></span>
   <span class="group"><b>Push</b><button id="pushState">state (+120 words)</button><button id="pushLang">lang (native)</button><button id="pushConn">connection: Jev ok</button></span>
@@ -46,12 +47,16 @@
   "empty": {
     "state": {
       "lang": "en",
+      "name": "",
       "today": null,
       "words": {"today": 0, "week": 0, "all": 0, "minutes_saved": 0, "langs": {"en": 0, "hi": 0}},
       "spend": {"month_usd": 0.0, "cap_usd": 5.0, "by_engine": {}},
       "recent": [],
+      "dictations": [],
+      "activity": {},
       "connections": {"brain": {"kind": "claude-code", "ok": false}, "jev": {"ok": false, "missing": true}, "speech": {"engine": "apple", "ok": true}}
     },
+    "dictionary": {"words": [], "fixes": {}},
     "conn": {"anthropic": {"saved": false}, "openai": {"saved": false}, "jev": {"saved": false, "base_url": "https://api.typesafe.ai/v1"}, "custom": {"saved": false, "url": "", "model": ""}, "brain": "claude-code"},
     "prefs": {"lang": "en", "capUsd": 5},
     "claudeCode": {"installed": false, "signedIn": false, "plan": null},
@@ -62,6 +67,7 @@
   "typical": {
     "state": {
       "lang": "en",
+      "name": "Rishabh",
       "today": null,
       "words": {"today": 1284, "week": 9420, "all": 182340, "minutes_saved": 212, "langs": {"en": 120300, "hi": 62040}},
       "spend": {"month_usd": 2.37, "cap_usd": 5.0, "by_engine": {"claude-code": 1.9, "jev": 0.04, "anthropic": 0.43}},
@@ -78,18 +84,26 @@
         {"at": "-6d", "kind": "do", "text": {"en": "Joined the family video call", "hi": "परिवार की वीडियो कॉल में जुड़े"}},
         {"at": "-8d", "kind": "ask", "text": {"en": "This eleventh item must not appear", "hi": "यह ग्यारहवाँ नहीं दिखना चाहिए"}}
       ],
+      "dictations": [
+        {"at": "-1m", "text": "Hi Asha, I'll call you after lunch. Tell Papa the doctor's appointment moved to Thursday.", "app": "WhatsApp"},
+        {"at": "-40m", "text": "Milk, bread, two dozen eggs, and coriander.", "app": "Notes"},
+        {"at": "-1d", "text": "Dear Sir, please find my electricity bill attached for the month of October.", "app": "Mail"}
+      ],
+      "activity": "auto",
       "connections": {"brain": {"kind": "claude-code", "ok": true}, "jev": {"ok": true}, "speech": {"engine": "apple", "ok": true}}
     },
     "conn": {"anthropic": {"saved": true, "last4": "ab12", "_value": "sk-ant-api03-fixture-ab12"}, "openai": {"saved": false}, "jev": {"saved": true, "last4": "9f3c", "base_url": "https://api.typesafe.ai/v1", "_value": "ts-fixture-9f3c"}, "custom": {"saved": false, "url": "http://localhost:11434", "model": "qwen3:8b"}, "brain": "claude-code"},
     "prefs": {"lang": "en", "capUsd": 5},
     "claudeCode": {"installed": true, "signedIn": true, "plan": "Claude Pro"},
     "perms": {"microphone": "granted", "speech": "granted", "accessibility": "granted", "screen": "denied", "automation": "unknown"},
+    "dictionary": {"words": ["Rishabh Sharma", "Asha", "Shivaji Nagar", "Dr. Kulkarni", "rishabh.sharma1103@gmail.com"], "fixes": {"aasha": "Asha", "shivaji nagger": "Shivaji Nagar"}},
     "servers": [{"url": "http://localhost:11434", "models": ["qwen3:8b", "llama3.2:3b", "gemma3:4b"]}, {"url": "http://localhost:1234", "models": ["mistral-small"]}],
     "info": {"version": "0.1.0", "build": "42 (phase-1)"}
   },
   "errors": {
     "state": {
       "lang": "en",
+      "name": 42,
       "today": {"kind": "practice", "minutes": "two"},
       "words": "corrupted",
       "spend": {"month_usd": 7.42, "cap_usd": 5.0},
@@ -102,15 +116,18 @@
         {"at": "-3h", "kind": "guardian", "text": {"hi": "सिर्फ़ हिंदी वाली पंक्ति"}},
         {"at": "-30m", "kind": "do", "text": {"en": "A very long line with no breaks: chiron.local/averyveryveryveryveryveryveryveryverylongpathwithoutanyspacesatallthatmustwrapratherthantruncate", "hi": "बहुत लंबी पंक्ति: chiron.local/averyveryveryveryveryveryveryveryverylongpathwithoutanyspacesatallthatmustwrapratherthantruncate"}}
       ],
+      "dictations": "garbage",
+      "activity": [1, 2],
       "connections": {"brain": {"kind": "anthropic", "ok": false}, "jev": {"ok": false}, "speech": "broken"}
     },
+    "dictionary": {"words": ["ok word", 7, null, ""], "fixes": "broken"},
     "conn": {"anthropic": {"saved": true, "last4": "bad0", "_value": "sk-ant-bad-key-bad0"}, "openai": {"saved": false}, "jev": {"saved": true, "last4": "dead", "_value": "ts-timeout-dead"}, "custom": {"saved": false}, "brain": "anthropic"},
     "prefs": {"lang": "en"},
     "claudeCode": {"installed": true, "signedIn": false, "plan": null},
     "perms": {"microphone": "denied", "speech": "granted", "accessibility": "denied", "screen": "weird-value"},
     "servers": [],
     "info": null,
-    "fail": {"app.info": "app.info exploded", "perms.grant": "System Settings did not open"}
+    "fail": {"app.info": "app.info exploded", "perms.grant": "System Settings did not open", "dictionary.add": "could not save"}
   }
 }
 </script>
@@ -118,20 +135,20 @@
 'use strict';
 const frame = document.getElementById('frame'), log = document.getElementById('log');
 const FIXTURES = JSON.parse(document.getElementById('fixtures').textContent);
-const SIZES = { 1280: [1280, 800], 880: [880, 720], 560: [560, 720], settings: [560, 680] };
-const ui = { fx: 'typical', w: '880', theme: '', lang: 'en', view: 'home', native: false };
+const SIZES = { 1280: [1280, 800], 880: [880, 720], 560: [560, 720] };
+const ui = { fx: 'typical', w: '1280', theme: '', lang: 'en', view: 'home', native: false };
 try { Object.assign(ui, JSON.parse(localStorage.getItem('chiron-mock') || '{}')); } catch (e) {}
-// Query params for headless screenshots: ?fixture=&lang=&theme=&view=home|settings&width=1280|880|560&chrome=0&native=1
+// Query params for headless screenshots: ?fixture=&lang=&theme=&view=home|insights|dictionary|settings&width=1280|880|560&chrome=0&native=1
 const q = new URLSearchParams(location.search);
 const BARE = q.get('chrome') === '0';
 if (q.has('fixture') && FIXTURES[q.get('fixture')]) ui.fx = q.get('fixture');
 if (['en', 'hi'].includes(q.get('lang'))) ui.lang = q.get('lang');
 if (q.has('theme')) ui.theme = ['light', 'dark'].includes(q.get('theme')) ? q.get('theme') : '';
-if (q.has('view')) ui.view = q.get('view') === 'settings' ? 'settings' : 'home';
+const VIEWS = ['home', 'insights', 'dictionary', 'settings'];
+if (q.has('view')) ui.view = VIEWS.includes(q.get('view')) ? q.get('view') : 'home';
 if (q.has('width')) ui.w = SIZES[q.get('width')] ? q.get('width') : ui.w;
-else if (q.get('view') === 'settings') ui.w = 'settings';
 if (q.has('native')) ui.native = q.get('native') === '1';
-if (ui.w === 'settings') ui.view = 'settings';
+if (!SIZES[ui.w]) ui.w = '1280';
 if (BARE) document.body.classList.add('bare');
 let db, page = '';
 
@@ -153,7 +170,7 @@ async function handle(method, args) {
   switch (method) {
     case 'state.get': await wait(120); return clone(db.state);
     case 'lang.set': await wait(80); db.state.lang = args.lang; db.prefs.lang = args.lang; return { ok: true };
-    case 'prefs.get': await wait(60); return clone(db.prefs);
+    case 'prefs.get': await wait(60); return Object.assign({ hotkeyLabel: '⌃⌥Space', dictateHotkeyLabel: 'fn' }, clone(db.prefs));
     case 'prefs.set': await wait(150); db.prefs[args.k] = args.v; if (args.k === 'capUsd' && db.state.spend && typeof db.state.spend === 'object') db.state.spend.cap_usd = args.v; return { ok: true };
     case 'conn.list': await wait(90); return publicConn();
     case 'conn.save': await wait(200); db.conn[args.name] = Object.assign({}, db.conn[args.name], { saved: true, last4: String(args.value).slice(-4), _value: args.value }); return { ok: true, last4: String(args.value).slice(-4) };
@@ -174,10 +191,18 @@ async function handle(method, args) {
     case 'perms.get': await wait(100); return clone(db.perms);
     case 'perms.grant': await wait(300); db.perms[args.id] = 'granted'; return { ok: true };
     case 'app.info': await wait(60); return clone(db.info);
-    case 'window.settings': return { opened: false };
+    case 'window.settings': return { opened: false };   // kept for old callers; Settings is a sheet inside the page now
     case 'strings.get': return (await fetch('../ui/strings/' + args.lang + '.json')).json();
     case 'link.open': note('would open', args.url); return { ok: true };
     case 'practice.start': case 'drill.start': case 'papers.open': return { ok: true };
+    case 'ask.start': note('would start an ask'); return { ok: true };
+    case 'dictionary.list': await wait(80); return clone(db.dictionary || { words: [], fixes: {} });
+    case 'dictionary.add': {
+      await wait(150); const w = String(args.word || '').trim();
+      if (!w || w.length > 80) return { ok: false };
+      db.dictionary = db.dictionary || { words: [], fixes: {} }; if (!db.dictionary.words.includes(w)) db.dictionary.words.push(w); return { ok: true };
+    }
+    case 'dictionary.remove': await wait(120); db.dictionary.words = db.dictionary.words.filter(x => x !== args.word); return { ok: true };
     default: throw new Error('mock: unknown method ' + method);
   }
 }
@@ -190,14 +215,26 @@ window.mockHome = function (msg) {
     e => { note('✗', msg.method, e.message); frame.contentWindow.bridge.reply(msg.id, null, e.message); });
 };
 
+// "activity": "auto" → a believable, repeatable 16 weeks ending today with a 5-day streak.
+function activity() {
+  const out = {}, d = new Date(); let seed = 7;
+  for (let i = 0; i < 112; i++) {
+    seed = (seed * 9301 + 49297) % 233280;
+    const n = i < 5 ? 3 + (seed % 9) : (seed % 10 < 4 ? 0 : seed % 14);
+    if (n) out[`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`] = n;
+    d.setDate(d.getDate() - 1);
+  }
+  return out;
+}
 async function load() {
   db = times(clone(FIXTURES[ui.fx]));
+  if (db.state && db.state.activity === 'auto') db.state.activity = activity();
   if (db.state && typeof db.state === 'object') db.state.lang = ui.lang;
   db.prefs.lang = ui.lang;
   if (!page) page = await (await fetch('../ui/home.html', { cache: 'no-store' })).text();
   // The app opens Settings with #settings; here the frame's name says so (a fragment on about:srcdoc trips up tooling).
   // native=1 adds the class Swift injects at document start; theme goes on <html> before first paint.
-  const hash = `window.name=${JSON.stringify(ui.view === 'settings' ? 'chiron-settings' : 'chiron-home')};`
+  const hash = `window.name=${JSON.stringify('chiron-' + ui.view)};`
     + (ui.native ? "document.documentElement.classList.add('native');" : '')
     + (ui.theme ? `document.documentElement.dataset.theme=${JSON.stringify(ui.theme)};` : '')
     // Headless screenshots run on virtual time, which can freeze CSS transitions mid-way: show final states.
@@ -240,17 +277,16 @@ function theme() {
 function paint() {
   document.querySelectorAll('[data-fx]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.fx === ui.fx)));
   document.querySelectorAll('[data-w]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.w === ui.w)));
+  document.querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === ui.view)));
   document.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === ui.theme)));
   document.getElementById('nativeBtn').setAttribute('aria-pressed', String(!!ui.native));
   if (!location.search) try { localStorage.setItem('chiron-mock', JSON.stringify(ui)); } catch (e) {}
 }
 document.querySelectorAll('[data-fx]').forEach(b => b.onclick = () => { ui.fx = b.dataset.fx; load(); });
 document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => {
-  const reload = (b.dataset.w === 'settings') !== (ui.w === 'settings');
-  ui.w = b.dataset.w; ui.view = ui.w === 'settings' ? 'settings' : 'home';
-  if (reload) return load();
-  const [w, h] = SIZES[ui.w]; frame.style.width = w + 'px'; frame.style.height = h + 'px'; paint();
+  ui.w = b.dataset.w; const [w, h] = SIZES[ui.w]; frame.style.width = w + 'px'; frame.style.height = h + 'px'; paint();
 });
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { ui.view = b.dataset.v; load(); });
 document.getElementById('nativeBtn').onclick = () => { ui.native = !ui.native; load(); };
 document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { ui.theme = b.dataset.t; theme(); paint(); });
 document.getElementById('pushState').onclick = () => {
