@@ -4,7 +4,7 @@ Written 2026-10-30 for whoever picks this up next, most likely Claude Code on a 
 
 ## Update, 2026-10-30
 
-Phase 1 now compiles and runs on macOS 27.2 (Command Line Tools 27.2), the full suite is green (598 tests, 0 failures), and Home was redesigned as a sidebar app with a new logo. Details: the addendum at the end of `docs/reports/phase-1.md`. Phase 1 is accepted; **next is Phase 2** (Voice Bar and speech). Steps 1–5 below are done except the hands-on test list, which needs real keys and permissions.
+Phase 1 now compiles and runs on macOS 27.2 (Command Line Tools 27.2), the full suite is green (599 tests, 0 failures), and Home was redesigned as one page in a sidebar window with a new logo. Details: the addendum at the end of `docs/reports/phase-1.md`. Phase 1 is accepted; **next is Phase 2** (Voice Bar and speech). Steps 1–5 below are done except the hands-on test list, which needs real keys and permissions.
 
 ## In one paragraph
 

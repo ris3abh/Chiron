@@ -27,6 +27,7 @@ class HomeStateTest(unittest.TestCase):
         self.assertEqual(s['recent'], [])
         self.assertEqual(s['connections']['brain']['kind'], 'claude-code')
         self.assertEqual(s['connections']['speech'], {'engine': 'apple', 'ok': True})
+        self.assertTrue(s['connections']['jev']['missing'], 'no Jev test yet reads "not set up", not "not working"')
         for later in ('skills', 'weak', 'streak', 'guardian', 'papers'):
             self.assertNotIn(later, s)   # their tiles stay hidden until their phase
         json.dumps(s)

@@ -32,7 +32,7 @@
 </style>
 <div class="bar" role="toolbar" aria-label="Mock controls">
   <span class="group" id="fx"><b>Fixture</b><button data-fx="empty">empty</button><button data-fx="typical">typical</button><button data-fx="errors">errors</button></span>
-  <span class="group" id="vw"><b>View</b><button data-v="home">home</button><button data-v="insights">insights</button><button data-v="dictionary">dictionary</button><button data-v="settings">settings</button></span>
+  <span class="group" id="vw"><b>View</b><button data-v="home">home</button><button data-v="settings">settings</button><button data-v="settings/voice">settings/voice</button></span>
   <span class="group" id="wd"><b>Width</b><button data-w="1280">1280</button><button data-w="880">880</button><button data-w="560">560</button></span>
   <span class="group" id="th"><b>Theme</b><button data-t="">auto</button><button data-t="light">light</button><button data-t="dark">dark</button></span>
   <span class="group"><b>Window</b><button id="nativeBtn" title="Simulate the app window: html.native, vibrancy, traffic lights">native</button></span>
@@ -138,14 +138,13 @@ const FIXTURES = JSON.parse(document.getElementById('fixtures').textContent);
 const SIZES = { 1280: [1280, 800], 880: [880, 720], 560: [560, 720] };
 const ui = { fx: 'typical', w: '1280', theme: '', lang: 'en', view: 'home', native: false };
 try { Object.assign(ui, JSON.parse(localStorage.getItem('chiron-mock') || '{}')); } catch (e) {}
-// Query params for headless screenshots: ?fixture=&lang=&theme=&view=home|insights|dictionary|settings&width=1280|880|560&chrome=0&native=1
+// Query params for headless screenshots: ?fixture=&lang=&theme=&view=home|settings|settings/<section>&width=1280|880|560&chrome=0&native=1
 const q = new URLSearchParams(location.search);
 const BARE = q.get('chrome') === '0';
 if (q.has('fixture') && FIXTURES[q.get('fixture')]) ui.fx = q.get('fixture');
 if (['en', 'hi'].includes(q.get('lang'))) ui.lang = q.get('lang');
 if (q.has('theme')) ui.theme = ['light', 'dark'].includes(q.get('theme')) ? q.get('theme') : '';
-const VIEWS = ['home', 'insights', 'dictionary', 'settings'];
-if (q.has('view')) ui.view = VIEWS.includes(q.get('view')) ? q.get('view') : 'home';
+if (q.has('view')) ui.view = /^(home|settings(\/\w+)?)$/.test(q.get('view')) ? q.get('view') : 'home';
 if (q.has('width')) ui.w = SIZES[q.get('width')] ? q.get('width') : ui.w;
 if (q.has('native')) ui.native = q.get('native') === '1';
 if (!SIZES[ui.w]) ui.w = '1280';
@@ -234,7 +233,7 @@ async function load() {
   if (!page) page = await (await fetch('../ui/home.html', { cache: 'no-store' })).text();
   // The app opens Settings with #settings; here the frame's name says so (a fragment on about:srcdoc trips up tooling).
   // native=1 adds the class Swift injects at document start; theme goes on <html> before first paint.
-  const hash = `window.name=${JSON.stringify('chiron-' + ui.view)};`
+  const hash = `window.name=${JSON.stringify('chiron-' + ui.view.replace('/', '-'))};`
     + (ui.native ? "document.documentElement.classList.add('native');" : '')
     + (ui.theme ? `document.documentElement.dataset.theme=${JSON.stringify(ui.theme)};` : '')
     // Headless screenshots run on virtual time, which can freeze CSS transitions mid-way: show final states.

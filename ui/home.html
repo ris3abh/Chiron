@@ -82,6 +82,9 @@ a { color: inherit; }
 .num, .big, output { font-variant-numeric: tabular-nums; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 em.serif, .serif em { font-style: italic; }
+/* Devanagari has no italic (the browser only slants it): Hindi emphasis is colour and weight instead. */
+:lang(hi) em, :lang(hi) i { font-style: normal; font-weight: 600; }
+:lang(hi) .hero em { color: #F7C063; font-weight: 400; }
 svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---------- Buttons ---------- */
@@ -176,7 +179,9 @@ h1.greet { margin-bottom: 26px; }
 .note { padding: 12px 16px; border-radius: var(--radius-sm); background: rgba(255,255,255,.1); color: #EDE8DE; font-size: var(--small); }
 
 .side-stats { display: grid; overflow: hidden; }
-.side-stats > section { padding: 22px 24px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+.side-stats > section { padding: 22px 24px; border-top: 1px solid var(--line); display: grid; gap: 10px; justify-items: start; }
+.side-stats > section > * { justify-self: stretch; }
+.side-stats .btn.quiet { justify-self: start; margin-left: -12px; }
 .side-stats > section:first-child { border-top: 0; }
 .figure { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .figure b { font: 400 32px/1.1 var(--serif); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
@@ -237,7 +242,7 @@ h1.greet { margin-bottom: 26px; }
 .weak-list { display: grid; gap: 10px; }
 .weak-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 
-.heat { padding: 24px; display: grid; gap: 16px; }
+.heat { padding: 24px; display: grid; gap: 16px; min-width: 0; }
 .heat-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 20px; flex-wrap: wrap; }
 .heat-head h2 { font: 400 30px/1.15 var(--serif); }
 .heat-scroll { overflow-x: auto; padding-bottom: 4px; }
@@ -249,14 +254,10 @@ h1.greet { margin-bottom: 26px; }
 .heat-legend { display: flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: var(--small); }
 .heat-legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
 
-/* ---------- Dictionary ---------- */
-.intro { position: relative; overflow: hidden; border-radius: 18px; padding: 30px clamp(22px, 3.5vw, 36px); margin-bottom: 26px; color: #F6F3EC;
-  background: radial-gradient(60% 120% at 90% 0%, rgba(245,181,63,.45), transparent 70%), linear-gradient(120deg, #2A2233, #16141C); display: grid; gap: 12px; }
-.intro h2 { font: 400 clamp(26px, 3.6cqi, 34px)/1.15 var(--serif); }
-.intro p { color: #E3DED4; max-width: 40em; }
+/* ---------- Dictionary (Settings → Voice) ---------- */
 .add-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
-.add-row .input { flex: 1 1 240px; background: rgba(255,255,255,.95); color: #18181B; border-color: transparent; }
-.add-row .kf-result, .add-row .kf-result.ok, .add-row .kf-result.bad { color: #fff; }
+.add-row { margin-bottom: 14px; }
+.add-row .input { flex: 1 1 240px; }
 .word-list > li { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 12px 12px 12px 20px; }
 .word-list .w { font-weight: 600; }
 .word-list .heard { color: var(--ink-2); font-size: var(--small); font-weight: 400; }
@@ -411,10 +412,6 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
       </div>
       <button class="nav-btn" type="button" data-view="home" aria-current="page">
         <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-5v-6h-5v6h-5a1 1 0 0 1-1-1z"/></svg><span class="label" data-i18n="nav.home">Home</span></button>
-      <button class="nav-btn" type="button" data-view="insights">
-        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="label" data-i18n="nav.insights">Insights</span></button>
-      <button class="nav-btn" type="button" data-view="dictionary">
-        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5zM5 19.5A1.5 1.5 0 0 0 6.5 21H19M9 7.5h6"/></svg><span class="label" data-i18n="nav.dictionary">Dictionary</span></button>
       <div class="grow"></div>
       <div class="side-card" id="sideTip">
         <b data-i18n="side.tip.title">Dictate anywhere</b>
@@ -451,6 +448,33 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
               <p class="note" id="todayNote" hidden data-i18n="home.openai.note">Lessons, papers and questions work; open-ended Mac tasks need Claude.</p>
             </section>
 
+            <section class="card heat" id="heatCard" data-key="activity" aria-labelledby="heatT" hidden>
+              <div class="heat-head"><div><div class="eyebrow" data-i18n="home.activity.title">Activity</div><h2 id="heatT"></h2></div><span class="sub" id="heatBest"></span></div>
+              <div class="heat-scroll"><div class="heat-grid" id="heatGrid" role="img"></div></div>
+              <div class="heat-legend" aria-hidden="true"><span data-i18n="insights.heat.less">Less</span><i style="background:var(--heat-0)"></i><i style="background:var(--heat-1)"></i><i style="background:var(--heat-2)"></i><i style="background:var(--heat-3)"></i><i style="background:var(--heat-4)"></i><span data-i18n="insights.heat.more">More</span></div>
+            </section>
+            <div class="tiles" id="tiles">
+              <section class="tile" data-key="skills" data-row="3" tabindex="0" aria-labelledby="skillsT" hidden>
+                <h2 id="skillsT"><span data-i18n="home.skills.title">Skills learned</span></h2>
+                <div class="constellation" id="constellation"></div>
+                <p class="sub num" id="skillsCount"></p>
+              </section>
+              <section class="tile" data-key="weak" data-row="3" tabindex="0" aria-labelledby="weakT" hidden>
+                <h2 id="weakT"><span data-i18n="home.weak.title">Weak spots</span></h2>
+                <ul class="weak-list" id="weakList"></ul>
+              </section>
+              <section class="tile" data-key="guardian" data-row="4" tabindex="0" aria-labelledby="guardT" hidden>
+                <h2 id="guardT"><span data-i18n="home.guardian.title">Guardian</span></h2>
+                <div class="big-row"><span class="big num" id="guardN">0</span><span class="big-label" data-i18n="home.guardian.month">stopped this month</span></div>
+                <p class="sub" id="guardLast"></p>
+              </section>
+              <section class="tile" data-key="papers" data-row="4" tabindex="0" aria-labelledby="papersT" hidden>
+                <h2 id="papersT"><span data-i18n="home.papers.title">Papers</span></h2>
+                <div class="big-row"><span class="big num" id="papersN">0</span><span class="big-label" data-i18n="home.papers.count">papers made</span></div>
+                <div class="spacer"></div>
+                <button class="btn" id="papersOpen" type="button" data-i18n="home.papers.open" hidden>Open last paper</button>
+              </section>
+            </div>
             <section data-key="recent" id="recentPanel" aria-labelledby="recentT" hidden>
               <h2 id="recentT" class="sr" data-i18n="home.activity.title">Activity</h2>
               <div id="recentList"></div>
@@ -459,15 +483,20 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
           </div>
 
           <aside class="card side-stats" aria-label="Summary" data-i18n-aria="home.stats.label">
-            <section id="homeWords" hidden>
-              <div class="figure"><b id="homeWordsToday">0</b><span data-i18n="home.stats.wordsToday">words today</span></div>
-              <div class="figure"><b id="homeWordsAll">0</b><span data-i18n="home.stats.wordsAll">total words</span></div>
-              <div class="figure" id="homeSavedRow"><b id="homeSaved">0</b><span data-i18n="home.stats.saved">minutes saved</span></div>
+            <section data-key="words" id="homeWords" aria-labelledby="wordsT" hidden>
+              <h2 id="wordsT" data-i18n="home.words.title">Words dictated</h2>
+              <div class="figure"><b id="wordsToday">0</b><span data-i18n="home.words.today">today</span></div>
+              <div class="figure"><b id="wordsWeek">0</b><span data-i18n="home.stats.week">this week</span></div>
+              <div class="figure"><b id="wordsAll">0</b><span data-i18n="home.stats.all">in all</span></div>
+              <p class="sub num" id="wordsSaved"></p>
+              <p class="sub num" id="wordsLangs" hidden></p>
             </section>
-            <section id="homeSpend" hidden>
-              <h2 data-i18n="home.stats.spend">AI spend this month</h2>
-              <div class="figure"><b id="homeSpendN">$0.00</b><span id="homeSpendOf"></span></div>
-              <div id="homeSpendBar"></div>
+            <section data-key="spend" id="homeSpend" aria-labelledby="spendT" hidden>
+              <h2 id="spendT" data-i18n="home.stats.spend">AI spend this month</h2>
+              <div class="figure"><b id="spendN">$0.00</b><span id="spendOf"></span></div>
+              <div id="spendBar"></div>
+              <p class="msg-warn" id="spendMsg" role="status" hidden></p>
+              <button class="btn quiet" id="spendChange" type="button" data-i18n="home.spend.change">Change limit</button>
             </section>
             <section data-key="connections" id="dots" hidden>
               <h2 data-i18n="footer.label">Connections</h2>
@@ -481,77 +510,6 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
         </div>
       </main>
 
-      <!-- ==================== INSIGHTS ==================== -->
-      <main id="insights" class="view" tabindex="-1" hidden>
-        <div class="page-head"><div><h1 data-i18n="insights.title">Insights</h1><p data-i18n="insights.sub">How you have been using Chiron.</p></div></div>
-        <div class="tiles" id="tiles">
-          <section class="tile" data-key="words" data-row="3" tabindex="0" aria-labelledby="wordsT" hidden>
-            <h2 id="wordsT"><span data-i18n="home.words.title">Words spoken</span></h2>
-            <div class="big-row"><span class="big num" id="wordsToday">0</span><span class="big-label" data-i18n="home.words.today">today</span></div>
-            <div class="stats">
-              <div class="stat"><b id="wordsWeek">0</b><span data-i18n="home.words.week">This week</span></div>
-              <div class="stat"><b id="wordsAll">0</b><span data-i18n="home.words.all">All time</span></div>
-            </div>
-            <p class="sub num" id="wordsSaved"></p>
-            <p class="sub num" id="wordsLangs" hidden></p>
-          </section>
-          <section class="tile" data-key="skills" data-row="3" tabindex="0" aria-labelledby="skillsT" hidden>
-            <h2 id="skillsT"><span data-i18n="home.skills.title">Skills learned</span></h2>
-            <div class="constellation" id="constellation"></div>
-            <p class="sub num" id="skillsCount"></p>
-          </section>
-          <section class="tile" data-key="weak" data-row="3" tabindex="0" aria-labelledby="weakT" hidden>
-            <h2 id="weakT"><span data-i18n="home.weak.title">Weak spots</span></h2>
-            <ul class="weak-list" id="weakList"></ul>
-          </section>
-          <section class="tile" data-key="streak" data-row="4" tabindex="0" aria-labelledby="streakT" hidden>
-            <h2 id="streakT"><span data-i18n="home.streak.title">Streak</span></h2>
-            <div class="big-row"><span class="big num" id="streakN">0</span><span class="big-label" data-i18n="home.streak.days">days in a row</span></div>
-          </section>
-          <section class="tile" data-key="guardian" data-row="4" tabindex="0" aria-labelledby="guardT" hidden>
-            <h2 id="guardT"><span data-i18n="home.guardian.title">Guardian</span></h2>
-            <div class="big-row"><span class="big num" id="guardN">0</span><span class="big-label" data-i18n="home.guardian.month">stopped this month</span></div>
-            <p class="sub" id="guardLast"></p>
-          </section>
-          <section class="tile" data-key="papers" data-row="4" tabindex="0" aria-labelledby="papersT" hidden>
-            <h2 id="papersT"><span data-i18n="home.papers.title">Papers</span></h2>
-            <div class="big-row"><span class="big num" id="papersN">0</span><span class="big-label" data-i18n="home.papers.count">papers made</span></div>
-            <div class="spacer"></div>
-            <button class="btn" id="papersOpen" type="button" data-i18n="home.papers.open" hidden>Open last paper</button>
-          </section>
-          <section class="tile" data-key="spend" data-row="4" tabindex="0" aria-labelledby="spendT" hidden>
-            <h2 id="spendT"><span data-i18n="home.spend.title">AI spend</span></h2>
-            <div class="big-row"><span class="big num" id="spendN">$0.00</span></div>
-            <div class="spendbar" id="spendBar"></div>
-            <p class="sub num" id="spendOf"></p>
-            <p class="msg-warn" id="spendMsg" role="status" hidden></p>
-            <div class="spacer"></div>
-            <button class="btn quiet" id="spendChange" type="button" data-i18n="home.spend.change">Change limit</button>
-          </section>
-        </div>
-        <section class="card heat" id="heatCard" data-key="activity" aria-labelledby="heatT" hidden>
-          <div class="heat-head"><h2 id="heatT"></h2><span class="sub" id="heatBest"></span></div>
-          <div class="heat-scroll"><div class="heat-grid" id="heatGrid" role="img"></div></div>
-          <div class="heat-legend" aria-hidden="true"><span data-i18n="insights.heat.less">Less</span><i style="background:var(--heat-0)"></i><i style="background:var(--heat-1)"></i><i style="background:var(--heat-2)"></i><i style="background:var(--heat-3)"></i><i style="background:var(--heat-4)"></i><span data-i18n="insights.heat.more">More</span></div>
-        </section>
-      </main>
-
-      <!-- ==================== DICTIONARY ==================== -->
-      <main id="dictionary" class="view" tabindex="-1" hidden>
-        <div class="page-head"><h1 data-i18n="dict.title">Dictionary</h1><span class="sub num" id="dictCount"></span></div>
-        <section class="intro" aria-labelledby="dictHeroT">
-          <h2 id="dictHeroT"></h2>
-          <p data-i18n="dict.hero.body">Add names, places and words you use, so dictation spells them right every time. When you correct a word, Chiron learns it here too.</p>
-          <form class="add-row" id="dictForm">
-            <label class="sr" for="dictInput" data-i18n="dict.input.label">New word</label>
-            <input class="input" id="dictInput" type="text" autocomplete="off" spellcheck="false" maxlength="80" data-i18n-placeholder="dict.input.placeholder">
-            <button class="btn gold" type="submit" data-i18n="dict.add">Add word</button>
-            <span class="kf-result" id="dictResult" role="status" aria-live="polite"></span>
-          </form>
-        </section>
-        <ul class="rows word-list" id="dictList"></ul>
-        <p class="empty" id="dictEmpty" data-i18n="dict.empty" hidden>No words yet. Add a name you use often, like a friend's or your street's.</p>
-      </main>
     </div>
   </div>
 </div>
@@ -564,6 +522,7 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
     <nav class="set-nav" data-i18n-aria="settings.nav.label" aria-label="Settings sections">
       <div class="eyebrow" id="setTitle" data-i18n="settings.title">Settings</div>
       <button class="nav-btn" type="button" data-go="general"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span data-i18n="settings.nav.general">General</span></button>
+      <button class="nav-btn" type="button" data-go="voice"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span data-i18n="settings.nav.voice">Voice and language</span></button>
       <button class="nav-btn" type="button" data-go="connections"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/></svg><span data-i18n="settings.nav.connections">Connections</span></button>
       <button class="nav-btn" type="button" data-go="budget"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/></svg><span data-i18n="settings.nav.budget">Budget</span></button>
       <button class="nav-btn" type="button" data-go="permissions"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span data-i18n="settings.nav.permissions">Permissions</span></button>
@@ -577,11 +536,6 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
         <div class="set-rows">
           <div><div class="t"><b data-i18n="settings.general.ask">Ask Chiron</b><p id="askHow"></p></div></div>
           <div><div class="t"><b data-i18n="settings.general.dictate">Dictate</b><p id="dictateHow"></p></div></div>
-          <div><div class="t"><b id="appLangL" data-i18n="settings.voice.lang">App language</b><p data-i18n="settings.voice.langHelp">Changes every label and the language Chiron speaks in.</p></div>
-            <div class="seg lang" role="group" aria-labelledby="appLangL" id="langSetting">
-              <button type="button" data-lang="en" aria-pressed="true"><span data-i18n="settings.voice.en">English</span></button>
-              <button type="button" data-lang="hi" aria-pressed="false"><span data-i18n="settings.voice.hi">Hindi</span></button>
-            </div></div>
           <div><div class="t"><label for="themeSetting"><b data-i18n="settings.general.theme">Theme</b></label><p data-i18n="settings.general.themeHelp">Light, dark, or the same as your Mac.</p></div>
             <select class="input" id="themeSetting">
               <option value="system" data-i18n="settings.general.theme.system">Same as my Mac</option>
@@ -589,6 +543,27 @@ input[type=range] { flex: 1 1 220px; accent-color: var(--accent); min-height: 44
               <option value="dark" data-i18n="settings.general.theme.dark">Dark</option>
             </select></div>
         </div>
+      </section>
+
+      <section class="set-sec" id="sec-voice" aria-labelledby="voiceT" hidden>
+        <header><h2 id="voiceT" data-i18n="settings.voice.title">Voice and language</h2><span class="saved" role="status" aria-live="polite"></span></header>
+        <div class="set-rows">
+          <div><div class="t"><b id="appLangL" data-i18n="settings.voice.lang">App language</b><p data-i18n="settings.voice.langHelp">Changes every label and the language Chiron speaks in.</p></div>
+            <div class="seg lang" role="group" aria-labelledby="appLangL" id="langSetting">
+              <button type="button" data-lang="en" aria-pressed="true"><span data-i18n="settings.voice.en">English</span></button>
+              <button type="button" data-lang="hi" aria-pressed="false"><span data-i18n="settings.voice.hi">Hindi</span></button>
+            </div></div>
+        </div>
+        <div class="group-title" style="margin-top:28px"><h3 data-i18n="dict.title">Dictionary</h3><span class="sub num" id="dictCount"></span></div>
+        <p class="help" data-i18n="dict.hero.body">Add names, places and words you use, so dictation spells them right every time. When you correct a word, Chiron learns it here too.</p>
+        <form class="add-row" id="dictForm">
+          <label class="sr" for="dictInput" data-i18n="dict.input.label">New word</label>
+          <input class="input" id="dictInput" type="text" autocomplete="off" spellcheck="false" maxlength="80" data-i18n-placeholder="dict.input.placeholder">
+          <button class="btn primary" type="submit" data-i18n="dict.add">Add word</button>
+          <span class="kf-result" id="dictResult" role="status" aria-live="polite"></span>
+        </form>
+        <ul class="rows word-list" id="dictList"></ul>
+        <p class="empty" id="dictEmpty" data-i18n="dict.empty" hidden>No words yet. Add a name you use often, like a friend's or your street's.</p>
       </section>
 
       <section class="set-sec" id="sec-connections" aria-labelledby="connT" hidden>
@@ -779,7 +754,7 @@ async function setLang(lang, opts) {
   if (S.lang !== lang) return;   // a newer switch won
   applyStrings(lang);
   renderAll();
-  if (!native) bridge.call('lang.set', { lang }).then(() => saved($('#sec-general'))).catch(e => { if (e.message !== 'no-bridge') toast(t('common.error')); });
+  if (!native) bridge.call('lang.set', { lang }).then(() => saved($('#sec-voice'))).catch(e => { if (e.message !== 'no-bridge') toast(t('common.error')); });
 }
 
 /* ---------------- Formatting ---------------- */
@@ -924,10 +899,6 @@ function renderWords() {
   const showLangs = langs && isNum(langs.en) && isNum(langs.hi) && langs.hi > 0;
   $('#wordsLangs').hidden = !showLangs;
   if (showLangs) $('#wordsLangs').textContent = t('home.words.langs', { en: fmtNum(langs.en), hi: fmtNum(langs.hi) });
-  $('#homeWordsToday').textContent = fmtNum(w.today);
-  $('#homeWordsAll').textContent = fmtNum(w.all);
-  $('#homeSaved').textContent = fmtNum(w.minutes_saved);
-  $('#homeSavedRow').hidden = !(isNum(w.minutes_saved) && w.minutes_saved > 0);
 }
 function renderSkills() {
   const list = Array.isArray(S.state.skills) ? S.state.skills.filter(obj) : [];
@@ -942,7 +913,6 @@ function renderWeak() {
   list.forEach(w => ul.append(WeakSpot(w)));
 }
 function renderSmall() {
-  $('#streakN').textContent = fmtNum(Number(S.state.streak));
   const g = obj(S.state.guardian) || {};
   $('#guardN').textContent = fmtNum(g.month);
   const last = obj(g.last);
@@ -959,14 +929,11 @@ function renderSpend() {
   const sp = obj(S.state.spend) || {}, cap = spendCap();
   $('#spendN').textContent = fmtUSD(sp.month_usd);
   const ratio = SpendBar($('#spendBar'), sp.month_usd, cap);
-  $('#spendOf').textContent = t('home.spend.of', { cap: fmtCap(cap) });
+  $('#spendOf').textContent = t('home.stats.of', { cap: fmtCap(cap) });
   const msg = $('#spendMsg');
   msg.hidden = ratio < 0.8;
   msg.textContent = ratio >= 1 ? t('home.spend.over', { cap: fmtCap(cap) }) : t('home.spend.near');
   msg.style.color = ratio >= 1 ? '' : 'var(--ink-2)';
-  $('#homeSpendN').textContent = fmtUSD(sp.month_usd);
-  $('#homeSpendOf').textContent = t('home.stats.of', { cap: fmtCap(cap) });
-  SpendBar($('#homeSpendBar'), sp.month_usd, cap);
 }
 const dayKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 function dayLabel(key) {
@@ -1057,7 +1024,7 @@ function renderHome() {
   $('#homeWords').hidden = !has('words');
   if (has('skills')) renderSkills();
   if (has('weak')) renderWeak();
-  if (has('streak') || has('guardian') || has('papers')) renderSmall();
+  if (has('guardian') || has('papers')) renderSmall();
   if (has('spend')) renderSpend();
   $('#homeSpend').hidden = !has('spend');
   $('#recentPanel').hidden = !(has('recent') || has('dictations'));
@@ -1074,7 +1041,6 @@ async function loadDict() {
   renderDict();
 }
 function renderDict() {
-  rich($('#dictHeroT'), t('dict.hero.title'));
   const words = (Array.isArray(S.dict.words) ? S.dict.words : []).filter(w => typeof w === 'string' && w.trim());
   const fixes = obj(S.dict.fixes) || {};
   const ul = $('#dictList'); ul.textContent = '';
@@ -1336,27 +1302,27 @@ function setTheme(theme) {
 }
 
 /* ---------------- Views ---------------- */
-const VIEWS = ['home', 'insights', 'dictionary'];
+const VIEWS = ['home'];   // one page: Home, with Settings as a sheet over it
 function showView(view) {
   if (!VIEWS.includes(view)) view = 'home';
   S.view = view;
   VIEWS.forEach(v => { $('#' + v).hidden = v !== view; });
   $$('[data-view]').forEach(b => { if (b.dataset.view === view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   $('#panel').scrollTop = 0;
-  if (view === 'dictionary') loadDict();
 }
 function goView(view) {
   showView(view);
   try { history.replaceState(null, '', view === 'home' ? location.pathname + location.search : '#' + view); } catch (e) { /* srcdoc mock */ }
   $('#' + S.view).focus({ preventScroll: true });
 }
-const SECTIONS = ['general', 'connections', 'budget', 'permissions', 'about'];
+const SECTIONS = ['general', 'voice', 'connections', 'budget', 'permissions', 'about'];
 function showSection(section) {
   if (!SECTIONS.includes(section)) section = 'general';
   S.section = section;
   SECTIONS.forEach(s => { $('#sec-' + s).hidden = s !== section; });
   $$('[data-go]').forEach(b => b.setAttribute('aria-current', String(b.dataset.go === section)));
   $('#setMain').scrollTop = 0;
+  if (section === 'voice') loadDict();
 }
 function openSettings(section) {
   const modal = $('#settings'), wasOpen = !modal.hidden;
@@ -1374,8 +1340,8 @@ function closeSettings() {
 }
 function route() {
   // #settings[/section] or #insights / #dictionary; the mock names its frame chiron-<view> instead (srcdoc can't carry a fragment safely).
-  const hash = location.hash.slice(1), named = /^chiron-(\w+)$/.exec(window.name || '');
-  const want = hash || (named ? named[1] : '');
+  const hash = location.hash.slice(1), named = /^chiron-(\w+)(?:-(\w+))?$/.exec(window.name || '');
+  const want = hash || (named ? named[1] + (named[2] ? '/' + named[2] : '') : '');
   const m = /^settings(?:\/(\w+))?$/.exec(want);
   if (m) { showView(S.view || 'home'); openSettings(m[1]); }
   else showView(VIEWS.includes(want) ? want : 'home');

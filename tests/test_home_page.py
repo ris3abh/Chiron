@@ -133,14 +133,15 @@ class HomePageStaticTests(unittest.TestCase):
         self.assertLess(total, 600_000)
 
     def test_tiles_have_keys_and_start_hidden(self):
+        # Words and spend live in Home's stats column and the streak is the activity heatmap; the rest wait for Phase 4.
         tiles = re.findall(r'<section class="tile"[^>]*>', self.html)
-        self.assertEqual(len(tiles), 7)
+        self.assertEqual(len(tiles), 4)
         keys = [re.search(r'data-key="(\w+)"', t).group(1) for t in tiles]
-        self.assertEqual(keys, ['words', 'skills', 'weak', 'streak', 'guardian', 'papers', 'spend'])
+        self.assertEqual(keys, ['skills', 'weak', 'guardian', 'papers'])
         for tag in tiles:
             self.assertIn(' hidden', tag, f'{tag} must start hidden until its state key arrives')
             self.assertIn('tabindex="0"', tag, 'every tile is reachable by Tab')
-        for key in ('recent', 'connections', 'today'):
+        for key in ('recent', 'connections', 'today', 'words', 'spend', 'activity'):
             self.assertIn(f'data-key="{key}"', self.html)
 
     def test_phase1_methods_used_and_mocked(self):
@@ -159,12 +160,11 @@ class HomePageStaticTests(unittest.TestCase):
             self.assertIn(token, self.html)
         self.assertNotIn('text-overflow: ellipsis', self.html, 'text wraps, never truncates')
 
-    def test_views_and_settings_sheet(self):
-        for view in ('home', 'insights', 'dictionary'):
-            self.assertRegex(self.html, rf'<main id="{view}" class="view"')
-            self.assertIn(f'data-view="{view}"', self.html)
+    def test_one_page_and_settings_sheet(self):
+        self.assertEqual(re.findall(r'<main id="(\w+)" class="view"', self.html), ['home'], 'one page: Home only')
         self.assertIn('role="dialog" aria-modal="true"', self.html)
-        for section in ('general', 'connections', 'budget', 'permissions', 'about'):
+        self.assertIn('id="dictList"', self.html.split('id="sec-voice"')[1].split('</section>')[0], 'the dictionary lives in Settings → Voice')
+        for section in ('general', 'voice', 'connections', 'budget', 'permissions', 'about'):
             self.assertIn(f'data-go="{section}"', self.html)
             self.assertIn(f'id="sec-{section}"', self.html)
 
@@ -223,8 +223,8 @@ class HomePageWebKitTests(unittest.TestCase):
 
     def test_empty_fixture(self):
         r = self.page('empty', self.SNAPSHOT)['result']
-        self.assertEqual(r['vis'], ['words', 'spend'])
-        self.assertEqual(sorted(r['hiddenTiles']), ['guardian', 'papers', 'skills', 'streak', 'weak'])
+        self.assertEqual(r['vis'], [])
+        self.assertEqual(sorted(r['hiddenTiles']), ['guardian', 'papers', 'skills', 'weak'])
         self.assertTrue(r['todayEmptyShown'])
         self.assertEqual(r['today'], 'Nothing due today.')
         self.assertTrue(r['recentEmpty'])
@@ -292,10 +292,12 @@ class HomePageWebKitTests(unittest.TestCase):
             await tick(50);
             return {words: document.querySelector('#wordsToday').textContent,
               vis: [...document.querySelectorAll('#tiles > .tile')].filter(t => !t.hidden).map(t => t.dataset.key),
-              recent: document.querySelector('#recentList').textContent, dots: document.querySelector('#dots').hidden};''')
+              recent: document.querySelector('#recentList').textContent, dots: document.querySelector('#dots').hidden,
+              spendHidden: document.querySelector('#homeSpend').hidden};''')
         r = out['result']
         self.assertEqual(r['words'], '42')
-        self.assertEqual(r['vis'], ['words', 'skills'], 'tiles follow the keys present; spend hides when its key goes')
+        self.assertEqual(r['vis'], ['skills'], 'tiles follow the keys present')
+        self.assertEqual((r['words'], r['spendHidden']), ('42', True), 'spend hides when its key goes')
         self.assertIn('Opened Notes', r['recent'])
         self.assertTrue(r['dots'], 'no connections key, no footer')
 

@@ -24,9 +24,9 @@ class RepoFixTests(unittest.TestCase):
 
     def test_release_metadata_has_one_version_source(self):
         version = (ROOT / 'VERSION').read_text().strip()
-        self.assertEqual(version, '1.5.3')
+        self.assertEqual(version, '0.1.0')   # Chiron's own numbering; the base app's 1.5.3 lives only in CREDITS.md
         major, minor, patch_version = map(int, version.split('.'))
-        self.assertEqual(major * 1_000_000 + minor * 1_000 + patch_version, 1_005_003)
+        self.assertEqual(major * 1_000_000 + minor * 1_000 + patch_version, 1_000)
         build = (ROOT / 'build.sh').read_text()
         self.assertIn('VERSION=$(tr -d', build)
         self.assertIn('<string>$BUILD</string>', build)

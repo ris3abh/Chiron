@@ -102,7 +102,8 @@ def connections():
     brain = providers.brain()
     entry = lambda name: saved.get(name) if isinstance(saved.get(name), dict) else {}
     return {'brain': {'kind': brain, 'ok': bool(entry(brain).get('ok', brain == 'claude-code' and entry('claude-code').get('ok', True)))},
-            'jev': {'ok': bool(entry('jev').get('ok', False)), 'fallback': not entry('jev').get('ok', False)},
+            # Never tested means never set up: Settings saves a Jev key only after its test passes.
+            'jev': {'ok': bool(entry('jev').get('ok', False)), 'missing': not entry('jev'), 'fallback': not entry('jev').get('ok', False)},
             'speech': {'engine': 'apple', 'ok': True}}
 
 

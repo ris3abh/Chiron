@@ -166,18 +166,24 @@ Native tests that skip here:
 
 ### Redesign (asked for by Rishabh: "like Wispr Flow", a new logo)
 - **Logo:** a C holding a gold guiding star. Source `docs/icon.svg`; `scripts/make-icon.sh` renders `ui/AppIcon.icns` and `docs/icon.png` (needs Chrome). The menu bar icon draws the same mark as a template image (`MenuBar.mark()`).
-- **Page (`ui/home.html`):** a sidebar (Home, Insights, Dictionary, Settings) and one rounded panel; flat surfaces, the gold accent, serif display type; light/dark with a toggle (pref `theme`: system/light/dark). This replaces the glass design of 2026-10-28.
-  - Home: greeting with the real ask shortcut as a keycap, hero card with **Ask Chiron** (`ask.start`), stats column (words, spend, connections), asks and dictations in one list grouped by day.
-  - Insights: the seven tiles (same keys and rules) and a 16-week activity heatmap with streak.
-  - Dictionary: the dictation word list is back on screen: add, remove (two presses), heard forms shown.
-  - Settings: a sheet inside the window (General, Connections, Budget, Permissions, About). The separate Settings window is gone; the menu's Settings… opens the sheet (`bridge.push('settings')`).
+- **Page (`ui/home.html`):** one page, Home, in a sidebar and one rounded panel, with Settings as a sheet; flat surfaces, the gold accent, serif display type; light/dark with a toggle (pref `theme`: system/light/dark). This replaces the glass design of 2026-10-28.
+  - Home: greeting with the real ask shortcut as a keycap, hero card with **Ask Chiron** (`ask.start`), a stats column (words dictated, spend and its limit, connections), the 16-week activity heatmap as the Streak tile, the skills, weak-spots, Guardian and papers tiles (hidden until Phase 4), and asks and dictations in one list grouped by day.
+  - Settings: a sheet inside the window (General, Voice and language, Connections, Budget, Permissions, About). The dictionary lives in Voice and language: add, remove (two presses), heard forms shown. The separate Settings window is gone; the menu's Settings… opens the sheet (`bridge.push('settings')`).
 - **Bridge:** `dictionary.list/add/remove`, `ask.start`; `prefs.get` also returns the shortcut labels; `theme` is writable and sets the window's appearance.
 - **Brain (`chiron/home.py`):** state gains `name` (me.json, else the Mac account's first name), `dictations` (last 10) and `activity` (asks + dictations per day, 16 weeks). Tests in `test_home_state`.
 - **Window (`app/HomeWindow.swift`):** one 1180×780 window (min 760×560, saved as `ChironMain`); a transparent `DragStrip` over the page's title strip moves it.
 - 63 new strings in `en.json`/`hi.json`; three Hindi lines added to `hi.review.json`.
 
+### Review fixes after the redesign
+- "Words" read 0 after 8 voice asks because only dictation counts: the label is now **Words dictated / बोलकर लिखे शब्द** until Phase 2 counts voice asks.
+- `VERSION` is 0.1.0 (it was the base app's number); Settings shows "Chiron 0.1.0". `test_repo_fixes` updated.
+- Devanagari has no italic: `:lang(hi) em` is upright, and Hindi emphasis is colour and weight.
+- ख़र्च everywhere, with a test that flags the spelling without the nukta.
+- Three views went back to the plan's one page: the Stats and Dictionary views are gone (first draft of this redesign), see above.
+- Jev with no test yet reads "not set up / सेट नहीं है" (`connections.jev.missing`); a failing connection reads "not working / काम नहीं कर रहा". Clicking any status opens Settings → Connections.
+
 ### Automated tests now
-- `python3 -m unittest discover -s tests -v`: **598 tests, 0 failures, 0 errors, 113 skipped** (host guard on).
+- `python3 -m unittest discover -s tests -v`: **599 tests, 0 failures, 0 errors, 113 skipped** (host guard on).
 - By name against `phase-1-baseline.md`: of the 104 baseline failures/errors, 4 pass, 46 left with their features, 54 now compile but their binaries skip under the host guard.
 - **Still unrun on a real screen:** the 106 host-guarded native tests and the WebKit half of `test_home_page` need `CHIRON_ALLOW_HOST_UI=1` (they open windows) or the VM.
 

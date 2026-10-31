@@ -67,6 +67,11 @@ class StringsTests(unittest.TestCase):
             self.assertTrue(all(w in ALLOWED_LATIN for w in latin_words(self.hi[key])), f'{key} has no Hindi')
         self.assertLess(len(brand_only), 11, f'too many untranslated lines: {brand_only}')
 
+    def test_nukta_spellings_stay_consistent(self):
+        # ख़र्च, like ज़्यादा and हफ़्ते: the nukta form everywhere, so Home and Settings never spell one word two ways.
+        for key, value in self.hi.items():
+            self.assertNotRegex(value, 'ख(?!\u093c)र्च', f'{key}: write ख़र्च with the nukta')
+
     def test_review_file_points_at_real_keys(self):
         review = json.loads((STRINGS / 'hi.review.json').read_text(encoding='utf-8'))
         for key, entry in review.items():
